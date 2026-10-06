@@ -219,9 +219,22 @@ export const api = {
     return response.data;
   },
 
+  // The server sends 20 at a time; follow the pages so the list is not cut short (at most 5 pages)
   getUserNotifications: async () => {
-    const response = await axiosInstance.get('/api/notifications/');
-    return unwrapResults(response.data);
+    const rows: any[] = [];
+    let url: string | null = '/api/notifications/';
+    for (let page = 0; url && page < 5; page++) {
+      const response: any = await axiosInstance.get(url);
+      if (Array.isArray(response.data)) return response.data;
+      rows.push(...(response.data?.results || []));
+      url = response.data?.next ? new URL(response.data.next).pathname + new URL(response.data.next).search : null;
+    }
+    return rows;
+  },
+
+  getUnreadNotificationCount: async (): Promise<number> => {
+    const response = await axiosInstance.get('/api/notifications/unread-count/');
+    return response.data?.count ?? 0;
   },
 
   markNotificationRead: async (notificationId: string | number) => {

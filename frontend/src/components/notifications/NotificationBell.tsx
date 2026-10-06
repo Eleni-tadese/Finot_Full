@@ -4,6 +4,7 @@ import { BellIcon } from '@heroicons/react/24/outline';
 import { api } from '../../lib/api';
 import { onMessageListener } from '../../lib/firebase';
 import { toast } from 'react-hot-toast';
+import { NOTIFICATIONS_CHANGED, announceNotificationsChanged } from '../../lib/notificationsSync';
 
 import { useTranslation } from 'react-i18next';
 
@@ -15,7 +16,9 @@ export const NotificationBell = ({ iconClassName }: { iconClassName?: string }) 
   const location = useLocation();
   const navigate = useNavigate();
 
-  const unreadCount = notifications.filter(n => !n.is_read).length;
+  // the number comes from the server, so it counts every unread one, not only the ones listed here
+  const [serverUnread, setServerUnread] = useState<number | null>(null);
+  const unreadCount = serverUnread ?? notifications.filter(n => !n.is_read).length;
 
   // Close when clicking outside
   useEffect(() => {
@@ -68,13 +71,15 @@ export const NotificationBell = ({ iconClassName }: { iconClassName?: string }) 
     const refresh = () => { if (document.visibilityState === 'visible') fetchNotifications(); };
     const timer = setInterval(refresh, 60000);
     document.addEventListener('visibilitychange', refresh);
-    return () => { clearInterval(timer); document.removeEventListener('visibilitychange', refresh); };
+    window.addEventListener(NOTIFICATIONS_CHANGED, fetchNotifications);
+    return () => { clearInterval(timer); document.removeEventListener('visibilitychange', refresh); window.removeEventListener(NOTIFICATIONS_CHANGED, fetchNotifications); };
   }, []);
 
   const fetchNotifications = async () => {
     try {
-      const data = await api.getUserNotifications();
+      const [data, count] = await Promise.all([api.getUserNotifications(), api.getUnreadNotificationCount()]);
       setNotifications(data);
+      setServerUnread(count);
     } catch (err) {
       console.error("Failed to fetch notifications", err);
     }
@@ -84,6 +89,8 @@ export const NotificationBell = ({ iconClassName }: { iconClassName?: string }) 
     try {
       await api.markNotificationRead(id);
       setNotifications(prev => prev.map(n => n.id === id ? { ...n, is_read: true } : n));
+      setServerUnread(prev => (prev === null ? prev : Math.max(0, prev - 1)));
+      announceNotificationsChanged();
     } catch (err) {
       console.error("Failed to mark as read", err);
     }
@@ -93,6 +100,8 @@ export const NotificationBell = ({ iconClassName }: { iconClassName?: string }) 
     try {
       await api.markAllNotificationsRead();
       setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
+      setServerUnread(0);
+      announceNotificationsChanged();
     } catch (err) {
       console.error("Failed to mark all as read", err);
     }

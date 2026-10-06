@@ -383,6 +383,8 @@ class FamilyMessage(models.Model):
         settings.AUTH_USER_MODEL, on_delete=models.CASCADE, null=True, blank=True, related_name="family_messages_received"
     )
     body = models.TextField(max_length=1000)
+    # A child's reply: only the father and mother read it, not the brothers and sisters
+    parents_only = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:

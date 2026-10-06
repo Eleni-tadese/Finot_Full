@@ -387,16 +387,18 @@ class FamilyViewSet(viewsets.ReadOnlyModelViewSet):
     def send_message(self, request):
         """
         Endpoint: POST /api/service/families/my-family/messages/  {body, to_student_id?}
-        Only a father or mother (or the Super Admin / Family Admin) can send. Without to_student_id it goes to everyone.
+        A father or mother (or the Super Admin / Family Admin) writes to everyone or to one child. A child's message
+        is always a reply to the father and mother only.
         """
         family = self._my_family(request)
         if not family:
             return Response({"detail": "You are not assigned to a family yet."}, status=status.HTTP_404_NOT_FOUND)
-        if not (family_hub.is_parent(request.user, family) or family_hub.is_family_manager(request.user)):
-            raise PermissionDenied("Only the father or mother of the family can send family messages.")
+        is_child = family.members.filter(student=request.user).exists()
+        if not (family_hub.is_parent(request.user, family) or family_hub.is_family_manager(request.user) or is_child):
+            raise PermissionDenied("Only people of this family can send family messages.")
         recipient = None
         target = request.data.get('to_student_id')
-        if target not in (None, ''):
+        if target not in (None, '') and not is_child:
             recipient = User.objects.filter(pk=target).first() if str(target).isdigit() else None
             if recipient is None:
                 return Response({"to_student_id": "That person is not in this family."}, status=status.HTTP_400_BAD_REQUEST)

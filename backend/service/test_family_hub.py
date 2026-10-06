@@ -56,7 +56,7 @@ class TestWhatEachPersonSees:
     def test_child_sees_parents_and_slim_siblings(self, world):
         family, dad, mum, kids, *_ = world
         data = client(kids[0]).get(MINE).json()
-        assert data["my_role"] == "child" and data["can_send"] is False and data["children"] == []
+        assert data["my_role"] == "child" and data["can_send"] is True and data["children"] == []
         assert data["father"]["email"] == "dad@x.com" and data["mother"]["phone"] == "0911000000"
         assert sorted(s["id"] for s in data["siblings"]) == sorted([kids[1].id, kids[2].id])  # not themselves
         assert set(data["siblings"][0]) == {"id", "name", "year", "department", "phone"}  # no email, dorm or attendance
@@ -83,10 +83,30 @@ class TestMessages:
         assert client(kids[1]).get(MINE).json()["messages"] == []
         assert [m["body"] for m in client(dad).get(MINE).json()["messages"]] == ["Call me"]  # the other parent sees all
 
-    def test_children_and_strangers_cannot_send(self, world):
+    def test_child_replies_to_the_parents_only(self, world):
         family, dad, mum, kids, other, stranger = world
-        assert client(kids[0]).post(SEND, {"body": "hi"}, format="json").status_code == 403
-        assert FamilyMessage.objects.count() == 0
+        res = client(kids[0]).post(SEND, {"body": "Thank you, father"}, format="json")
+        assert res.status_code == 201 and res.json()["told"] == 2
+        assert Notification.objects.filter(user=dad, message="Thank you, father").exists()
+        assert Notification.objects.filter(user=mum, message="Thank you, father").exists()
+        assert not Notification.objects.filter(user=kids[1]).exists()
+        # brothers and sisters never see the reply; the sender sees it as theirs; the parents see it
+        assert client(kids[1]).get(MINE).json()["messages"] == []
+        mine = client(kids[0]).get(MINE).json()["messages"][0]
+        assert mine["mine"] is True and mine["to_parents"] is True
+        assert client(dad).get(MINE).json()["messages"][0]["body"] == "Thank you, father"
+        # a child cannot aim a message at a sibling
+        client(kids[0]).post(SEND, {"body": "psst", "to_student_id": kids[1].id}, format="json")
+        assert client(kids[1]).get(MINE).json()["messages"] == []
+
+    def test_child_cannot_reply_when_the_family_has_no_parents(self, world):
+        other = world[4]
+        stranger = world[5]
+        assert client(stranger).post(SEND, {"body": "hi"}, format="json").status_code == 400
+        assert not FamilyMessage.objects.filter(family=other).exists()
+
+    def test_person_without_a_family_cannot_send(self, world):
+        assert client(person("lonely2@x.com")).post(SEND, {"body": "hi"}, format="json").status_code == 404
 
     def test_rules(self, world):
         family, dad, mum, kids, other, stranger = world

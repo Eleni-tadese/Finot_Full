@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { FiBell, FiCheckCircle } from "react-icons/fi";
 import { api } from "../../lib/api";
+import { NOTIFICATIONS_CHANGED, announceNotificationsChanged } from "../../lib/notificationsSync";
 import { Card, SectionHeader } from "../../components/ui/Card";
 import Badge from "../../components/ui/Badge";
 import EmptyState from "../../components/ui/EmptyState";
@@ -51,7 +52,7 @@ function DashboardNotifications() {
     const load = async () => {
       try {
         const data = await api.getUserNotifications();
-        if (!cancelled) setItems(Array.isArray(data) ? (data as NotificationItem[]) : []);
+        if (!cancelled) { setItems(Array.isArray(data) ? (data as NotificationItem[]) : []); setFailed(false); }
       } catch {
         if (!cancelled) setFailed(true);
       } finally {
@@ -59,8 +60,10 @@ function DashboardNotifications() {
       }
     };
     load();
+    window.addEventListener(NOTIFICATIONS_CHANGED, load);
     return () => {
       cancelled = true;
+      window.removeEventListener(NOTIFICATIONS_CHANGED, load);
     };
   }, []);
 
@@ -71,6 +74,7 @@ function DashboardNotifications() {
     setItems((prev) => prev.map((x) => (x.id === n.id ? { ...x, is_read: true } : x)));
     try {
       await api.markNotificationRead(n.id);
+      announceNotificationsChanged();
     } catch {
       // roll back if the server refused
       setItems((prev) => prev.map((x) => (x.id === n.id ? { ...x, is_read: false } : x)));
@@ -82,6 +86,7 @@ function DashboardNotifications() {
     setItems((prev) => prev.map((x) => ({ ...x, is_read: true })));
     try {
       await api.markAllNotificationsRead();
+      announceNotificationsChanged();
     } catch {
       setItems(previous);
     }

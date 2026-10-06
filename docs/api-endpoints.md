@@ -128,6 +128,7 @@ Generated from the code (`manage.py spectacular`). For request and response shap
 | PATCH | `/api/notifications/device-token/{id}/` | Registers the Firebase Cloud Messaging device token. |
 | DELETE | `/api/notifications/device-token/{id}/` | Registers the Firebase Cloud Messaging device token. |
 | POST | `/api/notifications/mark-all-read/` | List user notifications. Allows marking as read. |
+| GET | `/api/notifications/unread-count/` | List user notifications. Allows marking as read. |
 | GET | `/api/notifications/{id}/` | List user notifications. Allows marking as read. |
 | POST | `/api/notifications/{id}/mark-read/` | List user notifications. Allows marking as read. |
 

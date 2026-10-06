@@ -57,6 +57,10 @@ class NotificationViewSet(viewsets.ReadOnlyModelViewSet):
         notification.save()
         return Response({"status": "Notification marked as read"})
 
+    @action(detail=False, methods=["get"], url_path="unread-count")
+    def unread_count(self, request):
+        return Response({"count": self.get_queryset().filter(is_read=False).count()})
+
     @action(detail=False, methods=["post"], url_path="mark-all-read")
     def mark_all_read(self, request):
         self.get_queryset().update(is_read=True)

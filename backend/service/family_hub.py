@@ -5,7 +5,8 @@ Who sees what (decided by the project owner):
   * a father or mother sees each child's contact details, year, department, dorm, section, service groups,
     event attendance and course attendance percentage, and can send messages to the family or to one child;
   * a child sees the father and mother (name, phone, email) and each brother and sister (name, year,
-    department, phone) and the messages addressed to them. A child cannot send messages.
+    department, phone) and the messages addressed to them. A child can reply, but only to the father and mother
+    (the brothers and sisters never see the reply).
 Private details (emergency contact, home address, confession father) are never shown here.
 """
 from datetime import timedelta
@@ -88,10 +89,12 @@ def messages_for(user, family, limit=50):
     """Newest first. A parent reads everything sent to the family; a child reads the family-wide ones and their own."""
     qs = FamilyMessage.objects.filter(family=family).select_related("sender", "recipient")
     if not (is_parent(user, family) or is_family_manager(user)):
-        qs = qs.filter(Q(recipient__isnull=True) | Q(recipient=user))
+        qs = qs.filter(Q(parents_only=False) & (Q(recipient__isnull=True) | Q(recipient=user)) | Q(sender=user))
     return [{
         "id": m.id, "body": m.body, "created_at": m.created_at,
         "sender": m.sender.get_full_name() if m.sender else None,
+        "mine": m.sender_id == user.id,
+        "to_parents": m.parents_only,
         "to": None if m.recipient_id is None else (m.recipient.get_full_name() or m.recipient.username),
     } for m in qs[:limit]]
 
@@ -108,7 +111,7 @@ def my_family_payload(user, family):
         "father": person_card(family.father) if family.father else None,
         "mother": person_card(family.mother) if family.mother else None,
         "messages": messages_for(user, family),
-        "can_send": parent or manager,
+        "can_send": True,  # parents write to the family; a child replies to the parents
     }
     if parent or manager:
         data["children"] = [child_card(m) for m in members]
@@ -135,8 +138,9 @@ def _push(user_ids, title, message):
 def send_family_message(sender, family, body, recipient=None):
     """
     Save a message and tell the people it is for (in-app, plus push when configured).
-    recipient=None means every child and the other parent. Returns (message, how many were told).
-    Raises ValueError with a plain-language reason when the message is not allowed.
+    From a father or mother: recipient=None means every child and the other parent.
+    From a child: always a reply to the father and mother only.
+    Returns (message, how many were told). Raises ValueError with a plain-language reason when not allowed.
     """
     body = (body or "").strip()
     if not body:
@@ -147,6 +151,17 @@ def send_family_message(sender, family, body, recipient=None):
     if FamilyMessage.objects.filter(sender=sender, created_at__gte=since).count() >= MESSAGES_PER_DAY:
         raise ValueError(f"You can send {MESSAGES_PER_DAY} family messages a day. Try again tomorrow.")
     member_ids = list(family.members.values_list("student_id", flat=True))
+    if sender.id in member_ids and not is_parent(sender, family):
+        parents = [p for p in (family.father_id, family.mother_id) if p]
+        if not parents:
+            raise ValueError("Your family has no father or mother yet.")
+        message = FamilyMessage.objects.create(family=family, sender=sender, body=body, parents_only=True)
+        title = f"Reply from {sender.get_full_name() or sender.username} ({family.name})"
+        Notification.objects.bulk_create([
+            Notification(user_id=uid, title=title, message=body, notification_type=Notification.TYPE_SYSTEM) for uid in parents
+        ])
+        _push(parents, title, body)
+        return message, len(parents)
     if recipient is not None and recipient.id not in member_ids:
         raise ValueError("That person is not in this family.")
     message = FamilyMessage.objects.create(family=family, sender=sender, recipient=recipient, body=body)
