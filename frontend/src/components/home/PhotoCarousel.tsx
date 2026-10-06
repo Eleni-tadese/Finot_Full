@@ -1,5 +1,6 @@
 import { motion } from "framer-motion";
 import { useTranslation } from "react-i18next";
+import PhotoFrame from "../ui/PhotoFrame";
 
 const photos = [
 // ... (rest of the file stays same)
@@ -47,12 +48,7 @@ const PhotoCarousel = () => {
               key={`row1-${i}`}
               className="flex-shrink-0 w-72 h-52 md:w-96 md:h-64 rounded-2xl overflow-hidden shadow-card"
             >
-              <img
-                src={photo.src}
-                alt={photo.alt}
-                className="w-full h-full object-cover"
-                loading="lazy"
-              />
+              <PhotoFrame src={photo.src} alt={photo.alt} className="h-full w-full" />
             </div>
           ))}
         </motion.div>
@@ -71,12 +67,7 @@ const PhotoCarousel = () => {
               key={`row2-${i}`}
               className="flex-shrink-0 w-56 h-40 md:w-72 md:h-48 rounded-2xl overflow-hidden shadow-card"
             >
-              <img
-                src={photo.src}
-                alt={photo.alt}
-                className="w-full h-full object-cover"
-                loading="lazy"
-              />
+              <PhotoFrame src={photo.src} alt={photo.alt} className="h-full w-full" />
             </div>
           ))}
         </motion.div>

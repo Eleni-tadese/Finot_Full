@@ -9,6 +9,7 @@ import {
 import { Link } from "react-router-dom";
 import { useEffect, useState } from "react";
 import axiosInstance from "../../lib/axios";
+import PhotoFrame from "../../components/ui/PhotoFrame";
 
 const fadeInUp = {
   hidden: { opacity: 0, y: 30 },
@@ -123,13 +124,9 @@ export default function AboutPage() {
               {/* Images */}
               <motion.div variants={fadeInUp} className="grid grid-cols-2 gap-4">
                 {["/images/gibi1.jpg", "/images/gibi2.jpg", "/images/gibi3.jpg", "/images/gibi4.jpg"].map((src, i) => (
-                  <motion.img
-                    key={src}
-                    whileHover={{ scale: 1.03 }}
-                    src={src}
-                    alt={`Gibi Gubae fellowship ${i + 1}`}
-                    className={`rounded-2xl object-cover w-full h-48 sm:h-56 shadow-card ${i === 1 ? 'mt-6' : i === 2 ? '-mt-4' : ''}`}
-                  />
+                  <motion.div key={src} whileHover={{ scale: 1.03 }} className={`${i === 1 ? 'mt-6' : i === 2 ? '-mt-4' : ''}`}>
+                    <PhotoFrame src={src} alt={`Gibi Gubae fellowship ${i + 1}`} zoom className="h-48 w-full rounded-2xl shadow-card sm:h-56" />
+                  </motion.div>
                 ))}
               </motion.div>
 
@@ -187,7 +184,7 @@ export default function AboutPage() {
                   className="card overflow-hidden p-0 transition-all hover:shadow-elevated"
                 >
                   {group.photo ? (
-                    <img src={group.photo} alt={group.name} className="h-36 w-full object-cover" loading="lazy" />
+                    <PhotoFrame src={group.photo} alt={group.name} zoom className="h-36 w-full" />
                   ) : (
                     <div className="flex h-36 w-full items-center justify-center bg-gradient-to-br from-primary/15 to-accent/20">
                       <UserGroupIcon className="h-10 w-10 text-primary/60" />
@@ -221,13 +218,9 @@ export default function AboutPage() {
             </motion.div>
             <motion.div variants={fadeInUp} className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
               {galleryImages.map((src, i) => (
-                <motion.img
-                  key={src}
-                  whileHover={{ scale: 1.05 }}
-                  src={src}
-                  alt={`Community photo ${i + 1}`}
-                  className="rounded-2xl object-cover w-full h-48 shadow-card"
-                />
+                <motion.div key={src} whileHover={{ scale: 1.05 }}>
+                  <PhotoFrame src={src} alt={`Community photo ${i + 1}`} zoom className="h-48 w-full rounded-2xl shadow-card" />
+                </motion.div>
               ))}
             </motion.div>
           </motion.div>

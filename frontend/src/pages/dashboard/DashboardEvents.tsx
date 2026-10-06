@@ -4,6 +4,8 @@ import { api } from "../../lib/api";
 import { Card, SectionHeader } from "../../components/ui/Card";
 import Badge from "../../components/ui/Badge";
 import EmptyState from "../../components/ui/EmptyState";
+import PhotoFrame from "../../components/ui/PhotoFrame";
+import ExpandableText from "../../components/ui/ExpandableText";
 import { useTranslation } from "react-i18next";
 import { 
   FiCalendar, 
@@ -183,35 +185,36 @@ const DashboardEvents = () => {
                 >
                   <Card hoverable className="group overflow-hidden h-full flex flex-col">
                     {/* Image Section */}
-                    {event.photo && (
-                      <div className="relative -mt-4 -mx-4 mb-4 h-44 overflow-hidden rounded-t-xl">
-                        <img
-                          src={event.photo}
-                          alt={event.title}
-                          className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
-                        />
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent" />
-                        
-                        {/* Status Badge on Image */}
-                        <div className={`absolute top-3 right-3 rounded-full ${statusColor} px-2.5 py-1 text-xs font-medium shadow-lg backdrop-blur-sm`}>
-                          {statusText}
-                        </div>
-                        
-                        {/* Date Badge on Image */}
-                        {eventDate && (
-                          <div className="absolute bottom-3 left-3 rounded-xl bg-white/95 backdrop-blur-sm px-3 py-1.5 shadow-lg">
-                            <div className="text-center">
-                              <div className="text-xs font-semibold uppercase text-primary">
-                                {eventDate.toLocaleDateString(undefined, { month: "short" })}
-                              </div>
-                              <div className="text-xl font-bold leading-none text-foreground">
-                                {eventDate.getDate()}
+                    {(() => {
+                      const badges = (
+                        <>
+                          <div className={`pointer-events-none absolute top-3 right-3 rounded-full ${statusColor} px-2.5 py-1 text-xs font-medium shadow-lg`}>
+                            {statusText}
+                          </div>
+                          {eventDate && (
+                            <div className="pointer-events-none absolute bottom-3 left-3 rounded-xl bg-white/95 px-3 py-1.5 shadow-lg">
+                              <div className="text-center">
+                                <div className="text-xs font-semibold uppercase text-primary">
+                                  {eventDate.toLocaleDateString(undefined, { month: "short" })}
+                                </div>
+                                <div className="text-xl font-bold leading-none text-foreground">
+                                  {eventDate.getDate()}
+                                </div>
                               </div>
                             </div>
-                          </div>
-                        )}
-                      </div>
-                    )}
+                          )}
+                        </>
+                      );
+                      return event.photo ? (
+                        <PhotoFrame src={event.photo} alt={event.title} zoom className="-mt-4 -mx-4 mb-4 h-52 rounded-t-xl">
+                          {badges}
+                        </PhotoFrame>
+                      ) : (
+                        <div className="relative -mt-4 -mx-4 mb-4 h-24 overflow-hidden rounded-t-xl bg-gradient-to-br from-primary/15 to-accent/20">
+                          {badges}
+                        </div>
+                      );
+                    })()}
 
                     {/* Content Section */}
                     <div className="flex-1">
@@ -235,8 +238,11 @@ const DashboardEvents = () => {
                       <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2">
                         <FiClock className="h-4 w-4 flex-shrink-0" />
                         <span>
-                          {eventDate 
-                            ? `${eventDate.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" })}` 
+                          {eventDate
+                            ? [event.start_date, event.end_date]
+                                .filter(Boolean)
+                                .map((d) => new Date(d).toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" }))
+                                .join(" – ")
                             : t("time_tbd")}
                         </span>
                       </div>
@@ -262,9 +268,9 @@ const DashboardEvents = () => {
                       {event.description && (
                         <div className="mt-3 flex gap-2 rounded-lg bg-muted/30 p-3">
                           <FiMessageCircle className="h-4 w-4 flex-shrink-0 text-muted-foreground mt-0.5" />
-                          <p className="text-sm text-muted-foreground line-clamp-2 flex-1">
-                            {event.description}
-                          </p>
+                          <div className="flex-1 min-w-0 text-sm text-muted-foreground">
+                            <ExpandableText text={event.description} lines={3} />
+                          </div>
                         </div>
                       )}
 

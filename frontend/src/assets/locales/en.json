@@ -1521,5 +1521,8 @@
   "evatt_hint": "Tick the people who came. Everyone you leave unticked is saved as absent.",
   "evatt_empty_roster": "Nobody is on this event's list.",
   "evatt_year": "Year {{n}}",
-  "evatt_save": "Save attendance"
+  "evatt_save": "Save attendance",
+  "ui_read_more": "Read more",
+  "ui_show_less": "Show less",
+  "ui_zoom_image": "View the full picture"
 }

@@ -40,7 +40,7 @@ const ImageSlideshow = ({ images, interval = 5000, dots = true, index, className
           src={src}
           alt=""
           loading={i === 0 ? "eager" : "lazy"}
-          className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-1000 ${i === active ? "opacity-100" : "opacity-0"}`}
+          className={`absolute inset-0 h-full w-full object-cover object-[50%_30%] transition-opacity duration-1000 ${i === active ? "opacity-100" : "opacity-0"}`}
         />
       ))}
       {overlay && <div className="absolute inset-0 bg-gradient-to-t from-primary/90 via-primary/60 to-primary/30" />}

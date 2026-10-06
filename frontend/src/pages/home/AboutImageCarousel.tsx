@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import PhotoFrame from "../../components/ui/PhotoFrame";
 
 const aboutImages = [
   { src: "/images/gibi1.jpg", alt: "Community 1" },
@@ -43,20 +44,18 @@ const AboutImageCarousel: React.FC = () => {
     <div className="w-full h-full flex justify-center items-center">
       <div className="relative w-full h-full max-h-[520px] aspect-[4/3] rounded-2xl overflow-hidden shadow-lg flex items-center justify-center">
         <AnimatePresence initial={false} custom={direction}>
-          <motion.img
+          <motion.div
             key={aboutImages[index].src}
-            src={aboutImages[index].src}
-            alt={aboutImages[index].alt}
-            className="w-full h-full object-cover rounded-2xl"
-            style={{ maxHeight: '100%', maxWidth: '100%' }}
+            className="absolute inset-0"
             custom={direction}
             variants={variants}
             initial="enter"
             animate="center"
             exit="exit"
             transition={{ x: { type: "spring", stiffness: 80, damping: 24 }, opacity: { duration: 0.6 } }}
-            loading="lazy"
-          />
+          >
+            <PhotoFrame src={aboutImages[index].src} alt={aboutImages[index].alt} className="h-full w-full rounded-2xl" />
+          </motion.div>
         </AnimatePresence>
       </div>
     </div>

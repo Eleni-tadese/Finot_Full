@@ -1521,5 +1521,8 @@
   "evatt_hint": "Warra dhufan mallatteessi. Warri hin mallatteessine hundi hin argamne jedhamee galmaa'u.",
   "evatt_empty_roster": "Tarree taatee kanaa keessa nama hin jiru.",
   "evatt_year": "Umuriin {{n}}",
-  "evatt_save": "Hordoffii olkaa'i"
+  "evatt_save": "Hordoffii olkaa'i",
+  "ui_read_more": "Dabalata dubbisi",
+  "ui_show_less": "Xiqqeessi",
+  "ui_zoom_image": "Suuraa guutuu ilaali"
 }

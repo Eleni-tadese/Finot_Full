@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useConfirm } from "../../../components/ui/ConfirmProvider";
+import PhotoFrame from "../../../components/ui/PhotoFrame";
+import ExpandableText from "../../../components/ui/ExpandableText";
 import { api } from "../../../lib/api";
 import { PlusIcon, MapPinIcon, TrashIcon, PhotoIcon, PencilIcon, XMarkIcon, FunnelIcon } from "@heroicons/react/24/outline";
 import { useTranslation } from "react-i18next";
@@ -348,7 +350,7 @@ export default function GroupEventsManager({ groupId, eventType }: GroupEventsMa
           {filteredEvents.map((event) => (
             <div key={event.id} className="rounded-xl border border-border bg-card shadow-soft overflow-hidden flex flex-col">
               {event.photo && (
-                <img src={event.photo} alt={event.title} className="w-full h-40 object-cover" />
+                <PhotoFrame src={event.photo} alt={event.title} zoom className="h-44 w-full" />
               )}
               <div className="p-5 flex-1 space-y-3">
                 <div className="flex justify-between items-start gap-2">
@@ -385,7 +387,7 @@ export default function GroupEventsManager({ groupId, eventType }: GroupEventsMa
                   </div>
                 )}
                 {event.description && (
-                  <p className="text-sm text-muted-foreground line-clamp-3">{event.description}</p>
+                  <div className="text-sm text-muted-foreground"><ExpandableText text={event.description} lines={3} /></div>
                 )}
               </div>
               <div className="bg-muted/30 px-5 py-3 border-t border-border flex justify-between items-center text-xs text-muted-foreground">
