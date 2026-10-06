@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { ReactNode, useEffect, useState } from "react";
 import ProfilePicture from "../../components/ui/ProfilePicture";
 import { firstApiError } from "../../features/resources/utils";
 import { Link, useNavigate } from "react-router-dom";
@@ -10,26 +10,34 @@ import { api } from "../../lib/api";
 import axiosInstance from "../../lib/axios";
 
 type EditProfileFormData = {
-  full_name: string; email: string; gender: string; profile_image: File | null;
+  profile_image: File | null;
   batch: string; department: string; telegram: string; personal_phone: string; sms_opt_in: boolean;
   emergency_name: string; emergency_phone: string; emergency_relation: string;
   home_address: string; previous_church: string; activity_serving: string;
-  dorm_block: string; dorm_room: string; confession_father: string; status: string;
+  dorm_block: string; dorm_room: string; confession_father: string;
 };
+
+/** A titled group of fields, so the form says what each part is for. */
+const Section = ({ title, hint, children }: { title: string; hint?: string; children: ReactNode }) => (
+  <section className="rounded-2xl border border-border p-4 sm:p-5">
+    <h2 className="text-base font-semibold text-foreground">{title}</h2>
+    {hint && <p className="mb-4 mt-0.5 text-sm text-muted-foreground">{hint}</p>}
+    <div className={`grid grid-cols-1 gap-4 md:grid-cols-2 ${hint ? "" : "mt-4"}`}>{children}</div>
+  </section>
+);
 
 const EditProfile = () => {
   const { t } = useTranslation();
   const { user, setUser } = useAuth();
   const navigate = useNavigate();
 
-  const normalizedGender = user?.gender === "Male" ? "M" : user?.gender === "Female" ? "F" : user?.gender || "";
+  const genderLabel = user?.gender === "M" || user?.gender === "Male" ? t("gender_m") : user?.gender === "F" || user?.gender === "Female" ? t("gender_f") : "";
   const normalizedStatus = user?.profile?.status === "active" ? "IN_CAMPUS" : user?.profile?.status === "graduated" ? "GRADUATED" : "";
   const parsedBatch = user?.profile?.batch ? user.profile.batch.replace(/\s*Year\s*/i, "") : "";
   const parsedDormBlock = user?.profile?.dorm_block_room ? user.profile.dorm_block_room.match(/Block\s*(\d+)/i)?.[1] || "" : "";
   const parsedDormRoom = user?.profile?.dorm_block_room ? user.profile.dorm_block_room.match(/Room\s*(\d+)/i)?.[1] || "" : "";
 
   const [formData, setFormData] = useState<EditProfileFormData>({
-    full_name: user?.full_name || "", email: user?.email || "", gender: normalizedGender,
     profile_image: null,
     batch: parsedBatch, department: user?.profile?.department || "",
     telegram: user?.profile?.telegram || "", personal_phone: user?.profile?.personal_phone || "", sms_opt_in: Boolean(user?.profile?.sms_opt_in),
@@ -38,7 +46,7 @@ const EditProfile = () => {
     home_address: user?.profile?.home_address || "", previous_church: user?.profile?.previous_church || "",
     activity_serving: user?.profile?.activity_serving || "",
     dorm_block: parsedDormBlock, dorm_room: parsedDormRoom,
-    confession_father: user?.profile?.confession_father || "", status: normalizedStatus,
+    confession_father: user?.profile?.confession_father || "",
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [departments, setDepartments] = useState<{ id: number; name: string; years: number }[]>([]);
@@ -97,7 +105,26 @@ const EditProfile = () => {
   const statuses = [{ label: t("in_campus"), value: "IN_CAMPUS" }, { label: t("graduated_status"), value: "GRADUATED" }];
 
   const labelClass = "block text-sm font-medium text-foreground mb-1.5";
-  const inputClass = "input";
+  const hintClass = "mt-1 text-xs text-muted-foreground";
+  const optional = <span className="font-normal text-muted-foreground"> {t("prof_optional", "(optional)")}</span>;
+  const fixedHint = t("prof_fixed_hint", "Set earlier. Ask the Super Admin to change it.");
+
+  /** A plain text box with a label, an example in it, and an optional hint. */
+  const text = (name: keyof EditProfileFormData, label: string, placeholder: string, opts: { optional?: boolean; hint?: string; type?: string } = {}) => (
+    <div>
+      <label className={labelClass} htmlFor={`f-${name}`}>{label}{opts.optional && optional}</label>
+      <input id={`f-${name}`} type={opts.type || "text"} name={name} value={String(formData[name] ?? "")} onChange={handleChange} placeholder={placeholder} className="input" />
+      {opts.hint && <p className={hintClass}>{opts.hint}</p>}
+    </div>
+  );
+
+  /** A value that was set at sign-up and cannot be changed here. */
+  const fixed = (label: string, value: string) => (
+    <div>
+      <label className={labelClass}>{label}</label>
+      <input type="text" readOnly disabled value={value} className="input" />
+    </div>
+  );
 
   return (
     <div className="space-y-6">
@@ -108,9 +135,10 @@ const EditProfile = () => {
       </div>
 
       <div className="card">
-        <h1 className="text-xl font-bold text-foreground mb-6">{t("edit_profile")}</h1>
+        <h1 className="text-xl font-bold text-foreground mb-1">{t("edit_profile")}</h1>
+        <p className="mb-6 text-sm text-muted-foreground">{t("prof_intro", "Fill in what you can. Only your year, department and phone number really matter; the rest is optional.")}</p>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form onSubmit={handleSubmit} className="space-y-5">
           {/* Photo */}
           <div className="flex items-center gap-5">
             <ProfilePicture src={imagePreview} name={user?.full_name || ""} className="h-20 w-20 rounded-2xl border-2 border-accent/30 text-3xl" />
@@ -118,32 +146,19 @@ const EditProfile = () => {
               <label className={labelClass}>{t("change_photo")}</label>
               <input type="file" accept="image/*" onChange={handleImageChange}
                 className="text-sm text-muted-foreground file:mr-3 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-semibold file:bg-accent file:text-accent-foreground hover:file:bg-accent-hover file:cursor-pointer" />
+              <p className={hintClass}>{t("prof_photo_hint", "A clear photo of your face. Without one, your first initial is shown.")}</p>
             </div>
           </div>
 
-          {/* Fields */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {[
-              { name: "full_name", label: t("full_name_label"), type: "text", required: true },
-              { name: "email", label: t("email_address"), type: "email", required: true },
-            ].map((f) => (
-              <div key={f.name}>
-                <label className={labelClass}>{f.label} {f.required && "*"}</label>
-                <input type={f.type} name={f.name} value={(formData as any)[f.name]} onChange={handleChange} className={inputClass} />
-              </div>
-            ))}
+          <Section title={t("prof_sec_about", "About you")} hint={t("prof_sec_about_hint", "Your name, email and gender were set when you registered. Your year and department are chosen once.")}>
+            {fixed(t("full_name_label"), user?.full_name || "")}
+            {fixed(t("email_address"), user?.email || "")}
+            {fixed(t("gender_label"), genderLabel)}
+            {fixed(t("status"), statuses.find((s) => s.value === normalizedStatus)?.label ?? "")}
             <div>
-              <label className={labelClass}>{t("gender_label")} *</label>
-              <select name="gender" value={formData.gender} onChange={handleChange} className={inputClass}>
-                <option value="">{t("select_gender")}</option>
-                <option value="M">{t("gender_m")}</option>
-                <option value="F">{t("gender_f")}</option>
-              </select>
-            </div>
-            <div>
-              <label className={labelClass}>{t("batch_year")}</label>
-              <select name="batch" value={formData.batch} onChange={handleChange} disabled={lockedBatch} className={inputClass}>
-                <option value="">{t("select_gender")}</option>
+              <label className={labelClass} htmlFor="f-batch">{t("batch_year")}</label>
+              <select id="f-batch" name="batch" value={formData.batch} onChange={handleChange} disabled={lockedBatch} className="input">
+                <option value="">{t("prof_pick_year", "Choose your year of study")}</option>
                 {batches
                   .filter((b) => {
                     const years = departments.find((d) => d.name === formData.department)?.years;
@@ -151,38 +166,25 @@ const EditProfile = () => {
                   })
                   .map((b) => <option key={b.value} value={b.value}>{b.label}</option>)}
               </select>
-              {lockedBatch && <p className="mt-1 text-xs text-muted-foreground">{t("prof_locked_hint", "Set earlier. Ask the Super Admin to change it.")}</p>}
+              <p className={hintClass}>{lockedBatch ? fixedHint : t("prof_year_hint", "Needed for your courses, your roles and your family. You can set it only once.")}</p>
             </div>
             <div>
-              <label className={labelClass}>{t("department")}</label>
+              <label className={labelClass} htmlFor="f-department">{t("department")}</label>
               {departments.length > 0 ? (
-                <select name="department" value={formData.department} onChange={handleChange} disabled={lockedDepartment} className={inputClass}>
-                  <option value="">{t("select_gender")}</option>
+                <select id="f-department" name="department" value={formData.department} onChange={handleChange} disabled={lockedDepartment} className="input">
+                  <option value="">{t("prof_pick_department", "Choose your department")}</option>
                   {departments.map((d) => <option key={d.id} value={d.name}>{d.name}</option>)}
                 </select>
               ) : (
-                <input type="text" name="department" value={formData.department} onChange={handleChange} disabled={lockedDepartment} className={inputClass} />
+                <input id="f-department" type="text" name="department" value={formData.department} onChange={handleChange} disabled={lockedDepartment} placeholder={t("prof_department_ph", "e.g. Computer Science")} className="input" />
               )}
-              {lockedDepartment && <p className="mt-1 text-xs text-muted-foreground">{t("prof_locked_hint", "Set earlier. Ask the Super Admin to change it.")}</p>}
+              <p className={hintClass}>{lockedDepartment ? fixedHint : t("prof_department_hint", "You can set it only once.")}</p>
             </div>
-            {[
-              { name: "telegram", label: t("telegram"), placeholder: t("telegram_placeholder") },
-              { name: "personal_phone", label: t("phone") },
-              { name: "emergency_name", label: t("emergency_name") },
-              { name: "emergency_phone", label: t("phone") },
-              { name: "emergency_relation", label: t("relationship") },
-              { name: "home_address", label: t("home_address") },
-              { name: "previous_church", label: t("previous_church") },
-              { name: "activity_serving", label: t("activities_serving") },
-              { name: "dorm_block", label: t("dorm_block") },
-              { name: "dorm_room", label: t("dorm_room") },
-              { name: "confession_father", label: t("confession_father") },
-            ].map((f) => (
-              <div key={f.name}>
-                <label className={labelClass}>{f.label}</label>
-                <input type="text" name={f.name} value={(formData as any)[f.name]} onChange={handleChange} placeholder={(f as any).placeholder || ""} className={inputClass} />
-              </div>
-            ))}
+          </Section>
+
+          <Section title={t("prof_sec_contact", "How we reach you")}>
+            {text("personal_phone", t("prof_phone", "Your phone number"), t("prof_phone_ph", "e.g. 0911 223 344"), { hint: t("prof_phone_hint", "Used only if you tick the SMS box below.") })}
+            {text("telegram", t("telegram"), t("telegram_placeholder", "@username"), { optional: true })}
             <div className="md:col-span-2">
               <label className="flex items-start gap-3 cursor-pointer">
                 <input
@@ -197,12 +199,25 @@ const EditProfile = () => {
                 </span>
               </label>
             </div>
-            <div>
-              <label className={labelClass}>{t("status")}</label>
-              <input type="text" readOnly disabled value={statuses.find((s) => s.value === formData.status)?.label ?? ""} className={inputClass} />
-              <p className="mt-1 text-xs text-muted-foreground">{t("prof_locked_hint", "Set earlier. Ask the Super Admin to change it.")}</p>
-            </div>
-          </div>
+          </Section>
+
+          <Section title={t("prof_sec_campus", "Where you live on campus")} hint={t("prof_sec_campus_hint", "Used to place you in a mentorship family with students who live near you.")}>
+            {text("dorm_block", t("dorm_block"), t("prof_dorm_block_ph", "Block number, e.g. 3"), { optional: true })}
+            {text("dorm_room", t("dorm_room"), t("prof_dorm_room_ph", "Room number, e.g. 214"), { optional: true })}
+          </Section>
+
+          <Section title={t("prof_sec_emergency", "Emergency contact")} hint={t("prof_sec_emergency_hint", "Someone we can call if we cannot reach you, such as a parent or guardian.")}>
+            {text("emergency_name", t("prof_em_name", "Contact name"), t("prof_em_name_ph", "Name of a parent or guardian"), { optional: true })}
+            {text("emergency_phone", t("prof_em_phone", "Contact phone number"), t("prof_phone_ph", "e.g. 0911 223 344"), { optional: true })}
+            {text("emergency_relation", t("relationship"), t("prof_em_rel_ph", "e.g. Mother, Father, Brother"), { optional: true })}
+          </Section>
+
+          <Section title={t("prof_sec_more", "More about you")} hint={t("prof_sec_more_hint", "All optional. It helps the fellowship know and serve you better.")}>
+            {text("home_address", t("home_address"), t("prof_address_ph", "Town or sub-city"), { optional: true })}
+            {text("previous_church", t("previous_church"), t("prof_church_ph", "The church you attended before"), { optional: true })}
+            {text("activity_serving", t("activities_serving"), t("prof_activity_ph", "e.g. Choir, Sunday school"), { optional: true })}
+            {text("confession_father", t("confession_father"), t("prof_confession_ph", "Your spiritual father's name"), { optional: true })}
+          </Section>
 
           <button type="submit" disabled={isSubmitting} className="btn-primary w-full">
             {isSubmitting ? t("saving") : t("save_changes")}
