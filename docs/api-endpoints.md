@@ -20,6 +20,7 @@ Generated from the code (`manage.py spectacular`). For request and response shap
 | POST | `/api/admin-console/families/distribution/batches/{id}/undo/` | api_admin_console_families_distribution_batches_undo_create |
 | POST | `/api/admin-console/families/distribution/confirm/` | api_admin_console_families_distribution_confirm_create |
 | POST | `/api/admin-console/families/distribution/preview/` | api_admin_console_families_distribution_preview_create |
+| GET | `/api/admin-console/families/people/` | GET families/people/?search= : name and email of active people, so a father or mother can be picked. |
 | GET | `/api/admin-console/overview/` | api_admin_console_overview_retrieve |
 | GET | `/api/admin-console/qa/counselors/` | api_admin_console_qa_counselors_retrieve |
 | PUT | `/api/admin-console/qa/counselors/{id}/specializations/` | api_admin_console_qa_counselors_specializations_update |

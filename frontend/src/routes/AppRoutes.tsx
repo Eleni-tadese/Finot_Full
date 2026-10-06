@@ -120,10 +120,12 @@ export default function AppRoutes() {
                 <Route path="admin/sub-admins" element={<AdminSubAdminsPage />} />
                 <Route path="admin/users" element={<AdminUsersPage />} />
                 <Route path="admin/qa" element={<AdminQaPage />} />
-                <Route path="admin/families" element={<AdminFamiliesPage />} />
                 <Route path="admin/donations" element={<AdminDonationsPage />} />
                 <Route path="admin/sms" element={<AdminSmsPage />} />
                 <Route path="admin/exports" element={<AdminExportsPage />} />
+              </Route>
+              <Route element={<ProtectedRoute allowedRoles={["Super_admin", "family_admin"]} />}>
+                <Route path="admin/families" element={<AdminFamiliesPage />} />
               </Route>
               <Route element={<ProtectedRoute allowedRoles={["service_admin"]} />}>
                 <Route path="manage-ageglot" element={<ManageAgeglotDashboard />} />

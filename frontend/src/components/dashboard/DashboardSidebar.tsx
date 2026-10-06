@@ -72,6 +72,9 @@ const DashboardSidebar = ({
   if (hasRole(user, "QA_moderator")) {
     navItems.push({ to: "/dashboard/counselor/approve", label: t("moderator_queue"), icon: ShieldCheckIcon });
   }
+  if (hasRole(user, "family_admin") && !hasRole(user, "Super_admin")) {
+    navItems.push({ to: "/dashboard/admin/families", label: t("adm_nav_families", "Families"), icon: UserGroupIcon });
+  }
   if (hasRole(user, "Event_manager")) {
     navItems.push({ to: "/dashboard/event-management", label: t("event_management"), icon: FiCalendar });
   }

@@ -9,10 +9,11 @@ export interface PickedUser { id: number; full_name: string; email?: string }
 /**
  * Search for one person by name or email and pick them.
  * With `role`, only people who already hold that role are listed (and the list shows without typing).
+ * With `limited`, only name and email are searched (the Family Admin may not read the full user list).
  */
 const UserPicker = ({
-  value, onChange, label, role, hint,
-}: { value: PickedUser | null; onChange: (u: PickedUser | null) => void; label: string; role?: string; hint?: string }) => {
+  value, onChange, label, role, hint, limited,
+}: { value: PickedUser | null; onChange: (u: PickedUser | null) => void; label: string; role?: string; hint?: string; limited?: boolean }) => {
   const { t } = useTranslation();
   const [search, setSearch] = useState("");
   const [results, setResults] = useState<AdminUser[]>([]);
@@ -23,13 +24,13 @@ const UserPicker = ({
     if (needsTyping && search.trim().length < 2) { setResults([]); return; }
     setBusy(true);
     const timer = setTimeout(() => {
-      adminApi.users({ search: search.trim() || undefined, role })
+      (limited ? adminApi.familyPeople(search.trim()) : adminApi.users({ search: search.trim() || undefined, role }))
         .then((d) => setResults(d.results.filter((u) => u.is_active)))
         .catch(() => setResults([]))
         .finally(() => setBusy(false));
     }, 300);
     return () => clearTimeout(timer);
-  }, [search, role, needsTyping]);
+  }, [search, role, needsTyping, limited]);
 
   const showList = !needsTyping || search.trim().length >= 2;
 

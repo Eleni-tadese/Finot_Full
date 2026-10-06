@@ -36,7 +36,7 @@ def boss():
 
 @pytest.mark.django_db
 class TestAccess:
-    URLS = ["overview/", "roles/", "users/", "qa/counselors/", "families/distribution/", "sms/settings/", "sms/logs/"]
+    URLS = ["overview/", "roles/", "users/", "qa/counselors/", "sms/settings/", "sms/logs/"]
 
     def test_only_super_admin(self, boss):
         others = [make_user("stu@finot.test"), make_user("sa@finot.test", Role.SERVICE_ADMIN),
@@ -678,3 +678,51 @@ class TestServiceAdminComesFromTheGroup:
         ServiceGroupMembership.objects.create(student=fresh, service_group=self.choir)
         res = self.set_admin(self.choir, fresh.id)
         assert res.status_code == 400 and "year 1" in str(res.json())
+
+
+@pytest.mark.django_db
+class TestFamilyAdminAccess:
+    """The Family Admin runs the Families page (create, distribute, undo) and nothing else of the console."""
+
+    FAMILY_URLS = ["families/distribution/", "families/people/?search=ab"]
+
+    def test_family_admin_and_super_admin_in_everyone_else_out(self, boss):
+        fam = make_user("fam@finot.test", Role.FAMILY_ADMIN)
+        others = [make_user("stu@finot.test"), make_user("sa@finot.test", Role.SERVICE_ADMIN),
+                  make_user("mod@finot.test", Role.QA_MODERATOR), make_user("ev@finot.test", Role.EVENT_MANAGER)]
+        for url in self.FAMILY_URLS:
+            assert APIClient().get(BASE + url).status_code == 401
+            for user in others:
+                assert client_for(user).get(BASE + url).status_code == 403
+            assert client_for(fam).get(BASE + url).status_code == 200
+            assert client_for(boss).get(BASE + url).status_code == 200
+
+    def test_family_admin_stays_out_of_the_rest_of_the_console(self):
+        fam = make_user("fam@finot.test", Role.FAMILY_ADMIN)
+        for url in ["overview/", "roles/", "users/", "users/filters/", "qa/counselors/", "sms/settings/", "sub-admins/", "donations/"]:
+            assert client_for(fam).get(BASE + url).status_code == 403, url
+        assert client_for(fam).patch(BASE + "service-config/", {"is_selection_open": True}, format="json").status_code == 403
+
+    def test_family_admin_creates_family_and_distributes(self):
+        fam = make_user("fam@finot.test", Role.FAMILY_ADMIN)
+        father = make_user("dad@finot.test", gender="M", batch=5)
+        mother = make_user("mum@finot.test", gender="F", batch=5)
+        c = client_for(fam)
+        res = c.post(BASE + "families/", {"name": "Family 9", "father_id": father.id, "mother_id": mother.id}, format="json")
+        assert res.status_code == 201
+        family = Family.objects.get(name="Family 9")
+        fresher = make_user("new@finot.test", gender="F", batch=1)
+        preview = c.post(BASE + "families/distribution/preview/", {"family_ids": [family.id]}, format="json").json()
+        assert preview["total_added"] == 1
+        done = c.post(BASE + "families/distribution/confirm/", {"pairs": preview["pairs"]}, format="json").json()
+        assert done["applied"] == 1 and FamilyMembership.objects.filter(student=fresher).exists()
+        assert c.post(f"{BASE}families/distribution/batches/{done['batch']['id']}/undo/").status_code == 200
+        assert not FamilyMembership.objects.exists()
+
+    def test_people_search_is_small_and_needs_two_letters(self):
+        fam = make_user("fam@finot.test", Role.FAMILY_ADMIN)
+        make_user("selam@finot.test", gender="F")
+        c = client_for(fam)
+        assert c.get(BASE + "families/people/", {"search": "s"}).json() == {"results": []}
+        row = c.get(BASE + "families/people/", {"search": "selam"}).json()["results"][0]
+        assert set(row) == {"id", "full_name", "email", "is_active", "gender"}

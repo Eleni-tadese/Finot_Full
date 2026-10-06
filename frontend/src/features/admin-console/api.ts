@@ -33,6 +33,8 @@ export const adminApi = {
 
   users: (params: Record<string, string | number | undefined>) =>
     axiosInstance.get<Paginated<AdminUser>>(`${C}/users/`, { params }).then((r) => r.data),
+  familyPeople: (search: string) =>
+    axiosInstance.get<{ results: AdminUser[] }>(`${C}/families/people/`, { params: { search } }).then((r) => r.data),
   userCard: (id: number) => axiosInstance.get<PersonCard>(`${C}/users/${id}/`).then((r) => r.data),
   userFilterOptions: () => axiosInstance.get<UserFilterOptions>(`${C}/users/filters/`).then((r) => r.data),
   updateUser: (

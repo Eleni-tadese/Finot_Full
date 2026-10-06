@@ -16,6 +16,7 @@ urlpatterns = [
     path("qa/counselors/<int:pk>/specializations/", v.CounselorSpecializationsView.as_view()),
     path("service-config/", v.ServiceConfigView.as_view()),
     path("families/", v.FamiliesView.as_view()),
+    path("families/people/", v.FamilyPeopleView.as_view()),
     path("families/distribution/", v.DistributionOverviewView.as_view()),
     path("families/distribution/preview/", v.DistributionPreviewView.as_view()),
     path("families/distribution/confirm/", v.DistributionConfirmView.as_view()),

@@ -214,8 +214,8 @@ const FamiliesAdminPage = () => {
                 <option value="F">{t("fam_gender_F", "Female students only")}</option>
               </select>
             </div>
-            <UserPicker label={t("fam_father", "Father (a man, optional)")} value={famFather} onChange={setFamFather} />
-            <UserPicker label={t("fam_mother", "Mother (a woman, optional)")} value={famMother} onChange={setFamMother} />
+            <UserPicker label={t("fam_father", "Father (a man, optional)")} value={famFather} onChange={setFamFather} limited />
+            <UserPicker label={t("fam_mother", "Mother (a woman, optional)")} value={famMother} onChange={setFamMother} limited />
             <div>
               <label className="text-sm font-medium text-foreground" htmlFor="fam-rel">{t("fam_religious", "Religious father (optional)")}</label>
               <input id="fam-rel" className="input mt-1 w-full" value={famReligious} onChange={(e) => setFamReligious(e.target.value)} maxLength={150} />

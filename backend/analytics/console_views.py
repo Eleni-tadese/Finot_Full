@@ -52,6 +52,20 @@ class ConsoleView(APIView):
     permission_classes = [IsSuperAdminUser]
 
 
+class IsSuperAdminOrFamilyAdmin(permissions.BasePermission):
+    """Families are run by the Super Admin and by people holding the Family Admin role."""
+
+    def has_permission(self, request, view):
+        user = request.user
+        if not (user and user.is_authenticated):
+            return False
+        return is_super_admin(user) or user.roles.filter(name=Role.FAMILY_ADMIN).exists()
+
+
+class FamilyConsoleView(APIView):
+    permission_classes = [IsSuperAdminOrFamilyAdmin]
+
+
 class ConsolePagination(PageNumberPagination):
     page_size = 20
     page_size_query_param = "page_size"
@@ -579,7 +593,23 @@ class ServiceConfigView(ConsoleView):
 
 # ── Families ────────────────────────────────────────────────────────────────
 
-class FamiliesView(ConsoleView):
+class FamilyPeopleView(FamilyConsoleView):
+    """GET families/people/?search= : name and email of active people, so a father or mother can be picked.
+    Deliberately small: a Family Admin must not see the full user list (phones, roles, groups)."""
+
+    def get(self, request):
+        term = request.query_params.get("search", "").strip()
+        if len(term) < 2:
+            return Response({"results": []})
+        qs = User.objects.filter(is_active=True).filter(
+            Q(first_name__icontains=term) | Q(middle_name__icontains=term) | Q(last_name__icontains=term) | Q(email__icontains=term)
+        ).order_by("first_name", "last_name", "id")[:20]
+        return Response({"results": [
+            {"id": u.id, "full_name": full_name(u), "email": u.email, "is_active": True, "gender": u.gender} for u in qs
+        ]})
+
+
+class FamiliesView(FamilyConsoleView):
     def post(self, request):
         """
         Create a family. Body: name, gender ("M" / "F" / empty = mixed), optional father_id (a man),
@@ -635,7 +665,7 @@ def _batch_json(batch):
     }
 
 
-class DistributionOverviewView(ConsoleView):
+class DistributionOverviewView(FamilyConsoleView):
     def get(self, request):
         families = Family.objects.annotate(member_count=Count("members")).order_by("name")
         return Response({
@@ -650,7 +680,7 @@ class DistributionOverviewView(ConsoleView):
         })
 
 
-class DistributionPreviewView(ConsoleView):
+class DistributionPreviewView(FamilyConsoleView):
     def post(self, request):
         data = request.data
         family_ids = data.get("family_ids")
@@ -695,7 +725,7 @@ class DistributionPreviewView(ConsoleView):
         })
 
 
-class DistributionConfirmView(ConsoleView):
+class DistributionConfirmView(FamilyConsoleView):
     def post(self, request):
         pairs = request.data.get("pairs")
         ok = isinstance(pairs, list) and pairs and all(
@@ -708,7 +738,7 @@ class DistributionConfirmView(ConsoleView):
         return Response({"applied": applied, "skipped": skipped, "batch": _batch_json(batch) if batch else None})
 
 
-class DistributionUndoView(ConsoleView):
+class DistributionUndoView(FamilyConsoleView):
     def post(self, request, pk):
         batch = FamilyDistributionBatch.objects.filter(pk=pk).first()
         if batch is None:
