@@ -22,6 +22,7 @@ The bell refreshes every minute and when the browser tab is shown again. Q&A ale
 - Text: "Happy Thursday! Please remember to send your weekly fellowship donation of **10 birr** today." The amount comes from `WEEKLY_DONATION_AMOUNT` (default 10).
 - The email uses the standard Finot email layout and has a **Give now** button to the donation page.
 - One run sends at most `WEEKLY_REMINDER_EMAIL_LIMIT` emails (default 300, the free Brevo daily allowance). People over the limit still get the in-app reminder, and the run's result reports how many emails were left out.
+- Addresses that can never receive mail (`@something.test`, `@example.com`, `.invalid`, no dot in the domain) are skipped, so sample accounts in a development database cannot cause bounces. Turn this off only in tests (`REMINDER_EMAIL_SKIP_UNDELIVERABLE = False`).
 - All emails go over one SMTP connection. From the web trigger they are sent in a background thread so the request returns quickly. A mail problem never stops the in-app reminder.
 - A second run within 6 days is skipped (add `--force` to the command to override).
 
@@ -40,6 +41,10 @@ Each call must carry the header `X-Cron-Token: <CRON_SECRET>`. A wrong or missin
 Local equivalents (no GitHub needed):
 
 ```bash
+# check that mail works: ONE reminder email to ONE address, nobody else is notified, nothing is recorded
+uv run python manage.py send_weekly_reminders --test-email you@example.org
+
+# the real thing (with real SMTP settings this sends real emails to every student with a real address)
 uv run python manage.py send_weekly_reminders --force
 uv run python manage.py send_class_reminders --today 2026-10-05
 uv run python manage.py verify_pending_donations

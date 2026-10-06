@@ -11,8 +11,22 @@ class Command(BaseCommand):
 
     def add_arguments(self, parser):
         parser.add_argument("--force", action="store_true", help="Send even if sent recently.")
+        parser.add_argument(
+            "--test-email", metavar="ADDRESS",
+            help="Send ONE reminder email to this address only, to check that mail works and how it looks. "
+                 "Nobody else is notified and nothing is recorded.",
+        )
 
     def handle(self, *args, **opts):
+        if opts["test_email"]:
+            from notifications.reminders import send_reminder_emails
+
+            sent = send_reminder_emails([(opts["test_email"], "Test")])
+            if sent:
+                self.stdout.write(self.style.SUCCESS("Test reminder sent. Check that inbox (and the spam folder)."))
+            else:
+                self.stdout.write(self.style.ERROR("The test email could not be sent. See the log above."))
+            return
         result = send_weekly_reminders(force=opts["force"])
         if result["status"] == "sent":
             self.stdout.write(self.style.SUCCESS(

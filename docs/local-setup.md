@@ -62,7 +62,8 @@ Log in at <http://localhost:5176/login> with the Super Admin you created (the lo
 | `uv run python manage.py reset_dev_data --yes` | wipes the database and creates sample roles and an admin (development only; sample passwords) |
 | `uv run python manage.py create_students --start 1 --count 30 --password <pw>` | creates sample students spread over years and departments |
 | `uv run python manage.py seed_people` / `seed_demo` | sample people / demo data (development only) |
-| `uv run python manage.py send_weekly_reminders [--force]` | send the Thursday donation reminder now |
+| `uv run python manage.py send_weekly_reminders --test-email you@example.org` | send ONE reminder email to ONE address to check that mail works |
+| `uv run python manage.py send_weekly_reminders [--force]` | send the Thursday donation reminder now to everyone (real emails if SMTP is configured) |
 | `uv run python manage.py send_class_reminders [--today YYYY-MM-DD] [--force]` | send "class tomorrow" reminders now |
 | `uv run python manage.py verify_pending_donations` | ask Chapa about pending payments and settle them |
 | `uv run python manage.py sync_course_enrolments [--yes]` | show or repair course enrolments (dry run without `--yes`) |

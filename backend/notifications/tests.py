@@ -272,3 +272,32 @@ class TestWeeklyReminderEmailAndAmount:
         make_student(1)
         res = APIClient().post("/api/notifications/cron/weekly-reminders/", HTTP_X_CRON_TOKEN="right")
         assert res.status_code == 200 and res.json()["status"] == "sent" and res.json()["emails"] == 1
+
+
+@pytest.mark.django_db
+class TestReminderEmailSafety:
+    def test_made_up_addresses_are_never_emailed_by_default(self, settings, mailoutbox):
+        from notifications.reminders import send_weekly_reminders
+
+        settings.REMINDER_EMAIL_SKIP_UNDELIVERABLE = True
+        make_student(1)  # s1@finot.test: a reserved test address
+        real = make_student(2)
+        User.objects.filter(pk=real.pk).update(email="real.person@gmail.com")
+        result = send_weekly_reminders(force=True)
+        assert [m.to for m in mailoutbox] == [["real.person@gmail.com"]]
+        assert result["emails"] == 1 and result["users"] == 2  # both still get the in-app reminder
+
+    def test_which_addresses_count_as_undeliverable(self):
+        from notifications.reminders import is_deliverable
+
+        for bad in ("a@finot.test", "a@x.example", "a@example.com", "a@foo.invalid", "a@localhost", "", "nonsense"):
+            assert not is_deliverable(bad), bad
+        for good in ("a@gmail.com", "b@university.edu.et", "c@finot.org"):
+            assert is_deliverable(good), good
+
+    def test_test_email_sends_one_message_and_notifies_nobody_else(self, mailoutbox):
+        make_student(1)
+        call_command("send_weekly_reminders", "--test-email", "me@gmail.com", verbosity=0)
+        assert [m.to for m in mailoutbox] == [["me@gmail.com"]]
+        assert "10 birr" in mailoutbox[0].body
+        assert Notification.objects.filter(notification_type=Notification.TYPE_REMINDER).count() == 0

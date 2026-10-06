@@ -57,6 +57,17 @@ def _process_batch(users):
     return len(users), len(tokens)
 
 
+# Addresses that can never receive mail (reserved for tests and documentation). Sending to them only produces
+# bounces, which waste the daily allowance and make the mail provider distrust the account.
+UNDELIVERABLE_SUFFIXES = (".test", ".example", ".invalid", ".localhost")
+UNDELIVERABLE_DOMAINS = {"example.com", "example.org", "example.net"}
+
+
+def is_deliverable(email):
+    domain = (email or "").rsplit("@", 1)[-1].strip().lower()
+    return "@" in (email or "") and "." in domain and not domain.endswith(UNDELIVERABLE_SUFFIXES) and domain not in UNDELIVERABLE_DOMAINS
+
+
 def send_reminder_emails(recipients):
     """
     Email the reminder to (email, first_name) pairs, over ONE mail connection.
@@ -129,6 +140,9 @@ def send_weekly_reminders(force=False, background_email=False):
         total_tokens += t
 
     from django.conf import settings
+
+    if getattr(settings, "REMINDER_EMAIL_SKIP_UNDELIVERABLE", True):
+        recipients = [r for r in recipients if is_deliverable(r[0])]
 
     limit = getattr(settings, "WEEKLY_REMINDER_EMAIL_LIMIT", 300)
     skipped = max(len(recipients) - limit, 0)
