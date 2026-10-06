@@ -368,3 +368,25 @@ class FamilyMembership(models.Model):
 
     def __str__(self):
         return f"{self.student} -> {self.family.name}"
+
+
+class FamilyMessage(models.Model):
+    """
+    A message from a father or mother to the whole family (recipient empty) or to one child.
+    """
+
+    family = models.ForeignKey(Family, on_delete=models.CASCADE, related_name="messages")
+    sender = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, related_name="family_messages_sent"
+    )
+    recipient = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, null=True, blank=True, related_name="family_messages_received"
+    )
+    body = models.TextField(max_length=1000)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"{self.family.name}: {self.body[:30]}"

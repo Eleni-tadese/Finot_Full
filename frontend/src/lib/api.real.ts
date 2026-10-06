@@ -261,6 +261,11 @@ export const api = {
     return response.data;
   },
 
+  sendFamilyMessage: async (body: string, toStudentId?: number | null) => {
+    const response = await axiosInstance.post('/api/service/families/my-family/messages/', { body, to_student_id: toStudentId ?? null });
+    return response.data;
+  },
+
   getFamilyMembers: async (familyId: string | number) => {
     const response = await axiosInstance.get(`/api/service/families/${familyId}/members/`);
     return response.data;

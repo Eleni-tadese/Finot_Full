@@ -4,9 +4,11 @@ from rest_framework.response import Response
 from rest_framework.decorators import action
 from rest_framework.views import APIView
 from rest_framework.exceptions import PermissionDenied
+from django.contrib.auth import get_user_model
 from django.db import transaction
 from django.db.models import Count, Q
 from questionanswer.visibility import is_super_admin
+from . import family_hub
 from .group_rules import MAX_GROUPS_PER_STUDENT, GroupContentSerializer
 from .i18n import group_name
 from .event_rules import attendance_roster, can_manage_event_attendance, has_role, person_name
@@ -22,6 +24,9 @@ from .serializers import (
     ServiceGroupMembershipSerializer,
     ServiceAttendanceSerializer
 )
+
+User = get_user_model()
+
 
 class ServiceGroupViewSet(
     mixins.ListModelMixin, mixins.RetrieveModelMixin, mixins.UpdateModelMixin, viewsets.GenericViewSet
@@ -346,52 +351,72 @@ class AgeglotSelectionViewSet(viewsets.ModelViewSet):
 
 class FamilyViewSet(viewsets.ReadOnlyModelViewSet):
     """
-    Read-only view for Families.
-    Includes a custom action 'my_family' for the student dashboard.
+    Families. A student, father or mother only ever sees their own family; the Super Admin and
+    Family Admin see all. `my-family` is the Family tab (see family_hub.py for who sees what).
     """
     queryset = Family.objects.all().select_related('father__student_profile', 'mother__student_profile')
     serializer_class = FamilySerializer
     permission_classes = [permissions.IsAuthenticated]
 
+    def get_queryset(self):
+        qs = super().get_queryset()
+        user = self.request.user
+        if family_hub.is_family_manager(user):
+            return qs
+        return qs.filter(Q(members__student=user) | Q(father=user) | Q(mother=user)).distinct()
+
+    def _my_family(self, request):
+        """The family to show: the caller's own; a Super Admin / Family Admin may ask for ?family_id=."""
+        wanted = request.query_params.get('family_id') or request.data.get('family_id')
+        if wanted and family_hub.is_family_manager(request.user):
+            return Family.objects.filter(pk=wanted).first()
+        return family_hub.family_of(request.user)
+
     @action(detail=False, methods=['GET'], url_path='my-family')
     def my_family(self, request):
         """
         Endpoint: /api/service/families/my-family/
-        Returns the family the current user belongs to.
-        Also checks if the user is a father or mother of a family.
+        The family the user belongs to (child) or leads (father/mother), with what that person may see.
         """
-        if not request.user.is_authenticated:
-            return Response({"detail": "Not authenticated"}, status=status.HTTP_401_UNAUTHORIZED)
-        
-        family = None
-        # Check membership first
-        if hasattr(request.user, 'family_membership'):
-            family = request.user.family_membership.family
-        
-        # Then check if user is father or mother
+        family = self._my_family(request)
         if not family:
-            from django.db.models import Q
-            family = Family.objects.filter(
-                Q(father=request.user) | Q(mother=request.user)
-            ).first()
-        
-        if family:
-            # Pass request context so serializer can filter siblings
-            serializer = self.get_serializer(family, context={'request': request})
-            return Response(serializer.data)
-        
-        return Response({"detail": "You are not assigned to a family yet."}, status=status.HTTP_404_NOT_FOUND)
+            return Response({"detail": "You are not assigned to a family yet."}, status=status.HTTP_404_NOT_FOUND)
+        return Response(family_hub.my_family_payload(request.user, family))
+
+    @action(detail=False, methods=['POST'], url_path='my-family/messages')
+    def send_message(self, request):
+        """
+        Endpoint: POST /api/service/families/my-family/messages/  {body, to_student_id?}
+        Only a father or mother (or the Super Admin / Family Admin) can send. Without to_student_id it goes to everyone.
+        """
+        family = self._my_family(request)
+        if not family:
+            return Response({"detail": "You are not assigned to a family yet."}, status=status.HTTP_404_NOT_FOUND)
+        if not (family_hub.is_parent(request.user, family) or family_hub.is_family_manager(request.user)):
+            raise PermissionDenied("Only the father or mother of the family can send family messages.")
+        recipient = None
+        target = request.data.get('to_student_id')
+        if target not in (None, ''):
+            recipient = User.objects.filter(pk=target).first() if str(target).isdigit() else None
+            if recipient is None:
+                return Response({"to_student_id": "That person is not in this family."}, status=status.HTTP_400_BAD_REQUEST)
+        try:
+            message, told = family_hub.send_family_message(request.user, family, request.data.get('body'), recipient)
+        except ValueError as exc:
+            return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+        return Response({"id": message.id, "told": told}, status=status.HTTP_201_CREATED)
 
     @action(detail=True, methods=['GET'])
     def members(self, request, pk=None):
         """
         Endpoint: /api/service/families/{id}/members/
-        Returns list of members in this family.
+        Names and emails of the members. Only for the family's father or mother and the Super Admin / Family Admin.
         """
         family = self.get_object()
+        if not (family_hub.is_parent(request.user, family) or family_hub.is_family_manager(request.user)):
+            raise PermissionDenied("Only the father or mother of the family can list its members.")
         memberships = family.members.select_related('student__student_profile').all()
-        # Extract users from membership objects
-        users = [m.student for m in memberships] 
+        users = [m.student for m in memberships]
         serializer = FamilyMemberSerializer(users, many=True)
         return Response(serializer.data)
 

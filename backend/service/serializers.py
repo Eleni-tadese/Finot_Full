@@ -14,7 +14,7 @@ class FamilyContactSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = User
-        fields = ['id', 'name', 'phone']
+        fields = ['id', 'name', 'email', 'phone']
         
     def get_phone(self, obj):
         if hasattr(obj, 'student_profile') and obj.student_profile:

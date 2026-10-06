@@ -193,9 +193,10 @@ Generated from the code (`manage.py spectacular`). For request and response shap
 | PATCH | `/api/service/events/{id}/` | View for Events. |
 | DELETE | `/api/service/events/{id}/` | View for Events. |
 | GET | `/api/service/events/{id}/roster/` | GET /api/service/events/<id>/roster/?search= |
-| GET | `/api/service/families/` | Read-only view for Families. |
+| GET | `/api/service/families/` | Families. A student, father or mother only ever sees their own family; the Super Admin and |
 | GET | `/api/service/families/my-family/` | Endpoint: /api/service/families/my-family/ |
-| GET | `/api/service/families/{id}/` | Read-only view for Families. |
+| POST | `/api/service/families/my-family/messages/` | Endpoint: POST /api/service/families/my-family/messages/  {body, to_student_id?} |
+| GET | `/api/service/families/{id}/` | Families. A student, father or mother only ever sees their own family; the Super Admin and |
 | GET | `/api/service/families/{id}/members/` | Endpoint: /api/service/families/{id}/members/ |
 | GET | `/api/service/groups/` | Service Groups (Ministries). Students browse these to decide what to pick. |
 | GET | `/api/service/groups/my-group/` | Returns the group managed by the current user (service admin). |
