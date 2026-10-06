@@ -792,3 +792,38 @@ class TestAutoFamilies:
         res = client_for(fam).post(BASE + "families/distribution/auto-preview/")
         assert res.status_code == 200 and res.json()["total_added"] == 4
         assert client_for(make_user("stu@finot.test")).post(BASE + "families/distribution/auto-preview/").status_code == 403
+
+
+@pytest.mark.django_db
+class TestFamilyParents:
+    def test_list_and_set_parents_on_an_automatic_family(self):
+        fam = make_user("fam@finot.test", Role.FAMILY_ADMIN)
+        dad = make_user("dad@finot.test", gender="M", batch=5)
+        mum = make_user("mum@finot.test", gender="F", batch=5)
+        junior = make_user("jun@finot.test", gender="M", batch=2)
+        done = Family.objects.create(name="Family 1", father=dad, mother=mum)
+        empty = Family.objects.create(name="Family 2")
+        c = client_for(fam)
+        rows = c.get(BASE + "families/").json()["results"]
+        assert [r["name"] for r in rows] == ["Family 2", "Family 1"]  # incomplete families first
+        assert rows[0]["father"] is None and rows[1]["father"]["email"] == "dad@finot.test"
+        # one person leads one family; a woman cannot be father; year rule applies
+        url = f"{BASE}families/{empty.id}/"
+        assert c.patch(url, {"father_id": dad.id}, format="json").status_code == 400
+        assert c.patch(url, {"father_id": mum.id}, format="json").status_code == 400
+        assert c.patch(url, {"father_id": junior.id}, format="json").status_code == 400
+        dad2 = make_user("dad2@finot.test", gender="M", batch=4)
+        res = c.patch(url, {"father_id": dad2.id, "religious_father": "Aba Giorgis"}, format="json")
+        assert res.status_code == 200 and res.json()["father"]["id"] == dad2.id
+        empty.refresh_from_db()
+        assert empty.father_id == dad2.id and empty.religious_father == "Aba Giorgis"
+        # the same father can be re-saved on his own family, and cleared
+        assert c.patch(f"{BASE}families/{done.id}/", {"father_id": dad.id}, format="json").status_code == 200
+        assert c.patch(f"{BASE}families/{done.id}/", {"mother_id": None}, format="json").json()["mother"] is None
+        assert c.patch(f"{BASE}families/99999/", {}, format="json").status_code == 404
+
+    def test_students_cannot_edit_or_list(self):
+        stu = make_user("stu@finot.test")
+        f = Family.objects.create(name="F")
+        assert client_for(stu).get(BASE + "families/").status_code == 403
+        assert client_for(stu).patch(f"{BASE}families/{f.id}/", {"name": "Z"}, format="json").status_code == 403

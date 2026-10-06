@@ -108,6 +108,16 @@ export interface FamilyOption {
   member_count: number;
 }
 
+export interface FamilyRow {
+  id: number;
+  name: string;
+  gender: string | null;
+  member_count: number;
+  father: { id: number; full_name: string; email: string } | null;
+  mother: { id: number; full_name: string; email: string } | null;
+  religious_father: string;
+}
+
 export interface DistributionBatch {
   id: number;
   created_at: string;

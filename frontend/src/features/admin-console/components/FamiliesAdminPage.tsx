@@ -6,7 +6,7 @@ import { Card } from "../../../components/ui/Card";
 import ExportButton from "../../export/components/ExportButton";
 import { firstApiError } from "../../resources/utils";
 import { adminApi } from "../api";
-import type { DistributionOverview, DistributionPreview } from "../types";
+import type { DistributionOverview, DistributionPreview, FamilyRow } from "../types";
 import { Chip, Empty, Loading, Modal, PageHeader } from "./AdminUi";
 import UserPicker, { PickedUser } from "./UserPicker";
 
@@ -26,11 +26,17 @@ const FamiliesAdminPage = () => {
   const [famFather, setFamFather] = useState<PickedUser | null>(null);
   const [famMother, setFamMother] = useState<PickedUser | null>(null);
   const [famReligious, setFamReligious] = useState("");
+  const [rows, setRows] = useState<FamilyRow[]>([]);
+  const [editing, setEditing] = useState<FamilyRow | null>(null);
+  const [editFather, setEditFather] = useState<PickedUser | null>(null);
+  const [editMother, setEditMother] = useState<PickedUser | null>(null);
+  const [editReligious, setEditReligious] = useState("");
 
   const load = useCallback(async () => {
     try {
       const d = await adminApi.distribution();
       setData(d);
+      setRows(await adminApi.families());
       setSelected(d.families.filter((f) => f.member_count < d.limit).map((f) => f.id));
     } catch {
       toast.error(t("adm_load_failed", "Could not load this page. Please try again."));
@@ -92,6 +98,29 @@ const FamiliesAdminPage = () => {
       toast.success(t("fam_created", "Family created."));
       setCreating(false);
       setFamName(""); setFamGender(""); setFamFather(null); setFamMother(null); setFamReligious("");
+      await load();
+    } catch (err: any) {
+      toast.error(firstApiError(err?.response?.data) || t("adm_save_failed", "Could not save."));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const openEdit = (f: FamilyRow) => {
+    setEditing(f);
+    setEditFather(f.father);
+    setEditMother(f.mother);
+    setEditReligious(f.religious_father);
+  };
+
+  const saveEdit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editing) return;
+    setBusy(true);
+    try {
+      await adminApi.updateFamily(editing.id, { father_id: editFather?.id ?? null, mother_id: editMother?.id ?? null, religious_father: editReligious });
+      toast.success(t("fam_saved", "Family saved."));
+      setEditing(null);
       await load();
     } catch (err: any) {
       toast.error(firstApiError(err?.response?.data) || t("adm_save_failed", "Could not save."));
@@ -252,6 +281,48 @@ const FamiliesAdminPage = () => {
           </form>
         </Modal>
       )}
+
+      {editing && (
+        <Modal title={t("fam_edit", "{{name}}: father and mother", { name: editing.name })} onClose={() => setEditing(null)}>
+          <form onSubmit={saveEdit} className="space-y-4">
+            <UserPicker label={t("fam_father", "Father (a man, optional)")} value={editFather} onChange={setEditFather} limited />
+            <UserPicker label={t("fam_mother", "Mother (a woman, optional)")} value={editMother} onChange={setEditMother} limited />
+            <div>
+              <label className="text-sm font-medium text-foreground" htmlFor="fam-rel2">{t("fam_religious", "Religious father (optional)")}</label>
+              <input id="fam-rel2" className="input mt-1 w-full" value={editReligious} onChange={(e) => setEditReligious(e.target.value)} maxLength={150} />
+            </div>
+            <div className="flex justify-end gap-2">
+              <button type="button" onClick={() => setEditing(null)} className="btn-outline px-4 py-2 text-sm">{t("cancel")}</button>
+              <button type="submit" disabled={busy} className="btn-primary px-4 py-2 text-sm">{busy ? t("saving") : t("save", "Save")}</button>
+            </div>
+          </form>
+        </Modal>
+      )}
+
+      <section>
+        <h2 className="mb-1 text-lg font-semibold text-foreground">{t("fam_all", "All families")}</h2>
+        <p className="mb-3 text-sm text-muted-foreground">{t("fam_all_hint", "Every family should have a father and a mother. They are saved on the family, and students see them under Family. Families without both come first.")}</p>
+        {rows.length === 0 ? (
+          <Empty>{t("fam_none", "No families yet.")}</Empty>
+        ) : (
+          <Card padding="none">
+            <ul className="divide-y divide-border">
+              {rows.map((f) => (
+                <li key={f.id} className="flex flex-wrap items-center gap-3 px-4 py-3 text-sm">
+                  <span className="font-medium text-foreground">{f.name}</span>
+                  <span className="text-xs text-muted-foreground">{f.member_count}/{data.limit}</span>
+                  <span className="text-muted-foreground">
+                    {f.father ? f.father.full_name : <em className="text-amber-700">{t("fam_no_father", "no father")}</em>}
+                    {" · "}
+                    {f.mother ? f.mother.full_name : <em className="text-amber-700">{t("fam_no_mother", "no mother")}</em>}
+                  </span>
+                  <button onClick={() => openEdit(f)} className="btn-outline ml-auto px-3 py-1 text-xs">{t("fam_set_parents", "Father and mother")}</button>
+                </li>
+              ))}
+            </ul>
+          </Card>
+        )}
+      </section>
 
       <section>
         <h2 className="mb-3 text-lg font-semibold text-foreground">{t("adm_recent_dist", "Recent distributions")}</h2>

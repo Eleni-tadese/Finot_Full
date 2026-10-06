@@ -15,6 +15,7 @@ Generated from the code (`manage.py spectacular`). For request and response shap
 | DELETE | `/api/admin-console/departments/{id}/` | api_admin_console_departments_destroy |
 | GET | `/api/admin-console/donations/` | GET donations/?status=&fund=&kind=&search=&date_from=&date_to=&page=  rows + totals for the whole filter. |
 | POST | `/api/admin-console/donations/recheck/` | POST donations/recheck/ : ask Chapa now about every pending payment (no waiting time). |
+| GET | `/api/admin-console/families/` | All families with their father, mother and size (families without a parent come first). |
 | POST | `/api/admin-console/families/` | Create a family. Body: name, gender ("M" / "F" / empty = mixed), optional father_id (a man), |
 | GET | `/api/admin-console/families/distribution/` | api_admin_console_families_distribution_retrieve |
 | POST | `/api/admin-console/families/distribution/auto-preview/` | POST families/distribution/auto-preview/ : the system plans the families too (nothing is saved). |
@@ -22,6 +23,7 @@ Generated from the code (`manage.py spectacular`). For request and response shap
 | POST | `/api/admin-console/families/distribution/confirm/` | api_admin_console_families_distribution_confirm_create |
 | POST | `/api/admin-console/families/distribution/preview/` | api_admin_console_families_distribution_preview_create |
 | GET | `/api/admin-console/families/people/` | GET families/people/?search= : name and email of active people, so a father or mother can be picked. |
+| PATCH | `/api/admin-console/families/{id}/` | PATCH families/<id>/ : set or change the father, mother, religious father or name. Send father_id: null to clear. |
 | GET | `/api/admin-console/overview/` | api_admin_console_overview_retrieve |
 | GET | `/api/admin-console/qa/counselors/` | api_admin_console_qa_counselors_retrieve |
 | PUT | `/api/admin-console/qa/counselors/{id}/specializations/` | api_admin_console_qa_counselors_specializations_update |

@@ -610,7 +610,72 @@ class FamilyPeopleView(FamilyConsoleView):
         ]})
 
 
+def _family_json(f):
+    def person(u):
+        return {"id": u.id, "full_name": full_name(u), "email": u.email} if u else None
+
+    return {
+        "id": f.id, "name": f.name, "gender": f.gender or None, "member_count": f.members.count(),
+        "father": person(f.father), "mother": person(f.mother), "religious_father": f.religious_father or "",
+    }
+
+
+def _pick_parent(data, key, expected_gender, label, family=None):
+    """The father (a man) or mother (a woman) named in `data[key]`; None when empty. One person leads one family."""
+    raw = data.get(key)
+    if raw in (None, ""):
+        return None
+    try:
+        person = User.objects.get(pk=int(raw), is_active=True)
+    except (TypeError, ValueError, User.DoesNotExist):
+        raise ValidationError({key: "User not found or not active."})
+    if person.gender != expected_gender:
+        raise ValidationError({key: f"The {label} must be a {'man' if expected_gender == 'M' else 'woman'}."})
+    try:
+        check_family_leader(person)
+    except DjangoValidationError as exc:
+        raise ValidationError({key: exc.messages[0]})
+    others = Family.objects.filter(**{key.replace("_id", ""): person})
+    if family is not None:
+        others = others.exclude(pk=family.pk)
+    if others.exists():
+        raise ValidationError({key: f"{full_name(person)} already leads a family."})
+    return person
+
+
+class FamilyDetailView(FamilyConsoleView):
+    """PATCH families/<id>/ : set or change the father, mother, religious father or name. Send father_id: null to clear."""
+
+    def patch(self, request, pk):
+        family = Family.objects.select_related("father", "mother").filter(pk=pk).first()
+        if family is None:
+            return Response({"detail": "Not found."}, status=status.HTTP_404_NOT_FOUND)
+        data = request.data
+        if "name" in data:
+            name = str(data["name"]).strip()
+            if not name or len(name) > 100:
+                raise ValidationError({"name": "Give the family a name (maximum 100 letters)."})
+            if Family.objects.filter(name__iexact=name).exclude(pk=family.pk).exists():
+                raise ValidationError({"name": "A family with this name already exists."})
+            family.name = name
+        if "father_id" in data:
+            family.father = _pick_parent(data, "father_id", "M", "father", family)
+        if "mother_id" in data:
+            family.mother = _pick_parent(data, "mother_id", "F", "mother", family)
+        if "religious_father" in data:
+            family.religious_father = str(data["religious_father"] or "").strip()[:150]
+        family.save()
+        return Response(_family_json(family))
+
+
 class FamiliesView(FamilyConsoleView):
+    def get(self, request):
+        """All families with their father, mother and size (families without a parent come first)."""
+        families = Family.objects.select_related("father", "mother").order_by("name")
+        rows = [_family_json(f) for f in families]
+        rows.sort(key=lambda r: (bool(r["father"]) and bool(r["mother"]), r["name"].lower()))
+        return Response({"results": rows})
+
     def post(self, request):
         """
         Create a family. Body: name, gender ("M" / "F" / empty = mixed), optional father_id (a man),
@@ -627,26 +692,8 @@ class FamiliesView(FamilyConsoleView):
         if gender not in (None, "M", "F"):
             raise ValidationError({"gender": "Must be M, F or empty."})
 
-        def parent(key, expected_gender, label):
-            raw = request.data.get(key)
-            if raw in (None, ""):
-                return None
-            try:
-                person = User.objects.get(pk=int(raw), is_active=True)
-            except (TypeError, ValueError, User.DoesNotExist):
-                raise ValidationError({key: "User not found or not active."})
-            if person.gender != expected_gender:
-                raise ValidationError({key: f"The {label} must be a {'man' if expected_gender == 'M' else 'woman'}."})
-            try:
-                check_family_leader(person)
-            except DjangoValidationError as exc:
-                raise ValidationError({key: exc.messages[0]})
-            if Family.objects.filter(**{key.replace("_id", ""): person}).exists():
-                raise ValidationError({key: f"{full_name(person)} already leads a family."})
-            return person
-
-        father = parent("father_id", "M", "father")
-        mother = parent("mother_id", "F", "mother")
+        father = _pick_parent(request.data, "father_id", "M", "father")
+        mother = _pick_parent(request.data, "mother_id", "F", "mother")
         family = Family.objects.create(
             name=name, gender=gender, father=father, mother=mother,
             religious_father=str(request.data.get("religious_father", "")).strip()[:150],

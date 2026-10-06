@@ -1,7 +1,7 @@
 import axiosInstance from "../../lib/axios";
 import type { PersonCard } from "../../components/people/StudentCard";
 import type {
-  AdminGroup, AdminUser, Counselor, SubAdminRole, DistributionBatch, DistributionOverview, DistributionPreview, Overview,
+  AdminGroup, AdminUser, FamilyRow, Counselor, SubAdminRole, DistributionBatch, DistributionOverview, DistributionPreview, Overview,
   Curriculum, SemesterCourseRow, DonationsPage, UserFilterOptions, Department, AcademicYearData, Paginated, PrivateQuestion, RoleOption, SmsLogRow, SmsSettings, Specialization,
 } from "./types";
 
@@ -49,6 +49,9 @@ export const adminApi = {
   selectionWindow: () => axiosInstance.get<{ is_selection_open: boolean }>(`${C}/service-config/`).then((r) => r.data),
   setSelectionWindow: (open: boolean) =>
     axiosInstance.patch<{ is_selection_open: boolean }>(`${C}/service-config/`, { is_selection_open: open }).then((r) => r.data),
+  families: () => axiosInstance.get<{ results: FamilyRow[] }>(`${C}/families/`).then((r) => r.data.results),
+  updateFamily: (id: number, body: { name?: string; father_id?: number | null; mother_id?: number | null; religious_father?: string }) =>
+    axiosInstance.patch<FamilyRow>(`${C}/families/${id}/`, body).then((r) => r.data),
   createFamily: (body: { name: string; gender: string; father_id?: number | null; mother_id?: number | null; religious_father?: string }) =>
     axiosInstance.post<{ id: number; name: string }>(`${C}/families/`, body).then((r) => r.data),
 
