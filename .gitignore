@@ -1,0 +1,65 @@
+# ---- Secrets: never commit these ----
+.env
+.env.*
+!.env.example
+*.env
+*.pem
+*.key
+*.p12
+*serviceAccount*.json
+*service-account*.json
+*firebase-adminsdk*.json
+finot.env
+finot_decoded.env
+credentials*.json
+
+# ---- Python ----
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+env/
+*.egg-info/
+.pytest_cache/
+.coverage
+htmlcov/
+.mypy_cache/
+.ruff_cache/
+
+# ---- Django ----
+*.log
+db.sqlite3
+*.sqlite3
+staticfiles/
+media/
+
+# ---- Node / frontend ----
+node_modules/
+dist/
+dist-ssr/
+.vite/
+*.tsbuildinfo
+npm-debug.log*
+yarn-debug.log*
+pnpm-debug.log*
+
+# ---- Editors and OS ----
+.vscode/*
+!.vscode/extensions.json
+.idea/
+.DS_Store
+Thumbs.db
+*.swp
+
+# ---- Local working notes (kept on the developer's machine only) ----
+HANDOFF.md
+PROGRESS.md
+NEUTRAL_START_GUIDE.md
+NEXT_CHAT_PROMPT.md
+FULL_FLOW_TEST_GUIDE.md
+ENHANCEMENT_PLAN.md
+FEATURE_STATUS.md
+PROJECT_MAP.md
+HARDCODED_AUDIT.md
+repo_template/
+tools/

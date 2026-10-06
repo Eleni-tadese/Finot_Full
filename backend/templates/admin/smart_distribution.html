@@ -1,0 +1,142 @@
+{% extends 'admin/base_site.html' %}
+{% load i18n %}
+
+{% block content %}
+<div class="px-4 py-6 md:px-6 lg:px-8">
+    <div class="bg-white dark:bg-gray-800 rounded-md shadow-sm p-6 max-w-5xl border border-gray-200 dark:border-gray-700">
+
+        <h2 class="text-xl font-semibold text-gray-800 dark:text-gray-200 mb-1">{{ title }}</h2>
+
+        {% if mode == "form" %}
+        <p class="text-sm text-gray-500 dark:text-gray-400 mb-6">
+            Automatically puts unassigned first-year students into the families you tick below.
+            Family sizes are kept even (maximum {{ limit }}), each family gets a mix of sections and dorm blocks,
+            and a family set to Male/Female only receives that gender. You will see a preview first; nothing is saved until you confirm.
+        </p>
+
+        <form method="post" class="space-y-6">
+            {% csrf_token %}
+            <input type="hidden" name="step" value="preview">
+
+            <div class="p-4 rounded-md bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700">
+                <h3 class="text-sm font-medium text-gray-600 dark:text-gray-400 mb-3">
+                    Students ({{ unassigned_count }} unassigned first-year students) - optional filters
+                </h3>
+                <div class="flex flex-wrap gap-3">
+                    <select name="gender" class="rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm px-3 py-2 min-w-[120px]">
+                        <option value="">Any gender</option>
+                        <option value="M">Male</option>
+                        <option value="F">Female</option>
+                    </select>
+                    <select name="dorm_block" class="rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm px-3 py-2 min-w-[120px]">
+                        <option value="">Any dorm block</option>
+                        {% for block in filter_options.dorm_blocks %}<option value="{{ block }}">Block {{ block }}</option>{% endfor %}
+                    </select>
+                    <select name="section" class="rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm px-3 py-2 min-w-[120px]">
+                        <option value="">Any section</option>
+                        {% for sec in filter_options.sections %}<option value="{{ sec }}">Section {{ sec }}</option>{% endfor %}
+                    </select>
+                </div>
+            </div>
+
+            <div>
+                <h3 class="text-sm font-medium text-gray-600 dark:text-gray-400 mb-3">Families to fill</h3>
+                {% if families %}
+                <div class="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                    {% for family, count in families %}
+                    <label class="flex items-center gap-2 p-3 rounded-md border border-gray-200 dark:border-gray-700 cursor-pointer">
+                        <input type="checkbox" name="families" value="{{ family.pk }}" {% if count < limit %}checked{% else %}disabled{% endif %}>
+                        <span class="text-sm text-gray-800 dark:text-gray-200">{{ family.name }}</span>
+                        <span class="ml-auto text-xs text-gray-500 dark:text-gray-400">{{ count }}/{{ limit }}{% if family.gender %} - {{ family.get_gender_display }}{% endif %}</span>
+                    </label>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <p class="text-sm text-gray-500">No families exist yet. Create some first.</p>
+                {% endif %}
+            </div>
+
+            <button type="submit" class="bg-primary-600 text-white px-4 py-2 rounded-md hover:bg-primary-700 font-medium transition-colors cursor-pointer border border-transparent shadow-sm">
+                Preview distribution
+            </button>
+        </form>
+
+        <div class="mt-10">
+            <h3 class="text-sm font-medium text-gray-600 dark:text-gray-400 mb-3">Recent distributions</h3>
+            {% if batches %}
+            <ul class="divide-y divide-gray-200 dark:divide-gray-700">
+                {% for batch in batches %}
+                <li class="py-3 flex items-center gap-3 text-sm text-gray-800 dark:text-gray-200">
+                    <span>{{ batch.created_at|date:"Y-m-d H:i" }}</span>
+                    <span class="text-gray-500 dark:text-gray-400">by {{ batch.created_by|default:"-" }}</span>
+                    <span class="text-gray-500 dark:text-gray-400">{{ batch.memberships.count }} student(s)</span>
+                    {% if batch.undone_at %}
+                        <span class="ml-auto text-xs text-gray-500">undone {{ batch.undone_at|date:"Y-m-d H:i" }}</span>
+                    {% else %}
+                        <form method="post" class="ml-auto" onsubmit="return confirm('Remove these students from their families?');">
+                            {% csrf_token %}
+                            <input type="hidden" name="step" value="undo">
+                            <input type="hidden" name="batch" value="{{ batch.pk }}">
+                            <button type="submit" class="px-3 py-1 rounded-md border border-red-300 text-red-700 dark:text-red-300 text-xs hover:bg-red-50 dark:hover:bg-red-900/20 cursor-pointer">Undo</button>
+                        </form>
+                    {% endif %}
+                </li>
+                {% endfor %}
+            </ul>
+            {% else %}
+            <p class="text-sm text-gray-500">No distributions yet.</p>
+            {% endif %}
+        </div>
+
+        {% else %}
+        {# ── Preview ───────────────────────────────────────────── #}
+        <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">
+            {{ total_added }} student(s) would be added. Family sizes after: smallest {{ min_size }}, largest {{ max_size }} (limit {{ limit }}).
+            Nothing has been saved yet.
+        </p>
+
+        <div class="space-y-4">
+            {% for row in rows %}
+            <div class="p-4 rounded-md border border-gray-200 dark:border-gray-700">
+                <div class="flex items-center gap-3 mb-2">
+                    <span class="font-medium text-gray-800 dark:text-gray-200">{{ row.family.name }}</span>
+                    <span class="text-xs text-gray-500 dark:text-gray-400">{{ row.current }} now &rarr; {{ row.after }} after (+{{ row.added|length }})</span>
+                </div>
+                {% if row.added %}
+                <ul class="text-sm text-gray-700 dark:text-gray-300 grid gap-x-6 sm:grid-cols-2">
+                    {% for s in row.added %}
+                    <li>{{ s.name }} <span class="text-xs text-gray-500">{% if s.dorm_block %}Block {{ s.dorm_block }}{% endif %}{% if s.section %} / Sec {{ s.section }}{% endif %}</span></li>
+                    {% endfor %}
+                </ul>
+                {% else %}
+                <p class="text-xs text-gray-500">No new students.</p>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+
+        {% if unplaced %}
+        <div class="mt-6 p-4 rounded-md bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800">
+            <p class="font-medium text-yellow-800 dark:text-yellow-300 mb-2">{{ unplaced|length }} student(s) could not be placed</p>
+            <ul class="text-sm text-yellow-800 dark:text-yellow-300">
+                {% for student, reason in unplaced %}<li>{{ student.name }} - {{ reason }}</li>{% endfor %}
+            </ul>
+        </div>
+        {% endif %}
+
+        <div class="mt-6 flex gap-3">
+            {% if total_added %}
+            <form method="post">
+                {% csrf_token %}
+                <input type="hidden" name="step" value="confirm">
+                <button type="submit" class="bg-primary-600 text-white px-4 py-2 rounded-md hover:bg-primary-700 font-medium transition-colors cursor-pointer border border-transparent shadow-sm">
+                    Confirm and assign {{ total_added }} student(s)
+                </button>
+            </form>
+            {% endif %}
+            <a href="{% url 'admin:service_family_smart_distribute' %}" class="px-4 py-2 rounded-md border border-gray-300 dark:border-gray-600 text-sm text-gray-700 dark:text-gray-300">Back</a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

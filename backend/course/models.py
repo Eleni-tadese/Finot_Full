@@ -1,0 +1,183 @@
+import uuid
+from django.db import models
+from django.conf import settings
+
+
+class Course(models.Model):
+    """
+    The static curriculum blueprint.
+    Defines what a course is, regardless of when it is taught.
+    """
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    title = models.CharField(max_length=255)
+    description = models.TextField(blank=True, null=True)
+    batch_year = models.PositiveIntegerField(help_text="1-5")
+    is_active = models.BooleanField(
+        default=True, help_text="Set to False if this curriculum is no longer used."
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        indexes = [
+            models.Index(fields=["batch_year", "is_active"]),
+        ]
+
+    def __str__(self):
+        return f"{self.title} (Batch {self.batch_year})"
+
+
+class SemesterCourse(models.Model):
+    """
+    A temporal instance of a course happening in a specific semester.
+    Coordinators (nominated students) are assigned here to manage operations.
+    """
+
+    SEMESTER_CHOICES = [
+        (1, "First Semester"),
+        (2, "Second Semester"),
+    ]
+
+    PLANNED, OPEN, COMPLETED = "PLANNED", "OPEN", "COMPLETED"
+    STATUS_CHOICES = [
+        (PLANNED, "Not started"),
+        (OPEN, "Open"),
+        (COMPLETED, "Completed"),
+    ]
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    course = models.ForeignKey(
+        Course, on_delete=models.CASCADE, related_name="semester_courses"
+    )
+    status = models.CharField(
+        max_length=10, choices=STATUS_CHOICES, default=PLANNED,
+        help_text="Set by the coordinator. Not started: students do not see it. Open: running. "
+                  "Completed: finished, students keep the materials and their attendance.",
+    )
+    academic_year = models.PositiveIntegerField(help_text="Start year, e.g., 2026")
+    semester = models.PositiveIntegerField(choices=SEMESTER_CHOICES)
+    coordinators = models.ManyToManyField(
+        settings.AUTH_USER_MODEL, related_name="coordinating_semester_courses", blank=True,
+        help_text="Nominated students who manage sessions, attendance, and materials for this course."
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["course", "academic_year", "semester"],
+                name="unique_semester_course",
+            )
+        ]
+        indexes = [
+            models.Index(fields=["academic_year", "semester"]),
+        ]
+
+    def __str__(self):
+        return f"{self.course.title} - {self.academic_year} Sem {self.semester}"
+
+
+class CourseEnrollment(models.Model):
+    """
+    The junction table linking a student to a specific SemesterCourse.
+    This preserves exact historical data as students progress.
+    """
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    semester_course = models.ForeignKey(
+        SemesterCourse, on_delete=models.CASCADE, related_name="enrollments"
+    )
+    student = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="course_enrollments",
+    )
+    enrolled_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["semester_course", "student"], name="unique_course_enrollment"
+            )
+        ]
+
+    def __str__(self):
+        return f"{self.student} -> {self.semester_course}"
+
+
+class CourseSession(models.Model):
+    """
+    A single day that a semesterCourse meets.
+    Allows dynamic scheduling and handles edge cases like borrowing days from next semester.
+    """
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    semester_course = models.ForeignKey(
+        SemesterCourse, on_delete=models.CASCADE, related_name="sessions"
+    )
+    date = models.DateField()
+    topic = models.CharField(
+        max_length=255, blank=True, null=True, help_text="Optional topic for the day"
+    )
+    teacher_name = models.CharField(
+        max_length=255, blank=True, null=True,
+        help_text="Name of the guest teacher for this session day."
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    reminder_sent_at = models.DateTimeField(
+        blank=True, null=True,
+        help_text="When the day-before reminder went to the students. Cleared when the date is moved.",
+    )
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["semester_course", "date"], name="unique_course_session_date"
+            )
+        ]
+
+    def __str__(self):
+        return f"{self.semester_course} on {self.date}"
+
+
+class AttendanceRecord(models.Model):
+    """
+    Roll call for a specific student on a specific CourseSession.
+    """
+
+    STATUS_CHOICES = [
+        ("PRESENT", "Present"),
+        ("ABSENT", "Absent"),
+    ]
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    session = models.ForeignKey(
+        CourseSession, on_delete=models.CASCADE, related_name="attendance_records"
+    )
+    student = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="attendance_records",
+    )
+    status = models.CharField(max_length=10, choices=STATUS_CHOICES)
+    marked_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name="marked_attendances",
+    )
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["session", "student"], name="unique_attendance_per_session"
+            )
+        ]
+        indexes = [
+            models.Index(fields=["student", "status"]),
+        ]
+
+    def __str__(self):
+        return f"{self.student} - {self.status} on {self.session.date}"

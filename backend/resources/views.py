@@ -1,0 +1,195 @@
+import uuid
+
+from rest_framework import viewsets, status, serializers as drf_serializers
+from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
+from rest_framework.response import Response
+from django.db.models import Q
+from .docs import material_view_schema
+
+from core.models import Role
+from .models import Material
+from .serializers import MaterialSerializer
+from .permissions import MaterialPermission
+from course.access import can_manage_curriculum
+
+
+@material_view_schema
+class MaterialViewSet(viewsets.ModelViewSet):
+    """
+    Unified Material API.
+
+    GET /api/resources/materials/
+        Returns materials visible to the current user based on their roles,
+        enrollments, and service group memberships.
+
+    Supports query parameter filters:
+        ?type=COURSE|SERVICE|GENERAL   — filter by material type
+        ?course=<uuid>                 — filter by course (curriculum) ID
+        ?service_group=<uuid>          — filter by service group ID (integer)
+    """
+    serializer_class = MaterialSerializer
+    permission_classes = [MaterialPermission]
+    parser_classes = [MultiPartParser, FormParser, JSONParser]
+
+    def get_queryset(self):
+        qs = Material.objects.select_related(
+            'course', 'service_group', 'uploaded_by'
+        )
+
+        user = self.request.user
+        if not user.is_authenticated:
+            return qs.none()
+
+        # --- Apply query parameter filters ---
+        material_type = self.request.query_params.get('type')
+        if material_type:
+            if material_type.upper() in Material.MaterialType.values:
+                qs = qs.filter(material_type=material_type.upper())
+            else:
+                raise drf_serializers.ValidationError(
+                    {"type": f"Invalid type. Must be one of: {', '.join(Material.MaterialType.values)}"}
+                )
+
+        course_id = self.request.query_params.get('course')
+        if course_id:
+            try:
+                uuid.UUID(course_id)
+                qs = qs.filter(course_id=course_id)
+            except ValueError:
+                raise drf_serializers.ValidationError({"course": "Invalid UUID format."})
+
+        service_group_id = self.request.query_params.get('service_group')
+        if service_group_id:
+            try:
+                service_group_id = int(service_group_id)
+                qs = qs.filter(service_group_id=service_group_id)
+            except ValueError:
+                raise drf_serializers.ValidationError({"service_group": "Invalid ID format."})
+
+        # --- Role-based visibility ---
+        user_roles = getattr(self.request, '_user_roles', None)
+        if user_roles is None:
+            user_roles = set(user.roles.values_list('name', flat=True))
+            self.request._user_roles = user_roles
+
+        is_admin = Role.SUPER_ADMIN in user_roles
+        is_coordinator = Role.COURSE_COORDINATOR in user_roles
+        is_service_admin = Role.SERVICE_ADMIN in user_roles
+
+        # SuperAdmins and CourseCoordinators see everything
+        if is_admin:
+            return qs
+
+        # Build a union of visibility conditions for non-admin users
+        visibility = Q(material_type=Material.MaterialType.GENERAL)
+
+        # COURSE materials: visible if the student is enrolled in a SemesterCourse
+        # whose parent Course matches the material's course FK.
+        visibility |= Q(
+            material_type=Material.MaterialType.COURSE,
+            course__semester_courses__enrollments__student=user,
+        )
+
+        # SERVICE materials: visible if the student is an active member of that group
+        visibility |= Q(
+            material_type=Material.MaterialType.SERVICE,
+            service_group__members__student=user,
+        )
+
+        # CourseCoordinators additionally see the COURSE materials of the curriculums they coordinate
+        if is_coordinator:
+            visibility |= Q(
+                material_type=Material.MaterialType.COURSE,
+                course__semester_courses__coordinators=user,
+            )
+
+        # ServiceAdmins additionally see materials for groups they manage
+        if is_service_admin:
+            visibility |= Q(
+                material_type=Material.MaterialType.SERVICE,
+                service_group__admin=user,
+            )
+
+        return qs.filter(visibility).distinct()
+
+    def perform_create(self, serializer):
+        """
+        Enforce scope-level write permissions at creation time.
+        - GENERAL: only SuperAdmin
+        - SERVICE: SuperAdmin or ServiceAdmin of that specific group
+        - COURSE:  SuperAdmin or CourseCoordinator
+        """
+        user = self.request.user
+        material_type = serializer.validated_data.get('material_type')
+        
+        user_roles = getattr(self.request, '_user_roles', None)
+        if user_roles is None:
+            user_roles = set(user.roles.values_list('name', flat=True))
+            self.request._user_roles = user_roles
+            
+        is_super = Role.SUPER_ADMIN in user_roles
+
+        if material_type == Material.MaterialType.GENERAL:
+            if not is_super:
+                raise drf_serializers.ValidationError(
+                    {"material_type": "Only SuperAdmin can create GENERAL materials."}
+                )
+
+        elif material_type == Material.MaterialType.SERVICE:
+            service_group = serializer.validated_data.get('service_group')
+            if not is_super:
+                is_service_admin = Role.SERVICE_ADMIN in user_roles
+                if not is_service_admin or service_group.admin != user:
+                    raise drf_serializers.ValidationError(
+                        {"service_group": "You can only create materials for service groups you manage."}
+                    )
+
+        elif material_type == Material.MaterialType.COURSE:
+            if not is_super:
+                course = serializer.validated_data.get('course')
+                if not can_manage_curriculum(user, course):
+                    raise drf_serializers.ValidationError(
+                        {"course": "You can only add materials to a course where you are a coordinator."}
+                    )
+
+        serializer.save(uploaded_by=user)
+
+    def perform_update(self, serializer):
+        """
+        Enforce scope-level write permissions at update time.
+        Ensures a user doesn't escalate the material scope beyond their permissions.
+        """
+        user = self.request.user
+        material_type = serializer.validated_data.get('material_type', self.get_object().material_type)
+        
+        user_roles = getattr(self.request, '_user_roles', None)
+        if user_roles is None:
+            user_roles = set(user.roles.values_list('name', flat=True))
+            self.request._user_roles = user_roles
+            
+        is_super = Role.SUPER_ADMIN in user_roles
+
+        if material_type == Material.MaterialType.GENERAL:
+            if not is_super:
+                raise drf_serializers.ValidationError(
+                    {"material_type": "Only SuperAdmin can manage GENERAL materials."}
+                )
+
+        elif material_type == Material.MaterialType.SERVICE:
+            service_group = serializer.validated_data.get('service_group', self.get_object().service_group)
+            if not is_super:
+                is_service_admin = Role.SERVICE_ADMIN in user_roles
+                if not is_service_admin or (service_group and service_group.admin != user):
+                    raise drf_serializers.ValidationError(
+                        {"service_group": "You can only manage materials for service groups you manage."}
+                    )
+
+        elif material_type == Material.MaterialType.COURSE:
+            if not is_super:
+                course = serializer.validated_data.get('course', self.get_object().course)
+                if not can_manage_curriculum(user, course):
+                    raise drf_serializers.ValidationError(
+                        {"course": "You can only manage materials of a course where you are a coordinator."}
+                    )
+
+        serializer.save()

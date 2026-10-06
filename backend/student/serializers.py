@@ -1,0 +1,103 @@
+from rest_framework import serializers
+from .models import StudentProfile
+from django.conf import settings
+
+class StudentProfileSerializer(serializers.ModelSerializer):
+    """
+    Serializer for the StudentProfile model.
+    Handles image uploads and data validation.
+    """
+    # Explicitly define the image field to handle uploads cleanly
+    profile_image = serializers.ImageField(required=False, allow_null=True)
+    
+    # User information (read-only)
+    user_email = serializers.EmailField(source='user.email', read_only=True)
+    first_name = serializers.CharField(source='user.first_name', read_only=True)
+    middle_name = serializers.CharField(source='user.middle_name', read_only=True)
+    last_name = serializers.CharField(source='user.last_name', read_only=True)
+    gender = serializers.CharField(source='user.gender', read_only=True)
+
+    class Meta:
+        model = StudentProfile
+        fields = [
+            'id', 
+            'user',
+            'user_email',
+            'first_name',
+            'middle_name',
+            'last_name',
+            'gender',
+            'profile_image',
+            'batch_year',
+            'department',
+            'telegram_username',
+            'personal_phone',
+            'sms_opt_in',
+            'emergency_name',
+            'emergency_phone',
+            'emergency_relation',
+            'home_address',
+            'previous_church',
+            'activity_serving',
+            'dorm_block',
+            'dorm_room',
+            'confession_father',
+            'status',
+            'created_at',
+            'updated_at'
+        ]
+        read_only_fields = ['id', 'user', 'created_at', 'updated_at']
+
+    def validate(self, attrs):
+        # Opting in to SMS needs a phone number we can actually send to.
+        from notifications.sms.phone import normalize_phone
+
+        self._check_academic_facts(attrs)
+
+        opt_in = attrs.get('sms_opt_in', getattr(self.instance, 'sms_opt_in', False))
+        phone = attrs.get('personal_phone', getattr(self.instance, 'personal_phone', None))
+        if opt_in and not normalize_phone(phone):
+            raise serializers.ValidationError(
+                {'sms_opt_in': 'Enter a valid phone number (for example 0911223344) to receive SMS.'}
+            )
+        return attrs
+
+    def _check_academic_facts(self, attrs):
+        """
+        Year and department are set once by the student; after that only the Super Admin changes them
+        (the yearly rollover moves the year). Department must come from the Super Admin's list when there is one.
+        """
+        from .models import Department
+
+        request = self.context.get('request')
+        is_admin = bool(request and request.user.is_authenticated and request.user.is_superuser)
+        current = self.instance
+
+        def same(a, b):
+            return str(a if a is not None else '').strip().lower() == str(b if b is not None else '').strip().lower()
+
+        if current is not None and not is_admin:
+            for field in ('batch_year', 'department'):
+                if field in attrs and getattr(current, field) not in (None, '') and not same(attrs[field], getattr(current, field)):
+                    raise serializers.ValidationError(
+                        {field: 'This was set earlier and is now locked. Ask the Super Admin to change it.'}
+                    )
+            if 'status' in attrs and attrs['status'] != current.status:
+                raise serializers.ValidationError({'status': 'Only the Super Admin can change this.'})
+
+        if 'batch_year' in attrs and attrs['batch_year'] is not None and not 1 <= attrs['batch_year'] <= 7:
+            raise serializers.ValidationError({'batch_year': 'The year must be between 1 and 7.'})
+
+        if 'department' in attrs and attrs['department'] and (current is None or not same(attrs['department'], current.department)):
+            listed = Department.objects.filter(is_active=True)
+            if listed.exists():
+                match = listed.filter(name__iexact=attrs['department'].strip()).first()
+                if match is None:
+                    raise serializers.ValidationError({'department': 'Choose a department from the list.'})
+                attrs['department'] = match.name
+
+        dept_name = attrs.get('department', getattr(current, 'department', None))
+        batch = attrs.get('batch_year', getattr(current, 'batch_year', None))
+        dept = Department.objects.filter(name__iexact=(dept_name or '').strip()).first() if dept_name else None
+        if dept and batch and batch > dept.years:
+            raise serializers.ValidationError({'batch_year': f'{dept.name} is a {dept.years}-year program.'})

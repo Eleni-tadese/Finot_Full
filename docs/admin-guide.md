@@ -1,0 +1,64 @@
+# Admin guide (for the project owner)
+
+Written for: the person who runs Finot day to day as **Super Admin**. Everything below is done from the website, in the admin menu at `/dashboard/admin`.
+
+## 1. First start
+
+1. A developer runs `create_first_admin` once (see [local-setup.md](local-setup.md)). That creates the first Super Admin with the owner's own password.
+2. Sign in at `/login` (the login field holds the email). You land on **Admin overview**.
+
+There is no "add user" button on purpose: **every person registers themselves** at `/register`, then sets their year of study, department and phone once in **Profile → Edit Profile**. You then give roles.
+
+## 2. Set up, in this order
+
+1. **Departments** – add each department with its length in years (4, 5, ...). Students pick from this list, and the length tells the system when a student graduates.
+2. **Users & roles** – find a person and use **Edit roles**. Rules by year of study are in [roles-and-permissions.md](roles-and-permissions.md). When you tick **QA Counselor**, the same window lets you tick the question categories that counselor answers.
+3. **Service groups** – create a group; add members (**Members → Add a student**); then **Edit group → Group admin** and pick one of its members. That person becomes the group's Service Admin automatically. Turn the **selection window** on when students may choose groups; group admins accept applicants.
+4. **Courses** – see section 3.
+5. **Families** – create a family (name, gender, father, mother). Use **Distribution** to spread first-year students by gender, dorm block and section: preview, confirm, undo if needed.
+6. **Private Q&A** – tick what each counselor handles; assign sensitive questions yourself.
+
+## 3. Courses
+
+1. **Curriculums → New curriculum**: title, batch (year of study), description. A batch can have several curriculums.
+2. On a curriculum card, **Open for a semester**: academic year, semester, and the **coordinators** (people who already hold the Course Coordinator role). Students of that batch are enrolled automatically, and a student who later reaches that batch joins by themselves.
+3. The coordinator manages the course from **Course Coordinator** in their menu:
+   - a new course is **Not started**: students cannot see it yet. The coordinator **plans class days**, then presses **Start course**.
+   - **Open**: students see it in **My courses**. The coordinator takes attendance (Present or Absent), reads the report (summary and day-by-day grid), exports it to Excel, and adds materials.
+   - **Complete course**: students keep the materials and their own attendance; class days and attendance are frozen. The coordinator can **Reopen** it.
+4. Students see only the courses of their own year. A course a coordinator merely coordinates never appears in their "My courses".
+
+If enrolments ever look wrong, a developer can run `sync_course_enrolments` (it shows what it would change; add `--yes` to apply).
+
+## 4. Questions and answers
+
+- **Public questions**: anyone can ask (with an optional nickname). A **Moderator** approves the question; any signed-in person can answer; the Moderator approves answers. Moderators are alerted, and see a list of public questions with no answer for more than a week, which they can answer themselves (published at once).
+- **Private questions**: signed-in students only. The question goes to the counselors who handle its category. A sensitive Personal question, or one in a category nobody handles, needs **you** to assign a counselor, and you are alerted. Counselors answer directly; no approval is needed; the asker reads the answer in their private inbox.
+
+## 5. Donations
+
+- Signed-in students give their **weekly donation** (an amount only). Visitors without an account simply **support** the fellowship (amount, optional name, optional email).
+- **Admin → Donations** lists every donation with totals (only Chapa-confirmed payments count), filters and an Excel export. **Check pending payments** asks Chapa about payments that were started but never confirmed.
+- See [payments-chapa.md](payments-chapa.md).
+
+## 6. Once a year: start the new year
+
+**Academic year → Start new year**: read the preview (who moves up, who graduates), type a name for the new year (for example 2027/28), confirm. Everyone moves up one year; students finishing their program become **Graduated** and keep their account. Do it **before** the new first-year students register. A second run within six months is refused unless you tick "I understand"; the latest run can be undone.
+
+## 7. Reports
+
+**Export to Excel**: students, families, events, event attendance, private Q&A log (contains personal information), donations. Course attendance reports are exported from each course's report page.
+
+## 8. Things that run by themselves
+
+| What | When |
+|---|---|
+| Donation reminder (in-app, email, push) | every Thursday, 09:00 Ethiopia time |
+| "Class tomorrow" reminder | every day, 18:00 Ethiopia time |
+| Re-check of pending payments | every hour |
+
+Details and how to switch them on are in [notifications-and-reminders.md](notifications-and-reminders.md).
+
+## 9. Training others
+
+Teach in this order, one short session each: the admin console (Overview, Users & roles, Sub-admins) → service groups → courses → families → private Q&A → exports and reminders → one session per sub-admin role (see [roles-and-permissions.md](roles-and-permissions.md)).

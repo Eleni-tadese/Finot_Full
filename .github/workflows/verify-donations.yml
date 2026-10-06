@@ -1,0 +1,17 @@
+name: Re-check pending donations
+
+on:
+  schedule:
+    # every hour: ask Chapa again about payments whose donor never came back
+    - cron: "15 * * * *"
+  workflow_dispatch: {}
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Call the backend trigger
+        run: |
+          curl --fail --silent --show-error --max-time 300 -X POST \
+            -H "X-Cron-Token: ${{ secrets.CRON_SECRET }}" \
+            "${{ secrets.BACKEND_URL }}/api/donations/cron/verify-pending/"
