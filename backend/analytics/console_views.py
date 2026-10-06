@@ -667,6 +667,15 @@ class FamilyDetailView(FamilyConsoleView):
         family.save()
         return Response(_family_json(family))
 
+    def delete(self, request, pk):
+        """Delete a family. Its students are left without a family (they can be placed again); the parents are freed."""
+        family = Family.objects.filter(pk=pk).first()
+        if family is None:
+            return Response({"detail": "Not found."}, status=status.HTTP_404_NOT_FOUND)
+        students = family.members.count()
+        family.delete()
+        return Response({"removed_students": students})
+
 
 class FamiliesView(FamilyConsoleView):
     def get(self, request):
@@ -838,6 +847,8 @@ class DistributionConfirmView(FamilyConsoleView):
             batch, applied, skipped = apply_distribution(real_pairs, user=request.user)
             if batch is None:
                 transaction.set_rollback(True)
+            else:
+                Family.objects.filter(pk__in=made.values()).update(created_in_batch=batch)
         return Response({"applied": applied, "skipped": skipped, "batch": _batch_json(batch) if batch else None})
 
 

@@ -758,11 +758,12 @@ class TestAutoFamilies:
         # nothing left to place: the next run plans nothing and creates nothing
         again = c.post(BASE + "families/distribution/auto-preview/").json()
         assert again["total_added"] == 0 and again["new_families"] == []
-        # undo removes the students (the families stay, ready to be filled again)
+        # undo removes the students and the families this run made (nobody had touched them)
         assert c.post(f"{BASE}families/distribution/batches/{done['batch']['id']}/undo/").status_code == 200
         assert FamilyMembership.objects.count() == 0
+        assert Family.objects.count() == 0
         refill = c.post(BASE + "families/distribution/auto-preview/").json()
-        assert refill["new_families"] == [] and refill["total_added"] == 25
+        assert [f["name"] for f in refill["new_families"]] == ["Family 1", "Family 2", "Family 3"] and refill["total_added"] == 25
 
     def test_fills_existing_mixed_family_first_and_names_continue(self, boss):
         Family.objects.create(name="Family 7")
@@ -827,3 +828,55 @@ class TestFamilyParents:
         f = Family.objects.create(name="F")
         assert client_for(stu).get(BASE + "families/").status_code == 403
         assert client_for(stu).patch(f"{BASE}families/{f.id}/", {"name": "Z"}, format="json").status_code == 403
+
+
+@pytest.mark.django_db
+class TestFamilyCleanup:
+    def fresh(self, n):
+        for i in range(n):
+            u = make_user(f"cl{i}@finot.test", gender="F" if i % 2 else "M", batch=1)
+            StudentProfile.objects.filter(user=u).update(batch_year=1, status=StudentProfile.IN_CAMPUS)
+
+    def run_auto(self, c):
+        preview = c.post(BASE + "families/distribution/auto-preview/").json()
+        done = c.post(BASE + "families/distribution/confirm/",
+                      {"pairs": preview["pairs"], "new_families": preview["new_families"]}, format="json").json()
+        return done["batch"]["id"]
+
+    def test_undo_removes_the_families_the_run_created_if_untouched(self, boss):
+        self.fresh(12)
+        c = client_for(boss)
+        batch = self.run_auto(c)
+        assert Family.objects.count() == 2
+        dad = make_user("dad@finot.test", gender="M", batch=5)
+        Family.objects.filter(name="Family 1").update(father=dad)  # someone already set a father here
+        assert c.post(f"{BASE}families/distribution/batches/{batch}/undo/").json()["removed"] == 12
+        assert list(Family.objects.values_list("name", flat=True)) == ["Family 1"]  # only the untouched one went
+
+    def test_families_made_by_hand_survive_undo(self, boss):
+        Family.objects.create(name="Mine")
+        self.fresh(4)
+        c = client_for(boss)
+        batch = self.run_auto(c)
+        assert Family.objects.count() == 1  # it filled the hand-made family, created none
+        c.post(f"{BASE}families/distribution/batches/{batch}/undo/")
+        assert Family.objects.filter(name="Mine").exists()
+
+    def test_delete_family_frees_students_and_parents(self, boss):
+        dad = make_user("dad@finot.test", gender="M", batch=5)
+        fam = Family.objects.create(name="Gone", father=dad)
+        s = make_user("kid@finot.test", batch=1)
+        FamilyMembership.objects.create(family=fam, student=s)
+        c = client_for(boss)
+        res = c.delete(f"{BASE}families/{fam.id}/")
+        assert res.status_code == 200 and res.json() == {"removed_students": 1}
+        assert not Family.objects.exists() and not FamilyMembership.objects.exists()
+        assert User.objects.filter(pk=dad.pk).exists() and User.objects.filter(pk=s.pk).exists()
+        assert c.delete(f"{BASE}families/{fam.id}/").status_code == 404
+        assert client_for(make_user("stu@finot.test")).delete(f"{BASE}families/1/").status_code == 403
+
+    def test_rename_family(self, boss):
+        a, b = Family.objects.create(name="A"), Family.objects.create(name="B")
+        c = client_for(boss)
+        assert c.patch(f"{BASE}families/{a.id}/", {"name": "Zion"}, format="json").json()["name"] == "Zion"
+        assert c.patch(f"{BASE}families/{a.id}/", {"name": "b"}, format="json").status_code == 400

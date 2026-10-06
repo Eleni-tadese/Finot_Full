@@ -37,6 +37,7 @@ const DashboardFamily = () => {
   const [body, setBody] = useState("");
   const [to, setTo] = useState<number | null>(null);
   const [sending, setSending] = useState(false);
+  const [alsoEmail, setAlsoEmail] = useState(false);
 
   const load = useCallback(async () => {
     try {
@@ -63,8 +64,9 @@ const DashboardFamily = () => {
     if (!body.trim()) return;
     setSending(true);
     try {
-      const res = await api.sendFamilyMessage(body, to);
+      const res = await api.sendFamilyMessage(body, to, alsoEmail);
       toast.success(t("fam_msg_sent", "Message sent to {{n}} person(s).", { n: res.told }));
+      if (alsoEmail) toast.success(t("fam_msg_emailed", "{{n}} email(s) sent.", { n: res.emailed }));
       setBody("");
       await load();
     } catch (err: any) {
@@ -226,6 +228,10 @@ const DashboardFamily = () => {
               )}
               <textarea className="input min-h-[80px] w-full" maxLength={1000} value={body} onChange={(e) => setBody(e.target.value)}
                 placeholder={isParent ? t("fam_msg_placeholder", "Your message...") : t("fam_reply_placeholder", "Write to your father and mother...")} />
+              <label className="flex items-center gap-2 text-xs text-muted-foreground">
+                <input type="checkbox" className="h-4 w-4" checked={alsoEmail} onChange={(e) => setAlsoEmail(e.target.checked)} />
+                {t("fam_also_email", "Also send a copy by email")}
+              </label>
               <div className="flex items-center justify-between">
                 <span className="text-xs text-muted-foreground">{body.length}/1000</span>
                 <button type="submit" disabled={sending || !body.trim()} className="btn-primary flex items-center gap-2 px-4 py-2 text-sm">

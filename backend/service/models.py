@@ -313,6 +313,11 @@ class Family(models.Model):
 
     religious_father = models.CharField(max_length=150, blank=True, null=True)
 
+    # Set when the automatic distribution created this family, so undoing that run can remove it again
+    created_in_batch = models.ForeignKey(
+        "FamilyDistributionBatch", on_delete=models.SET_NULL, null=True, blank=True, related_name="created_families"
+    )
+
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:

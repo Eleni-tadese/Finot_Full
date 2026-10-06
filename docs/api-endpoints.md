@@ -24,6 +24,7 @@ Generated from the code (`manage.py spectacular`). For request and response shap
 | POST | `/api/admin-console/families/distribution/preview/` | api_admin_console_families_distribution_preview_create |
 | GET | `/api/admin-console/families/people/` | GET families/people/?search= : name and email of active people, so a father or mother can be picked. |
 | PATCH | `/api/admin-console/families/{id}/` | PATCH families/<id>/ : set or change the father, mother, religious father or name. Send father_id: null to clear. |
+| DELETE | `/api/admin-console/families/{id}/` | Delete a family. Its students are left without a family (they can be placed again); the parents are freed. |
 | GET | `/api/admin-console/overview/` | api_admin_console_overview_retrieve |
 | GET | `/api/admin-console/qa/counselors/` | api_admin_console_qa_counselors_retrieve |
 | PUT | `/api/admin-console/qa/counselors/{id}/specializations/` | api_admin_console_qa_counselors_specializations_update |

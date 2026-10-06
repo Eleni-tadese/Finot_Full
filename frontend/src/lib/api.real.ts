@@ -274,8 +274,8 @@ export const api = {
     return response.data;
   },
 
-  sendFamilyMessage: async (body: string, toStudentId?: number | null) => {
-    const response = await axiosInstance.post('/api/service/families/my-family/messages/', { body, to_student_id: toStudentId ?? null });
+  sendFamilyMessage: async (body: string, toStudentId?: number | null, email = false) => {
+    const response = await axiosInstance.post('/api/service/families/my-family/messages/', { body, to_student_id: toStudentId ?? null, email });
     return response.data;
   },
 

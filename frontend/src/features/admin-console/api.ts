@@ -50,6 +50,7 @@ export const adminApi = {
   setSelectionWindow: (open: boolean) =>
     axiosInstance.patch<{ is_selection_open: boolean }>(`${C}/service-config/`, { is_selection_open: open }).then((r) => r.data),
   families: () => axiosInstance.get<{ results: FamilyRow[] }>(`${C}/families/`).then((r) => r.data.results),
+  deleteFamily: (id: number) => axiosInstance.delete<{ removed_students: number }>(`${C}/families/${id}/`).then((r) => r.data),
   updateFamily: (id: number, body: { name?: string; father_id?: number | null; mother_id?: number | null; religious_father?: string }) =>
     axiosInstance.patch<FamilyRow>(`${C}/families/${id}/`, body).then((r) => r.data),
   createFamily: (body: { name: string; gender: string; father_id?: number | null; mother_id?: number | null; religious_father?: string }) =>

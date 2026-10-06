@@ -271,4 +271,8 @@ def undo_distribution(batch):
     removed, _ = FamilyMembership.objects.filter(batch=batch).delete()
     batch.undone_at = timezone.now()
     batch.save(update_fields=["undone_at"])
+    # Families this run created go away again, unless someone has since joined or been given a parent
+    for family in batch.created_families.all():
+        if not family.members.exists() and family.father_id is None and family.mother_id is None and not family.religious_father:
+            family.delete()
     return removed

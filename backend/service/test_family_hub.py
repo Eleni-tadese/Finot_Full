@@ -140,3 +140,27 @@ class TestFamiliesAreNotOpenToEveryone:
         UserRole.objects.create(user=boss, role=Role.objects.get_or_create(name=Role.FAMILY_ADMIN)[0])
         assert client(boss).get(url).status_code == 200
         assert client(boss).get(MINE, {"family_id": family.id}).json()["my_role"] == "manager"
+
+
+@pytest.mark.django_db
+class TestEmailCopy:
+    def test_email_copy_only_when_asked_and_only_to_real_addresses(self, world, mailoutbox):
+        family, dad, mum, kids, *_ = world
+        c = client(dad)
+        res = c.post(SEND, {"body": "no mail please"}, format="json").json()
+        assert res["emailed"] == 0 and len(mailoutbox) == 0
+        res = c.post(SEND, {"body": "Dinner on Sunday", "email": True}, format="json").json()
+        assert res["emailed"] == 4 and len(mailoutbox) == 4  # three children and the mother, all real-looking addresses
+        assert all("Dinner on Sunday" in m.body or "Dinner on Sunday" in str(m.alternatives) for m in mailoutbox)
+
+    def test_addresses_that_cannot_receive_mail_are_skipped(self, world, mailoutbox):
+        family, dad, mum, kids, *_ = world
+        fake = person("tester@finot.test", "M", 1)
+        FamilyMembership.objects.create(family=family, student=fake)
+        res = client(dad).post(SEND, {"body": "hello", "email": True}, format="json").json()
+        assert res["told"] == 5 and res["emailed"] == 4  # the .test address is told in the app but not emailed
+
+    def test_child_reply_can_be_emailed_to_the_parents(self, world, mailoutbox):
+        family, dad, mum, kids, *_ = world
+        res = client(kids[0]).post(SEND, {"body": "Thank you", "email": True}, format="json").json()
+        assert res["emailed"] == 2 and sorted(m.to[0] for m in mailoutbox) == ["dad@x.com", "mum@x.com"]

@@ -403,10 +403,11 @@ class FamilyViewSet(viewsets.ReadOnlyModelViewSet):
             if recipient is None:
                 return Response({"to_student_id": "That person is not in this family."}, status=status.HTTP_400_BAD_REQUEST)
         try:
-            message, told = family_hub.send_family_message(request.user, family, request.data.get('body'), recipient)
+            wants_email = str(request.data.get('email', '')).lower() in ('1', 'true', 'yes')
+            message, told, emailed = family_hub.send_family_message(request.user, family, request.data.get('body'), recipient, email=wants_email)
         except ValueError as exc:
             return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
-        return Response({"id": message.id, "told": told}, status=status.HTTP_201_CREATED)
+        return Response({"id": message.id, "told": told, "emailed": emailed}, status=status.HTTP_201_CREATED)
 
     @action(detail=True, methods=['GET'])
     def members(self, request, pk=None):

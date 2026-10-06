@@ -135,12 +135,42 @@ def _push(user_ids, title, message):
         logging.getLogger(__name__).exception("Could not push the family message")
 
 
-def send_family_message(sender, family, body, recipient=None):
+def _email_copy(user_ids, title, body):
+    """Email the message to these people (real addresses only, at most 30). Never raises. Returns how many were sent."""
+    from django.contrib.auth import get_user_model
+    from django.core.mail import get_connection
+    from django.utils.html import escape
+
+    from notifications.channels.email import _send_html_email
+    from notifications.reminders import is_deliverable
+
+    emails = [u.email for u in get_user_model().objects.filter(pk__in=user_ids) if is_deliverable(u.email)][:30]
+    if not emails:
+        return 0
+    html = f'<p style="white-space: pre-line;">{escape(body)}</p><p>You can answer on the Family page of Finot.</p>'
+    sent = 0
+    try:
+        connection = get_connection()
+        connection.open()
+        try:
+            for email in emails:
+                if _send_html_email(title, [email], message_body=html, connection=connection):
+                    sent += 1
+        finally:
+            connection.close()
+    except Exception:
+        import logging
+        logging.getLogger(__name__).exception("Family message emails stopped early after %s", sent)
+    return sent
+
+
+def send_family_message(sender, family, body, recipient=None, email=False):
     """
     Save a message and tell the people it is for (in-app, plus push when configured).
     From a father or mother: recipient=None means every child and the other parent.
     From a child: always a reply to the father and mother only.
-    Returns (message, how many were told). Raises ValueError with a plain-language reason when not allowed.
+    email=True also sends an email copy. Returns (message, how many were told, how many emailed).
+    Raises ValueError with a plain-language reason when not allowed.
     """
     body = (body or "").strip()
     if not body:
@@ -161,7 +191,7 @@ def send_family_message(sender, family, body, recipient=None):
             Notification(user_id=uid, title=title, message=body, notification_type=Notification.TYPE_SYSTEM) for uid in parents
         ])
         _push(parents, title, body)
-        return message, len(parents)
+        return message, len(parents), (_email_copy(parents, title, body) if email else 0)
     if recipient is not None and recipient.id not in member_ids:
         raise ValueError("That person is not in this family.")
     message = FamilyMessage.objects.create(family=family, sender=sender, recipient=recipient, body=body)
@@ -175,4 +205,4 @@ def send_family_message(sender, family, body, recipient=None):
         Notification(user_id=uid, title=title, message=body, notification_type=Notification.TYPE_SYSTEM) for uid in told
     ])
     _push(told, title, body)
-    return message, len(told)
+    return message, len(told), (_email_copy(told, title, body) if email else 0)

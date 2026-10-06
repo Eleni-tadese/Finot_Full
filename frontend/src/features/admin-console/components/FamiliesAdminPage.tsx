@@ -31,6 +31,7 @@ const FamiliesAdminPage = () => {
   const [editFather, setEditFather] = useState<PickedUser | null>(null);
   const [editMother, setEditMother] = useState<PickedUser | null>(null);
   const [editReligious, setEditReligious] = useState("");
+  const [editName, setEditName] = useState("");
 
   const load = useCallback(async () => {
     try {
@@ -111,6 +112,7 @@ const FamiliesAdminPage = () => {
     setEditFather(f.father);
     setEditMother(f.mother);
     setEditReligious(f.religious_father);
+    setEditName(f.name);
   };
 
   const saveEdit = async (e: React.FormEvent) => {
@@ -118,8 +120,24 @@ const FamiliesAdminPage = () => {
     if (!editing) return;
     setBusy(true);
     try {
-      await adminApi.updateFamily(editing.id, { father_id: editFather?.id ?? null, mother_id: editMother?.id ?? null, religious_father: editReligious });
+      await adminApi.updateFamily(editing.id, { name: editName, father_id: editFather?.id ?? null, mother_id: editMother?.id ?? null, religious_father: editReligious });
       toast.success(t("fam_saved", "Family saved."));
+      setEditing(null);
+      await load();
+    } catch (err: any) {
+      toast.error(firstApiError(err?.response?.data) || t("adm_save_failed", "Could not save."));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const removeFamily = async () => {
+    if (!editing) return;
+    if (!(await askConfirm(t("fam_delete_confirm", "Delete {{name}}? Its {{n}} student(s) will be left without a family (you can place them again). The father and mother are freed.", { name: editing.name, n: editing.member_count })))) return;
+    setBusy(true);
+    try {
+      await adminApi.deleteFamily(editing.id);
+      toast.success(t("fam_deleted", "Family deleted."));
       setEditing(null);
       await load();
     } catch (err: any) {
@@ -159,6 +177,12 @@ const FamiliesAdminPage = () => {
             {t("adm_unassigned_n", "{{n}} first-year student(s) are not in a family.", { n: data.unassigned_count })}
           </p>
 
+          {data.unassigned_count > 0 && data.families.length > 0 && (
+            <div className="mb-4 flex flex-wrap items-center gap-3 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
+              <span className="flex-1">{t("fam_late_banner", "{{n}} first-year student(s) have no family yet (for example late registrations). The button below places them: families with room first, new families only if needed.", { n: data.unassigned_count })}</span>
+              <button onClick={runAuto} disabled={busy} className="btn-primary px-3 py-1.5 text-xs">{t("fam_place_late", "Place them now")}</button>
+            </div>
+          )}
           <div className="mb-6 rounded-xl border border-primary/20 bg-primary/5 p-4">
             <h2 className="text-sm font-semibold text-foreground">{t("adm_auto_title", "Let the system make the families")}</h2>
             <p className="mt-1 text-sm text-muted-foreground">
@@ -285,15 +309,22 @@ const FamiliesAdminPage = () => {
       {editing && (
         <Modal title={t("fam_edit", "{{name}}: father and mother", { name: editing.name })} onClose={() => setEditing(null)}>
           <form onSubmit={saveEdit} className="space-y-4">
+            <div>
+              <label className="text-sm font-medium text-foreground" htmlFor="fam-name2">{t("fam_name", "Family name")}</label>
+              <input id="fam-name2" className="input mt-1 w-full" value={editName} onChange={(e) => setEditName(e.target.value)} maxLength={100} />
+            </div>
             <UserPicker label={t("fam_father", "Father (a man, optional)")} value={editFather} onChange={setEditFather} limited />
             <UserPicker label={t("fam_mother", "Mother (a woman, optional)")} value={editMother} onChange={setEditMother} limited />
             <div>
               <label className="text-sm font-medium text-foreground" htmlFor="fam-rel2">{t("fam_religious", "Religious father (optional)")}</label>
               <input id="fam-rel2" className="input mt-1 w-full" value={editReligious} onChange={(e) => setEditReligious(e.target.value)} maxLength={150} />
             </div>
-            <div className="flex justify-end gap-2">
+            <div className="flex items-center justify-between gap-2">
+              <button type="button" onClick={removeFamily} disabled={busy} className="btn-outline px-3 py-2 text-sm text-destructive">{t("fam_delete", "Delete family")}</button>
+              <div className="flex gap-2">
               <button type="button" onClick={() => setEditing(null)} className="btn-outline px-4 py-2 text-sm">{t("cancel")}</button>
               <button type="submit" disabled={busy} className="btn-primary px-4 py-2 text-sm">{busy ? t("saving") : t("save", "Save")}</button>
+              </div>
             </div>
           </form>
         </Modal>
