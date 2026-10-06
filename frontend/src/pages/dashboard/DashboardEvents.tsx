@@ -1,5 +1,8 @@
 import { useState, useEffect } from "react";
+import { etMonthShort, etDay, etTime } from "../../lib/ethiopiaTime";
+import { Link } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
+import { hasRole } from "../../features/auth/roles";
 import { api } from "../../lib/api";
 import { Card, SectionHeader } from "../../components/ui/Card";
 import Badge from "../../components/ui/Badge";
@@ -39,7 +42,7 @@ const DashboardEvents = () => {
   const { user } = useAuth();
   const [events, setEvents] = useState<DashboardEvent[]>([]);
   const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState<"all" | "upcoming" | "completed">("all");
+  const [filter, setFilter] = useState<"all" | "upcoming" | "ongoing" | "completed">("all");
 
   useEffect(() => {
     const fetchEvents = async () => {
@@ -57,10 +60,7 @@ const DashboardEvents = () => {
 
   const filteredEvents = events.filter((event) => {
     if (filter === "all") return true;
-    const eventDate = event.start_date ? new Date(event.start_date) : null;
-    if (filter === "upcoming") return eventDate && eventDate >= new Date();
-    if (filter === "completed") return eventDate && eventDate < new Date();
-    return true;
+    return event.status.toLowerCase() === filter;
   });
 
   const getEventIcon = () => {
@@ -94,6 +94,21 @@ const DashboardEvents = () => {
             icon={<FiCalendar className="h-6 w-6" />}
           />
           
+          {(hasRole(user, "service_admin") || hasRole(user, "Event_manager") || hasRole(user, "Super_admin")) && (
+            <div className="mt-3 flex flex-wrap gap-2">
+              {hasRole(user, "service_admin") && (
+                <Link to="/dashboard/manage-ageglot?tab=events" className="rounded-lg bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground hover:opacity-90">
+                  {t("create_group_event")}
+                </Link>
+              )}
+              {(hasRole(user, "Event_manager") || hasRole(user, "Super_admin")) && (
+                <Link to="/dashboard/event-management" className="rounded-lg bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground hover:opacity-90">
+                  {t("create_global_event")}
+                </Link>
+              )}
+            </div>
+          )}
+
           {/* Quick Stats */}
           <div className="mt-4 flex flex-wrap gap-4">
             <div className="flex items-center gap-2 rounded-full bg-white/80 backdrop-blur-sm px-3 py-1.5 text-sm shadow-sm">
@@ -104,7 +119,7 @@ const DashboardEvents = () => {
             <div className="flex items-center gap-2 rounded-full bg-white/80 backdrop-blur-sm px-3 py-1.5 text-sm shadow-sm">
               <FiTrendingUp className="h-4 w-4 text-green-600" />
               <span className="font-medium">
-                {events.filter(e => new Date(e.start_date) >= new Date()).length}
+                {events.filter(e => e.status === "UPCOMING").length}
               </span>
               <span className="text-muted-foreground">{t("upcoming_events")}</span>
             </div>
@@ -124,6 +139,7 @@ const DashboardEvents = () => {
         {[
           { key: "all", label: t("all_events"), icon: <FiCloud className="h-4 w-4" /> },
           { key: "upcoming", label: t("event_upcoming"), icon: <FiSun className="h-4 w-4" /> },
+          { key: "ongoing", label: t("event_ongoing"), icon: <FiClock className="h-4 w-4" /> },
           { key: "completed", label: t("event_completed"), icon: <FiMoon className="h-4 w-4" /> },
         ].map((tab) => (
           <motion.button
@@ -161,16 +177,13 @@ const DashboardEvents = () => {
           >
             {filteredEvents.map((event, index) => {
               const eventDate = event.start_date ? new Date(event.start_date) : null;
-              const isPast = eventDate && eventDate < new Date();
-              const isOngoing = eventDate && eventDate <= new Date() && new Date() <= new Date(event.end_date);
-              
               let statusColor = "bg-gray-100 text-gray-700";
               let statusText = t("event_completed");
-              if (!isPast) {
+              if (event.status === "UPCOMING") {
                 statusColor = "bg-green-100 text-green-700";
                 statusText = t("event_upcoming");
               }
-              if (isOngoing) {
+              if (event.status === "ONGOING") {
                 statusColor = "bg-blue-100 text-blue-700";
                 statusText = t("event_ongoing");
               }
@@ -195,10 +208,10 @@ const DashboardEvents = () => {
                             <div className="pointer-events-none absolute bottom-3 left-3 rounded-xl bg-white/95 px-3 py-1.5 shadow-lg">
                               <div className="text-center">
                                 <div className="text-xs font-semibold uppercase text-primary">
-                                  {eventDate.toLocaleDateString(undefined, { month: "short" })}
+                                  {etMonthShort(event.start_date)}
                                 </div>
                                 <div className="text-xl font-bold leading-none text-foreground">
-                                  {eventDate.getDate()}
+                                  {etDay(event.start_date)}
                                 </div>
                               </div>
                             </div>
@@ -241,7 +254,7 @@ const DashboardEvents = () => {
                           {eventDate
                             ? [event.start_date, event.end_date]
                                 .filter(Boolean)
-                                .map((d) => new Date(d).toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" }))
+                                .map((d) => etTime(d))
                                 .join(" – ")
                             : t("time_tbd")}
                         </span>
@@ -274,14 +287,6 @@ const DashboardEvents = () => {
                         </div>
                       )}
 
-                      {/* Call to Action */}
-                      {!isPast && (
-                        <div className="mt-4 pt-3 border-t border-border">
-                          <button className="w-full rounded-lg bg-primary/10 px-4 py-2 text-sm font-medium text-primary transition hover:bg-primary/20">
-                            {t("interested_attending")}
-                          </button>
-                        </div>
-                      )}
                     </div>
                   </Card>
                 </motion.div>

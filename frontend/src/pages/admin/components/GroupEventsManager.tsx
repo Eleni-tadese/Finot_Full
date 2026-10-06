@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
+import { etDateTime, etNow } from "../../../lib/ethiopiaTime";
 import { useConfirm } from "../../../components/ui/ConfirmProvider";
 import PhotoFrame from "../../../components/ui/PhotoFrame";
 import ExpandableText from "../../../components/ui/ExpandableText";
@@ -49,6 +50,7 @@ export default function GroupEventsManager({ groupId, eventType }: GroupEventsMa
   const [editingEventId, setEditingEventId] = useState<number | null>(null);
   const [formData, setFormData] = useState<EventFormData>({ ...emptyForm });
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("ALL");
+  const formRef = useRef<HTMLFormElement>(null);
 
   // Check if user can edit/delete an event
   const canEditEvent = (event: any) => {
@@ -133,8 +135,8 @@ export default function GroupEventsManager({ groupId, eventType }: GroupEventsMa
     setPhotoPreview(event.photo || null);
     setPhotoFile(null);
     setShowForm(true);
-    // Scroll to top of form
-    window.scrollTo({ top: 0, behavior: "smooth" });
+    // bring the form into view (the page scrolls inside the dashboard, so window.scrollTo does nothing)
+    setTimeout(() => formRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 50);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -241,7 +243,7 @@ export default function GroupEventsManager({ groupId, eventType }: GroupEventsMa
       </div>
 
       {showForm && (
-        <form onSubmit={handleSubmit} className="bg-card p-6 rounded-xl border border-border shadow-soft space-y-4">
+        <form ref={formRef} onSubmit={handleSubmit} className="bg-card p-6 rounded-xl border border-border shadow-soft space-y-4">
           <h3 className="font-semibold text-lg text-foreground">
             {editingEventId ? t("edit_event") : (eventType === "global" ? t("new_global_event") : t("new_group_event"))}
           </h3>
@@ -258,6 +260,9 @@ export default function GroupEventsManager({ groupId, eventType }: GroupEventsMa
             </div>
           )}
           
+          <p className="rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-800">
+            {t("ev_time_hint", "Type the times as Ethiopian time. It is now {{now}} in Ethiopia.", { now: etNow() })}
+          </p>
           <div className="grid gap-4 md:grid-cols-2">
             <div>
               <label className="text-sm font-medium text-muted-foreground">{t("title")} *</label>
@@ -364,7 +369,7 @@ export default function GroupEventsManager({ groupId, eventType }: GroupEventsMa
                   </span>
                 </div>
                 <p className="text-sm text-foreground">
-                  {new Date(event.start_date).toLocaleString()}
+                  {etDateTime(event.start_date)}
                 </p>
                 {event.service_group_name && (
                   <span className="inline-block text-xs px-2 py-0.5 rounded bg-accent/20 text-accent-foreground font-medium">

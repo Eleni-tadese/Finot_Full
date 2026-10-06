@@ -1524,5 +1524,6 @@
   "evatt_save": "Save attendance",
   "ui_read_more": "Read more",
   "ui_show_less": "Show less",
-  "ui_zoom_image": "View the full picture"
+  "ui_zoom_image": "View the full picture",
+  "ev_time_hint": "Type the times as Ethiopian time. It is now {{now}} in Ethiopia."
 }

@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { etDate } from "../../lib/ethiopiaTime";
 import { Link, useParams, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { FiArrowLeft, FiCalendar, FiClock, FiExternalLink, FiMapPin, FiMessageCircle, FiUser, FiUsers } from "react-icons/fi";
@@ -136,7 +137,7 @@ const ServiceGroupDetail = () => {
                       <li key={e.id} className="rounded-xl border border-border bg-muted/40 px-4 py-3">
                         <p className="font-medium text-foreground">{e.title}</p>
                         <p className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
-                          <span className="inline-flex items-center gap-1"><FiCalendar className="h-3.5 w-3.5" />{new Date(e.start_date).toLocaleDateString()}</span>
+                          <span className="inline-flex items-center gap-1"><FiCalendar className="h-3.5 w-3.5" />{etDate(e.start_date)}</span>
                           {e.place_name && <span className="inline-flex items-center gap-1"><FiMapPin className="h-3.5 w-3.5" />{e.place_name}</span>}
                         </p>
                       </li>

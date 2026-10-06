@@ -1524,5 +1524,6 @@
   "evatt_save": "ክትትሉን አስቀምጥ",
   "ui_read_more": "ተጨማሪ ያንብቡ",
   "ui_show_less": "ያሳንሱ",
-  "ui_zoom_image": "ሙሉ ምስሉን ይመልከቱ"
+  "ui_zoom_image": "ሙሉ ምስሉን ይመልከቱ",
+  "ev_time_hint": "ሰዓቱን በኢትዮጵያ ሰዓት ያስገቡ። አሁን በኢትዮጵያ {{now}} ነው።"
 }

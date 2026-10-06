@@ -169,9 +169,21 @@ class FamilySerializer(serializers.ModelSerializer):
 class EventSerializer(serializers.ModelSerializer):
     created_by_name = serializers.CharField(source='created_by.get_full_name', read_only=True)
     service_group_name = serializers.SerializerMethodField()
+    status = serializers.SerializerMethodField()
 
     def get_service_group_name(self, obj):
         return group_name(obj.service_group, self.context.get('request')) if obj.service_group else None
+
+    def get_status(self, obj):
+        # worked out from the dates every time, so an event moves upcoming -> ongoing -> completed by itself
+        return obj.current_status
+
+    def validate(self, attrs):
+        start = attrs.get('start_date', getattr(self.instance, 'start_date', None))
+        end = attrs.get('end_date', getattr(self.instance, 'end_date', None))
+        if start and end and end < start:
+            raise serializers.ValidationError({'end_date': 'The end must not be before the start.'})
+        return attrs
 
     class Meta:
         model = Event

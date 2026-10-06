@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+
 import { useTranslation } from "react-i18next";
 import toast from "react-hot-toast";
 import { api } from "../../../lib/api";
@@ -126,7 +127,7 @@ export default function EventAttendanceManager({ scope, groupId }: { scope: Scop
     return <div className="rounded-xl border border-dashed border-border bg-card p-8 text-center text-muted-foreground">{t(key, fallback)}</div>;
   }
 
-  const when = (d: string) => new Date(d).toLocaleDateString(i18n.language, { day: "numeric", month: "short", year: "numeric" });
+  const when = (d: string) => new Intl.DateTimeFormat(i18n.language, { timeZone: "Africa/Addis_Ababa", day: "numeric", month: "short", year: "numeric" }).format(new Date(d));
 
   return (
     <div className="space-y-4">

@@ -90,7 +90,7 @@ class OverviewView(ConsoleView):
                 "by_role": by_role,
             },
             "events": {
-                "upcoming": Event.objects.filter(status=Event.UPCOMING).count(),
+                "upcoming": Event.objects.filter(start_date__gt=timezone.now()).count(),
                 "total": Event.objects.count(),
             },
             "donations": self._donations(),

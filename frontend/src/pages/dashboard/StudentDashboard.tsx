@@ -1,4 +1,5 @@
 import { useState, useEffect, type SyntheticEvent } from "react";
+import { etMonthShort, etDay, etTime } from "../../lib/ethiopiaTime";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import Sidebar from "../../components/navigation/Sidebar";
@@ -239,15 +240,15 @@ function OverviewTab({ events, loadingEvents, family, familyError, attendance, l
               <div key={event.id} className="flex gap-3 p-3 rounded-xl bg-muted/50 hover:bg-muted transition">
                 <div className="flex-shrink-0 w-11 h-11 bg-primary/10 rounded-xl flex flex-col items-center justify-center">
                   <span className="text-[10px] font-bold text-primary uppercase">
-                    {event.start_date ? new Date(event.start_date).toLocaleDateString("en", { month: "short" }) : ""}
+                    {event.start_date ? etMonthShort(event.start_date) : ""}
                   </span>
                   <span className="text-sm font-bold text-primary leading-none">
-                    {event.start_date ? new Date(event.start_date).getDate() : ""}
+                    {event.start_date ? etDay(event.start_date) : ""}
                   </span>
                 </div>
                 <div className="min-w-0 flex-1">
                   <h4 className="font-semibold text-foreground text-sm truncate">{event.title}</h4>
-                  <p className="text-xs text-muted-foreground mt-0.5">🕐 {event.start_date ? new Date(event.start_date).toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" }) : ""} • 📍 {event.place_name || t("tbd")}</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">🕐 {event.start_date ? etTime(event.start_date) : ""} • 📍 {event.place_name || t("tbd")}</p>
                 </div>
               </div>
             ))}
@@ -361,13 +362,13 @@ function EventsTab({ events, loading }: { events: DashboardEvent[]; loading: boo
         <div key={event.id} className="card hover:shadow-elevated transition-all">
           <div className="flex gap-4">
             <div className="w-14 h-14 bg-primary/10 rounded-2xl flex flex-col items-center justify-center flex-shrink-0">
-              <span className="text-[10px] font-bold text-primary uppercase">{event.start_date ? new Date(event.start_date).toLocaleDateString("en", { month: "short" }) : ""}</span>
-              <span className="text-lg font-bold text-primary leading-none">{event.start_date ? new Date(event.start_date).getDate() : ""}</span>
+              <span className="text-[10px] font-bold text-primary uppercase">{event.start_date ? etMonthShort(event.start_date) : ""}</span>
+              <span className="text-lg font-bold text-primary leading-none">{event.start_date ? etDay(event.start_date) : ""}</span>
             </div>
             <div>
               <h4 className="font-semibold text-foreground">{event.title}</h4>
               <p className="text-sm text-muted-foreground mt-1">{event.description}</p>
-              <p className="text-xs text-muted-foreground mt-2">🕐 {event.start_date ? new Date(event.start_date).toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" }) : ""} • 📍 {event.place_name || t("tbd")}</p>
+              <p className="text-xs text-muted-foreground mt-2">🕐 {event.start_date ? etTime(event.start_date) : ""} • 📍 {event.place_name || t("tbd")}</p>
             </div>
           </div>
         </div>

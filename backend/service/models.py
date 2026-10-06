@@ -151,7 +151,19 @@ class Event(models.Model):
     end_date = models.DateTimeField()
     photo = models.ImageField(upload_to="events/", blank=True, null=True)
 
-    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default=UPCOMING)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default=UPCOMING)  # legacy: use current_status
+
+    @property
+    def current_status(self):
+        """UPCOMING before the start, ONGOING until the end, COMPLETED after it."""
+        from django.utils import timezone
+
+        now = timezone.now()
+        if now < self.start_date:
+            return self.UPCOMING
+        if now <= self.end_date:
+            return self.ONGOING
+        return self.COMPLETED
 
     # Adding Location Data
     place_name = models.CharField(max_length=255, blank=True, null=True)

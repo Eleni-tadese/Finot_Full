@@ -250,3 +250,36 @@ class TestEventAttendanceExport:
         assert client_for(world.other_manager).get(self.URL).status_code == 200
         assert self.rows(world.other_manager) == []        # has no events of their own
         assert client_for(world.a).get(self.URL).status_code == 403
+
+
+@pytest.mark.django_db
+class TestEventStatusFollowsTheDates:
+    def test_status_is_worked_out_from_start_and_end(self):
+        from datetime import timedelta
+        from django.utils import timezone as tz
+
+        now = tz.now()
+        assert Event(start_date=now + timedelta(days=1), end_date=now + timedelta(days=2)).current_status == Event.UPCOMING
+        assert Event(start_date=now - timedelta(hours=1), end_date=now + timedelta(hours=1)).current_status == Event.ONGOING
+        assert Event(start_date=now - timedelta(days=400), end_date=now - timedelta(days=399)).current_status == Event.COMPLETED
+
+    def test_api_reports_it_and_rejects_an_end_before_the_start(self, world):
+        past = baker.make(Event, created_by=world.manager, title="Old", description="d",
+                          start_date=datetime(2020, 1, 1, 9, tzinfo=timezone.utc), end_date=datetime(2020, 1, 1, 10, tzinfo=timezone.utc), status=Event.UPCOMING)
+        rows = client_for(world.manager).get(EVENTS).json()
+        rows = rows["results"] if isinstance(rows, dict) else rows
+        assert [r["status"] for r in rows if r["id"] == past.id] == ["COMPLETED"]
+        bad = {"title": "T", "description": "d", "start_date": "2026-10-14T10:00", "end_date": "2026-10-14T09:00"}
+        assert client_for(world.manager).post(EVENTS, bad, format="json").status_code == 400
+
+
+@pytest.mark.django_db
+class TestEditingAnEvent:
+    def test_a_service_admin_edits_own_group_event_as_the_form_sends_it(self, world):
+        body = {"title": "Renamed", "description": "d", "start_date": "2026-10-14T09:00", "end_date": "2026-10-14T10:00"}
+        res = client_for(world.sa1).patch(f"{EVENTS}{world.group_event.id}/", body, format="multipart")
+        assert res.status_code == 200, res.content
+        world.group_event.refresh_from_db()
+        assert world.group_event.title == "Renamed"
+        assert world.group_event.service_group_id == world.g1.id
+        assert client_for(world.sa2).patch(f"{EVENTS}{world.group_event.id}/", body, format="multipart").status_code in (403, 404)

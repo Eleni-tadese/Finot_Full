@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { etDate } from "../../lib/ethiopiaTime";
 import { Link } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import { api } from "../../lib/api";
@@ -198,7 +199,7 @@ const DashboardOverview = () => {
                        </div>
                        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-slate-500 mt-2 font-medium">
                            <span className="flex items-center gap-1.5">📍 {event.place_name || t("location_tbd", "Location TBD")}</span>
-                           <span className="flex items-center gap-1.5">📅 {event.start_date ? new Date(event.start_date).toLocaleDateString() : ""}</span>
+                           <span className="flex items-center gap-1.5">📅 {event.start_date ? etDate(event.start_date) : ""}</span>
                            <span className="flex items-center gap-1.5">👤 {event.created_by_name || t("organizer", "Organizer")}</span>
                         </div>
                      </div>

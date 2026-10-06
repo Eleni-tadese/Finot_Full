@@ -13,7 +13,10 @@ import GroupMembersPanel from "../../features/service-groups/components/GroupMem
 export default function ManageAgeglotDashboard() {
   const { t } = useTranslation();
   const { user } = useAuth();
-  const [activeTab, setActiveTab] = useState<"info" | "members" | "events" | "attendance" | "materials">("info");
+  const wanted = new URLSearchParams(window.location.search).get("tab");
+  const [activeTab, setActiveTab] = useState<"info" | "members" | "events" | "attendance" | "materials">(
+    wanted === "events" || wanted === "attendance" || wanted === "members" || wanted === "materials" ? wanted : "info"
+  );
   const [group, setGroup] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 

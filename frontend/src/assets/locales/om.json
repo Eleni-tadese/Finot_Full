@@ -1524,5 +1524,6 @@
   "evatt_save": "Hordoffii olkaa'i",
   "ui_read_more": "Dabalata dubbisi",
   "ui_show_less": "Xiqqeessi",
-  "ui_zoom_image": "Suuraa guutuu ilaali"
+  "ui_zoom_image": "Suuraa guutuu ilaali",
+  "ev_time_hint": "Sa'aatii yeroo Itiyoophiyaan galchi. Amma Itiyoophiyaa keessa {{now}} dha."
 }
