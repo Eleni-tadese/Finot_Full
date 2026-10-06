@@ -20,6 +20,9 @@ RUN uv pip install --system --no-cache-dir -e .
 COPY . /app/
 
 
+ENV DJANGO_SETTINGS_MODULE=config.settings.prod
+ENV PYTHONUNBUFFERED=1
+
 EXPOSE 8000
 
 CMD ["bash", "-c", "python manage.py collectstatic --noinput --verbosity 2 && python manage.py migrate && gunicorn config.wsgi:application --bind 0.0.0.0:${PORT:-8000}"]

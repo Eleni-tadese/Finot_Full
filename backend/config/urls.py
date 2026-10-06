@@ -15,12 +15,19 @@ Including another URLconf
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
 from django.contrib import admin
+from django.http import JsonResponse
 from django.urls import path, include
 from drf_spectacular.views import SpectacularAPIView, SpectacularRedocView, SpectacularSwaggerView
 from analytics.admin_views import ExportDashboardView
 from analytics.public_views import PublicOverviewView
 
+def health(request):
+    """Is the server up? No database call, so hosts and uptime monitors can ask often."""
+    return JsonResponse({"status": "ok"})
+
+
 urlpatterns = [
+    path('health/', health, name='health'),
     path('', include('core.urls')),
     path('admin/reports-and-exports/', ExportDashboardView.as_view(), name='reports_and_exports'),
     path('admin/', admin.site.urls),

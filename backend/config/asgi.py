@@ -11,6 +11,7 @@ import os
 
 from django.core.asgi import get_asgi_application
 
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'config.settings.dev')
+# A server must never start with the development settings by accident; manage.py keeps dev for local work.
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'config.settings.prod')
 
 application = get_asgi_application()

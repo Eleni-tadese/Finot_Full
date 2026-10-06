@@ -8,6 +8,8 @@ if SECRET_KEY == "unsafe-dev-fallback-key":
 
 # Strict security settings for Production
 SECURE_SSL_REDIRECT = False
+# Hosts such as Render terminate HTTPS in front of the app and tell it so with this header.
+SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 SESSION_COOKIE_SECURE = True
 CSRF_COOKIE_SECURE = True
 SECURE_BROWSER_XSS_FILTER = True

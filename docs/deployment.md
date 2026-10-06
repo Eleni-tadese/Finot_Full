@@ -1,59 +1,146 @@
-# Deployment checklist
+# Deployment guide
 
-Finot is two deployables: the **backend** (a Python web service with a PostgreSQL database) and the **frontend** (static files). Any host that runs a Python web process and serves static files will do. The repository includes a `backend/Dockerfile` and a `frontend/vercel.json` (single-page-app rewrite) as starting points.
+Finot is two deployables, plus services around them:
 
-## 1. Accounts you need
+```
+ Students ──▶ Frontend  (static site)  ──▶ Backend (Docker web service) ──▶ Neon PostgreSQL
+                                                │        │       │
+                                           Cloudinary   Chapa   SMTP mail
+ GitHub Actions ──(hourly / daily / weekly secret calls)──▶ Backend
+```
 
-| Service | For | Notes |
-|---|---|---|
-| PostgreSQL host (for example Neon) | the database | free plans may sleep after a few idle minutes |
-| Cloudinary | uploaded photos and materials | for PDF/ZIP delivery enable "PDF and ZIP files delivery" in Cloudinary's security settings |
-| Chapa | payments | create **live** keys only when you are ready |
-| SMTP provider (for example Brevo) | email | mind the daily limit of the plan |
-| Firebase (optional) | push notifications | |
-| GitHub | code and the scheduled jobs | |
+## Recommended free setup
 
-## 2. Backend
+| Part | Service | Why | Watch out for |
+|---|---|---|---|
+| Frontend | **Cloudflare Pages** (connected to this repo) | free static hosting that builds on every push; preview address for non-production branches; single-page-app routing handled by `frontend/public/_redirects` | free plan: 500 builds a month, 20,000 files per site. Read Cloudflare's terms to confirm your use is covered |
+| Backend | **Render** web service, runtime Docker (the `backend/Dockerfile` is used as is) | deploys from GitHub, free instance available | a free instance **sleeps after 15 minutes without traffic** and takes about a minute to wake; free instances have a monthly hour allowance |
+| Database | **Neon** PostgreSQL (a *new* project for production) | already used in development | the free compute also sleeps when idle; the first request after a pause is slower |
+| Media | Cloudinary | uploaded photos and materials | |
+| Email | an SMTP provider such as Brevo | receipts, reminders | free plans have a daily email limit (about 300 on Brevo's free plan) |
+| Schedules | GitHub Actions (already in `.github/workflows`) | reminders and payment re-check | needs two repository secrets |
 
-1. Build from `backend/` (the `Dockerfile` installs dependencies with `uv`, runs `collectstatic` and `migrate`, then starts Gunicorn on `$PORT`).
-2. Set the environment (see [configuration.md](configuration.md)). **Required in production:**
-   - `DJANGO_SETTINGS_MODULE=config.settings.prod` (the default is the dev settings!)
-   - `SECRET_KEY` (a real one; production refuses to start otherwise)
-   - `DATABASE_URL`, `ALLOWED_HOSTS`, `FRONTEND_URL`, `PUBLIC_DOMAIN` (both `https://`), `CORS_ALLOWED_ORIGINS`, `CSRF_TRUSTED_ORIGINS`
-   - `CLOUDINARY_URL`, `CHAPA_SECRET_KEY`, the SMTP variables, `CRON_SECRET`
-3. After the first deploy: `python manage.py create_first_admin` (once) to create the owner's Super Admin.
-4. Check `https://<backend>/api/docs/swagger/` loads.
+> **Do not use Vercel's free (Hobby) plan for this project.** It is limited to non-commercial personal use, and Vercel counts taking payments as commercial. Finot takes donations. Cloudflare Pages, or a paid Vercel plan, are the alternatives.
 
-## 3. Frontend
+Free tiers change. Check each provider's current pricing page before you rely on a limit.
 
-1. Set `VITE_API_URL` to the backend's public address and (optionally) the Firebase variables.
-2. Build: `npm ci && npm run build`; publish the `dist/` folder. The host must rewrite all paths to `index.html` (`vercel.json` does this).
-3. Put the frontend's address into the backend's `FRONTEND_URL`, `CORS_ALLOWED_ORIGINS` and `CSRF_TRUSTED_ORIGINS`.
+## How a change goes live
 
-## 4. Payments (Chapa)
+- `main` is **production**. Every push to `main` rebuilds and publishes the live site.
+- `dev` is where work happens. Pushing to `dev` runs the tests (CI) but does **not** change the live site. Cloudflare Pages also publishes a preview of `dev` at its own address.
+- To release: test on `dev`, then merge `dev` into `main` (a pull request, or a fast-forward merge) and push. The host redeploys.
+- To roll back: in the host's dashboard redeploy the previous successful deploy, then fix the problem on `dev`.
+- On Render, if the setting "Auto-Deploy" offers **After CI Checks Pass**, choose it, so a broken build never goes live.
 
-- Both `FRONTEND_URL` and `PUBLIC_DOMAIN` must start with `https://`, otherwise Chapa will not send donors back (see [payments-chapa.md](payments-chapa.md)).
-- In the Chapa dashboard set the webhook to `<PUBLIC_DOMAIN>/api/donations/webhook/`.
-- Decide who pays Chapa's processing fee.
-- Switch to the live key last, and make one real small donation to test. Never use a test key in production or a live key in development.
+## Step by step
 
-## 5. Scheduled jobs
+### 0. Gather accounts (all free to create)
 
-Add the repository secrets `CRON_SECRET` (same as the backend) and `BACKEND_URL`. Then run each workflow once by hand (**Actions → Run workflow**): weekly reminders, class reminders, verify donations. See [notifications-and-reminders.md](notifications-and-reminders.md).
+GitHub (you have it), Neon, Render, Cloudflare, Cloudinary, an SMTP provider, Chapa. Keep every key in a password manager. Never paste keys into chats, issues or commits.
 
-## 6. Before you announce it
+### 1. Database (Neon)
 
-- [ ] Real SMTP settings; send yourself a test (donation receipt or password reset).
+1. Create a **new project** for production, for example `finot-prod`, in a region close to the Render region you will pick (Europe works well for Ethiopia).
+2. Copy the connection string (it looks like `postgresql://USER:PASSWORD@HOST/DBNAME?sslmode=require`). This is your `DATABASE_URL`. Treat it as a password.
+
+### 2. Backend (Render)
+
+1. Render → **New → Web Service** → connect the `Finot_Full` repository.
+2. Settings:
+   - **Name:** `finot-api` (the address becomes `https://finot-api.onrender.com`; if the name is taken, Render adds a suffix; use the address Render shows)
+   - **Branch:** `main`
+   - **Root Directory:** `backend`
+   - **Runtime:** Docker (detected from the `Dockerfile`)
+   - **Instance type:** Free
+   - **Health Check Path:** `/health/`
+   - **Auto-Deploy:** *After CI Checks Pass* if offered, otherwise *On Commit*
+3. Environment variables (see [configuration.md](configuration.md) for all of them):
+
+   | Name | Value |
+   |---|---|
+   | `SECRET_KEY` | a new long random string (`python -c "from django.core.management.utils import get_random_secret_key as g; print(g())"`) |
+   | `DATABASE_URL` | from step 1 |
+   | `PUBLIC_DOMAIN` | the backend's address, `https://finot-api.onrender.com` |
+   | `FRONTEND_URL` | the frontend's address from step 3 (use the address you will get, for example `https://finot.pages.dev`; fix it after step 3 if it differs) |
+   | `ALLOWED_HOSTS` | `finot-api.onrender.com` |
+   | `CORS_ALLOWED_ORIGINS` | same as `FRONTEND_URL` |
+   | `CSRF_TRUSTED_ORIGINS` | same as `FRONTEND_URL` |
+   | `CLOUDINARY_URL` | from Cloudinary |
+   | `CHAPA_SECRET_KEY` | your Chapa **test** key at first |
+   | `EMAIL_BACKEND` | `django.core.mail.backends.smtp.EmailBackend` |
+   | `EMAIL_HOST`, `EMAIL_PORT`, `EMAIL_USE_TLS`, `EMAIL_HOST_USER`, `EMAIL_HOST_PASSWORD`, `DEFAULT_FROM_EMAIL` | from your mail provider |
+   | `CRON_SECRET` | a new long random string (`python -c "import secrets; print(secrets.token_urlsafe(48))"`) |
+
+   `DJANGO_SETTINGS_MODULE` is already `config.settings.prod` inside the Docker image.
+4. **Create Web Service.** The first start collects static files, runs the database migrations, and starts the server. Watch the **Logs** tab. When it is live, open `https://<your-backend>/health/`: you should see `{"status":"ok"}`. Also open `/api/docs/swagger/`.
+
+### 3. Frontend (Cloudflare Pages)
+
+1. Cloudflare dashboard → **Workers & Pages → Create → Pages → Connect to Git** → choose `Finot_Full`.
+2. Settings:
+   - **Project name:** `finot` (address `https://finot.pages.dev`)
+   - **Production branch:** `main`
+   - **Framework preset:** Vite (or None)
+   - **Build command:** `npm run build`
+   - **Build output directory:** `dist`
+   - **Root directory (advanced):** `frontend`
+   - **Environment variables:** `VITE_API_URL` = the backend address from step 2 (no trailing slash); `NODE_VERSION` = `20`
+3. **Save and Deploy.** When it finishes, open the address. If its address differs from the one you typed into the backend's `FRONTEND_URL`, `CORS_ALLOWED_ORIGINS` and `CSRF_TRUSTED_ORIGINS`, change those three in Render (it redeploys).
+4. Optional: add your own domain under the project's *Custom domains*, then use that domain in the three backend variables.
+
+### 4. Create the owner's Super Admin
+
+Render's free plan has no shell, so create the first admin from your own computer, **pointing at the production database for this one command only**:
+
+```powershell
+cd backend
+$env:DATABASE_URL = "<paste the production DATABASE_URL here>"
+uv run python manage.py create_first_admin
+Remove-Item Env:DATABASE_URL
+```
+
+The command asks for the owner's email and a strong password (typed twice, hidden). Do not save the URL in `.env`. Then sign in on the live site.
+
+### 5. Payments (Chapa)
+
+- Keep the **test** key for a first full test on the live site (donate with a Chapa test number; the donor should land back on `/donation/success`).
+- In the Chapa dashboard set the webhook to `https://<your-backend>/api/donations/webhook/`.
+- Decide who pays Chapa's fee.
+- When everything works, replace `CHAPA_SECRET_KEY` with the **live** key in Render and make one small real donation to check.
+
+### 6. Scheduled jobs
+
+GitHub → the repository → **Settings → Secrets and variables → Actions** → add `CRON_SECRET` (the same value as in Render) and `BACKEND_URL` (the backend address, no trailing slash). Then **Actions → each workflow → Run workflow**: *Re-check pending donations*, *Weekly donation reminder* (run it twice: the second answer says `skipped`), *Class reminders*. A free Render instance that is asleep takes about a minute to wake when called; the workflows wait for it.
+
+### 7. Smoke test on the live site
+
+- [ ] Register a test student, set year and department, sign in.
+- [ ] Super Admin: give a role; open Donations, Courses, Private Q&A.
+- [ ] Upload a profile photo (tests Cloudinary).
+- [ ] A donation with Chapa test mode completes and shows in **Admin → Donations**.
+- [ ] A receipt email arrives (tests mail).
+- [ ] Switch the language; refresh a deep page such as `/dashboard/profile` (tests the single-page routing).
+- [ ] Delete the test student's data if you used a real database (or use a staging database for this test).
+
+## Keeping the free backend awake (optional)
+
+A sleeping instance is slow for the first visitor. A free uptime monitor that opens `https://<your-backend>/health/` every 10 minutes keeps it awake. A single always-on free instance uses about 744 hours a month, which fits the usual 750-hour allowance only while it is your **only** free service. Alternatively pay for the cheapest always-on instance when real students depend on it.
+
+## Before you announce it
+
+- [ ] Real SMTP settings; a test email received.
 - [ ] Firebase push configured, or consciously left off.
 - [ ] Native-speaker review of the Amharic and Oromo text.
 - [ ] The "About" page claims (for example founding year and years of fellowship) confirmed by the owner.
 - [ ] SMS: decide with the leadership ([sms-notifications.md](sms-notifications.md)); it is off and free until then.
-- [ ] Remove or change every sample password; never run the `reset_dev_data`, `seed_*` or `create_students` commands against production.
-- [ ] Backups: enable the database provider's backups.
-- [ ] Look at [security.md](security.md).
+- [ ] No sample accounts or sample passwords; never run `reset_dev_data`, `seed_*` or `create_students` on production.
+- [ ] Database backups enabled in Neon; know how to restore.
+- [ ] Live Chapa key only in Render, never in code.
+- [ ] Read [security.md](security.md).
 
 ## Known limits to plan for
 
-- The free database tier may wake slowly after idle time; the first request can be slow.
-- The free Brevo plan sends about 300 emails a day: the weekly reminder email is capped by `WEEKLY_REMINDER_EMAIL_LIMIT`.
-- GitHub scheduled workflows can start a few minutes late, and are paused by GitHub if the repository is inactive for about 60 days (re-enable them under Actions).
+- Free backend and database instances sleep when idle; the first request after a pause is slow.
+- The free mail plan caps daily emails: the weekly reminder email is limited by `WEEKLY_REMINDER_EMAIL_LIMIT`.
+- GitHub scheduled workflows can start a few minutes late, and GitHub pauses them if the repository has no activity for about 60 days (re-enable them under Actions).
+- The container applies database migrations on every start. Take a database backup before a risky release.
