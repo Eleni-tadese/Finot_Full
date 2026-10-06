@@ -5,7 +5,8 @@ from student.models import StudentProfile
 from .models import Family, FamilyMembership
 
 
-MAX_FAMILY_SIZE = 15
+# Students per family. The father and mother are extra, so a family is about 11-12 people with its parents.
+MAX_FAMILY_SIZE = 10
 
 
 def get_filter_options():
@@ -127,36 +128,32 @@ def assign_students_to_family(family, student_ids):
 
 # ── Smart distribution (see distribution.py for the rules) ─────────────────
 
-def build_distribution_plan(students, families):
-    """
-    students: queryset of unassigned fresher Users (with student_profile)
-    families: queryset/list of Family
-    Returns (Plan, {family_id: Family}, {student_id: User}) so the caller can display it.
-    """
+def _family_info(family):
     from collections import Counter
 
-    from .distribution import FamilyInfo, StudentInfo, plan_distribution
+    from .distribution import FamilyInfo
 
-    families = list(families)
+    sections, blocks, genders = Counter(), Counter(), Counter()
+    count = 0
+    for m in FamilyMembership.objects.filter(family=family).select_related("student__student_profile"):
+        count += 1
+        profile = getattr(m.student, "student_profile", None)
+        if profile and profile.section is not None:
+            sections[profile.section] += 1
+        if profile and profile.dorm_block is not None:
+            blocks[profile.dorm_block] += 1
+        if m.student.gender:
+            genders[m.student.gender] += 1
+    return FamilyInfo(family.id, family.name, family.gender or None, count, sections, blocks, genders)
+
+
+def _student_infos(students):
+    from .distribution import StudentInfo
+
     infos = []
-    for family in families:
-        members = FamilyMembership.objects.filter(family=family).select_related("student__student_profile")
-        sections, blocks = Counter(), Counter()
-        count = 0
-        for m in members:
-            count += 1
-            profile = getattr(m.student, "student_profile", None)
-            if profile and profile.section is not None:
-                sections[profile.section] += 1
-            if profile and profile.dorm_block is not None:
-                blocks[profile.dorm_block] += 1
-        infos.append(FamilyInfo(family.id, family.name, family.gender or None, count, sections, blocks))
-
-    students = list(students)
-    student_infos = []
     for user in students:
         profile = user.student_profile
-        student_infos.append(StudentInfo(
+        infos.append(StudentInfo(
             id=user.id,
             name=user.get_full_name() or user.username,
             gender=user.gender or None,
@@ -164,8 +161,58 @@ def build_distribution_plan(students, families):
             dorm_block=profile.dorm_block,
             dorm_room=profile.dorm_room,
         ))
-    plan = plan_distribution(student_infos, infos, MAX_FAMILY_SIZE)
+    return infos
+
+
+def build_distribution_plan(students, families):
+    """
+    students: queryset of unassigned fresher Users (with student_profile)
+    families: queryset/list of Family
+    Returns (Plan, {family_id: Family}, {student_id: User}) so the caller can display it.
+    """
+    from .distribution import plan_distribution
+
+    families = list(families)
+    students = list(students)
+    plan = plan_distribution(_student_infos(students), [_family_info(f) for f in families], MAX_FAMILY_SIZE)
     return plan, {f.id: f for f in families}, {u.id: u for u in students}
+
+
+def next_family_names(count):
+    """'Family 4', 'Family 5', ... continuing after the highest number already used."""
+    import re
+
+    existing = list(Family.objects.values_list("name", flat=True))
+    taken = {n.strip().lower() for n in existing}
+    numbers = [int(m.group(1)) for n in existing if (m := re.search(r"(\d+)\s*$", n))]
+    number, names = max(numbers, default=0) + 1, []
+    while len(names) < count:
+        candidate = f"Family {number}"
+        if candidate.lower() not in taken:
+            names.append(candidate)
+        number += 1
+    return names
+
+
+def build_auto_distribution_plan(students):
+    """
+    The system makes the families itself. Mixed families (men and women together) that already have room
+    are filled first; as many new ones as needed are planned on top (nothing is saved here).
+    New families get negative temporary ids. Returns (Plan, {family_id: Family}, [{"temp_id", "name"}]).
+    """
+    import math
+
+    from .distribution import FamilyInfo, plan_distribution
+
+    students = list(students)
+    existing = [f for f in Family.objects.order_by("name") if not f.gender]
+    infos = [_family_info(f) for f in existing]
+    free = sum(max(0, MAX_FAMILY_SIZE - i.current_size) for i in infos)
+    new_count = math.ceil(max(0, len(students) - free) / MAX_FAMILY_SIZE)
+    new_families = [{"temp_id": -(i + 1), "name": name} for i, name in enumerate(next_family_names(new_count))]
+    infos += [FamilyInfo(f["temp_id"], f["name"], None) for f in new_families]
+    plan = plan_distribution(_student_infos(students), infos, MAX_FAMILY_SIZE)
+    return plan, {f.id: f for f in existing}, new_families
 
 
 def apply_distribution(pairs, user=None):
@@ -194,6 +241,10 @@ def apply_distribution(pairs, user=None):
             label = student.get_full_name() or student.username
             if FamilyMembership.objects.filter(student=student).exists():
                 skipped.append(f"{label}: already in a family")
+                continue
+            profile = getattr(student, "student_profile", None)
+            if profile is None or profile.batch_year != 1 or profile.status != StudentProfile.IN_CAMPUS:
+                skipped.append(f"{label}: only first-year students on campus are placed in families")
                 continue
             if family.gender and student.gender and family.gender != student.gender:
                 skipped.append(f"{label}: gender does not match {family.name}")

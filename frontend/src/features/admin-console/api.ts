@@ -73,9 +73,11 @@ export const adminApi = {
   distribution: () => axiosInstance.get<DistributionOverview>(`${C}/families/distribution/`).then((r) => r.data),
   previewDistribution: (body: { family_ids: number[]; gender?: string; dorm_block?: string; section?: string }) =>
     axiosInstance.post<DistributionPreview>(`${C}/families/distribution/preview/`, body).then((r) => r.data),
-  confirmDistribution: (pairs: [number, number][]) =>
+  autoPreviewDistribution: () =>
+    axiosInstance.post<DistributionPreview>(`${C}/families/distribution/auto-preview/`).then((r) => r.data),
+  confirmDistribution: (pairs: [number, number][], newFamilies?: { temp_id: number; name: string }[]) =>
     axiosInstance
-      .post<{ applied: number; skipped: string[]; batch: DistributionBatch | null }>(`${C}/families/distribution/confirm/`, { pairs })
+      .post<{ applied: number; skipped: string[]; batch: DistributionBatch | null }>(`${C}/families/distribution/confirm/`, { pairs, new_families: newFamilies ?? [] })
       .then((r) => r.data),
   undoDistribution: (batchId: number) =>
     axiosInstance.post<{ removed: number }>(`${C}/families/distribution/batches/${batchId}/undo/`).then((r) => r.data),

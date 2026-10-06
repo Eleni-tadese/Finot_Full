@@ -147,7 +147,7 @@ class TestDistribution:
 
     def test_overview(self, boss):
         data = client_for(boss).get(BASE + "families/distribution/").json()
-        assert data["unassigned_count"] == 10 and data["limit"] == 15
+        assert data["unassigned_count"] == 10 and data["limit"] == 10
         assert [f["name"] for f in data["families"]] == ["A", "B"]
 
     def test_preview_confirm_undo(self, boss):
@@ -726,3 +726,69 @@ class TestFamilyAdminAccess:
         assert c.get(BASE + "families/people/", {"search": "s"}).json() == {"results": []}
         row = c.get(BASE + "families/people/", {"search": "selam"}).json()["results"][0]
         assert set(row) == {"id", "full_name", "email", "is_active", "gender"}
+
+
+@pytest.mark.django_db
+class TestAutoFamilies:
+    """The system makes the families itself: mixed, at most 10 students each, women and men spread out."""
+
+    def fresh(self, n, women):
+        out = []
+        for i in range(n):
+            u = make_user(f"fr{i}@finot.test", gender="F" if i < women else "M", batch=1)
+            StudentProfile.objects.filter(user=u).update(
+                batch_year=1, status=StudentProfile.IN_CAMPUS, dorm_block=(i % 6) + 1, section=(i % 3) + 1)
+            out.append(u)
+        return out
+
+    def test_preview_saves_nothing_and_confirm_creates_even_mixed_families(self, boss):
+        self.fresh(25, women=13)
+        c = client_for(boss)
+        preview = c.post(BASE + "families/distribution/auto-preview/").json()
+        assert Family.objects.count() == 0 and FamilyMembership.objects.count() == 0
+        assert [f["name"] for f in preview["new_families"]] == ["Family 1", "Family 2", "Family 3"]
+        sizes = sorted(len(r["added"]) for r in preview["rows"])
+        assert sizes == [8, 8, 9] and max(sizes) <= 10
+        for row in preview["rows"]:
+            assert row["female"] >= 4 and row["male"] >= 4  # both genders in every family
+        done = c.post(BASE + "families/distribution/confirm/",
+                      {"pairs": preview["pairs"], "new_families": preview["new_families"]}, format="json").json()
+        assert done["applied"] == 25 and Family.objects.count() == 3
+        assert all(f.gender in (None, "") for f in Family.objects.all())
+        # nothing left to place: the next run plans nothing and creates nothing
+        again = c.post(BASE + "families/distribution/auto-preview/").json()
+        assert again["total_added"] == 0 and again["new_families"] == []
+        # undo removes the students (the families stay, ready to be filled again)
+        assert c.post(f"{BASE}families/distribution/batches/{done['batch']['id']}/undo/").status_code == 200
+        assert FamilyMembership.objects.count() == 0
+        refill = c.post(BASE + "families/distribution/auto-preview/").json()
+        assert refill["new_families"] == [] and refill["total_added"] == 25
+
+    def test_fills_existing_mixed_family_first_and_names_continue(self, boss):
+        Family.objects.create(name="Family 7")
+        Family.objects.create(name="Boys only", gender="M")
+        self.fresh(14, women=7)
+        preview = client_for(boss).post(BASE + "families/distribution/auto-preview/").json()
+        assert [f["name"] for f in preview["new_families"]] == ["Family 8"]
+        assert sorted(r["family_name"] for r in preview["rows"]) == ["Family 7", "Family 8"]
+
+    def test_confirm_rejects_bad_new_families_and_leaves_nothing(self, boss):
+        users = self.fresh(3, women=1)
+        c = client_for(boss)
+        pairs = [[users[0].id, -1]]
+        for bad in ([{"temp_id": 5, "name": "X"}], [{"temp_id": -1, "name": " "}], [{"temp_id": -1, "name": "A"}, {"temp_id": -2, "name": "a"}]):
+            assert c.post(BASE + "families/distribution/confirm/", {"pairs": pairs, "new_families": bad}, format="json").status_code == 400
+        Family.objects.create(name="Taken")
+        assert c.post(BASE + "families/distribution/confirm/", {"pairs": pairs, "new_families": [{"temp_id": -1, "name": "taken"}]}, format="json").status_code == 400
+        assert Family.objects.count() == 1
+        # a student who cannot be placed means no empty family is left behind
+        second = make_user("senior@finot.test", gender="F", batch=4)
+        res = c.post(BASE + "families/distribution/confirm/", {"pairs": [[second.id, -1]], "new_families": [{"temp_id": -1, "name": "Ghost"}]}, format="json").json()
+        assert res["applied"] == 0 and not Family.objects.filter(name="Ghost").exists()
+
+    def test_family_admin_may_use_it(self):
+        fam = make_user("fam@finot.test", Role.FAMILY_ADMIN)
+        self.fresh(4, women=2)
+        res = client_for(fam).post(BASE + "families/distribution/auto-preview/")
+        assert res.status_code == 200 and res.json()["total_added"] == 4
+        assert client_for(make_user("stu@finot.test")).post(BASE + "families/distribution/auto-preview/").status_code == 403

@@ -31,6 +31,7 @@ from django.db import transaction
 from django.utils import timezone
 from service.group_rules import GroupFullSerializer, assign_group_admin, group_blockers, release_service_admin
 from service.models import Event, Family, FamilyDistributionBatch, ServiceGroup
+from service.services import build_auto_distribution_plan
 from service.services import (
     MAX_FAMILY_SIZE, apply_distribution, build_distribution_plan, get_filter_options,
     get_unassigned_freshers, undo_distribution,
@@ -725,6 +726,39 @@ class DistributionPreviewView(FamilyConsoleView):
         })
 
 
+class DistributionAutoPreviewView(FamilyConsoleView):
+    """POST families/distribution/auto-preview/ : the system plans the families too (nothing is saved)."""
+
+    def post(self, request):
+        plan, family_map, new_families = build_auto_distribution_plan(get_unassigned_freshers())
+        new_by_id = {f["temp_id"]: f for f in new_families}
+        rows, pairs = [], []
+        for family_id, members in plan.assignments.items():
+            if family_id in new_by_id:
+                name, current = new_by_id[family_id]["name"], 0
+            else:
+                name, current = family_map[family_id].name, family_map[family_id].members.count()
+            rows.append({
+                "family_id": family_id, "family_name": name, "current": current,
+                "after": current + len(members), "is_new": family_id in new_by_id,
+                "female": sum(1 for s in members if s.gender == "F"),
+                "male": sum(1 for s in members if s.gender == "M"),
+                "added": [
+                    {"id": s.id, "name": s.name, "dorm_block": s.dorm_block, "section": s.section} for s in members
+                ],
+            })
+            pairs.extend([s.id, family_id] for s in members)
+        used = {r["family_id"] for r in rows if r["is_new"] and r["added"]}
+        return Response({
+            "rows": [r for r in rows if r["added"] or not r["is_new"]],
+            "pairs": pairs,
+            "total_added": len(pairs),
+            "new_families": [f for f in new_families if f["temp_id"] in used],
+            "unplaced": [{"id": s.id, "name": s.name, "reason": reason} for s, reason in plan.unplaced],
+            "limit": MAX_FAMILY_SIZE,
+        })
+
+
 class DistributionConfirmView(FamilyConsoleView):
     def post(self, request):
         pairs = request.data.get("pairs")
@@ -733,8 +767,30 @@ class DistributionConfirmView(FamilyConsoleView):
         )
         if not ok:
             raise ValidationError({"pairs": "Run a preview first."})
-        # Every pair is re-checked (student free, family has room, gender fits) inside apply_distribution.
-        batch, applied, skipped = apply_distribution(pairs, user=request.user)
+        raw_new = request.data.get("new_families") or []
+        if not isinstance(raw_new, list) or len(raw_new) > 50:
+            raise ValidationError({"new_families": "Run a preview first."})
+        new_families = []
+        for item in raw_new:
+            if not (isinstance(item, dict) and isinstance(item.get("temp_id"), int) and item["temp_id"] < 0):
+                raise ValidationError({"new_families": "Run a preview first."})
+            name = str(item.get("name", "")).strip()
+            if not name or len(name) > 100:
+                raise ValidationError({"new_families": "Each new family needs a name (maximum 100 letters)."})
+            new_families.append((item["temp_id"], name))
+        wanted = [n.lower() for _, n in new_families]
+        if len(set(wanted)) != len(wanted) or Family.objects.filter(name__in=[n for _, n in new_families]).exists() or any(
+            Family.objects.filter(name__iexact=n).exists() for n in wanted
+        ):
+            raise ValidationError({"new_families": "A family with one of these names now exists. Run the preview again."})
+        # New families and their students are saved together: if nobody can be placed, no family is left behind.
+        with transaction.atomic():
+            made = {temp_id: Family.objects.create(name=name, gender=None).id for temp_id, name in new_families}
+            real_pairs = [[student_id, made.get(family_id, family_id)] for student_id, family_id in pairs]
+            # Every pair is re-checked (student free, family has room, gender fits) inside apply_distribution.
+            batch, applied, skipped = apply_distribution(real_pairs, user=request.user)
+            if batch is None:
+                transaction.set_rollback(True)
         return Response({"applied": applied, "skipped": skipped, "batch": _batch_json(batch) if batch else None})
 
 

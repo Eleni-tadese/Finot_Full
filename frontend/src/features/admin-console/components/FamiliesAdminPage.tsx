@@ -54,11 +54,22 @@ const FamiliesAdminPage = () => {
     }
   };
 
+  const runAuto = async () => {
+    setBusy(true);
+    try {
+      setPreview(await adminApi.autoPreviewDistribution());
+    } catch (e: any) {
+      toast.error(firstApiError(e?.response?.data) || t("adm_save_failed", "Could not save."));
+    } finally {
+      setBusy(false);
+    }
+  };
+
   const confirm = async () => {
     if (!preview) return;
     setBusy(true);
     try {
-      const res = await adminApi.confirmDistribution(preview.pairs);
+      const res = await adminApi.confirmDistribution(preview.pairs, preview.new_families);
       toast.success(t("adm_assigned_n", "Assigned {{n}} student(s). You can undo this below.", { n: res.applied }));
       res.skipped.slice(0, 3).forEach((s) => toast.error(s));
       setPreview(null);
@@ -118,6 +129,16 @@ const FamiliesAdminPage = () => {
           <p className="mb-4 text-sm text-muted-foreground">
             {t("adm_unassigned_n", "{{n}} first-year student(s) are not in a family.", { n: data.unassigned_count })}
           </p>
+
+          <div className="mb-6 rounded-xl border border-primary/20 bg-primary/5 p-4">
+            <h2 className="text-sm font-semibold text-foreground">{t("adm_auto_title", "Let the system make the families")}</h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              {t("adm_auto_desc", "It first fills mixed families that already have room, then creates as many new families as needed (at most {{n}} students each, women and men mixed, spread by dorm block and section). Add the father and mother afterwards. You see a preview first; nothing is saved until you confirm.", { n: data.limit })}
+            </p>
+            <button onClick={runAuto} disabled={busy || data.unassigned_count === 0} className="btn-primary mt-3 px-4 py-2 text-sm">
+              {busy ? t("adm_working", "Working...") : t("adm_auto_btn", "Create families automatically and preview")}
+            </button>
+          </div>
 
           <h2 className="mb-2 text-sm font-semibold text-foreground">{t("adm_students_filter", "Which students (optional filters)")}</h2>
           <div className="mb-5 flex flex-wrap gap-3">
@@ -183,6 +204,10 @@ const FamiliesAdminPage = () => {
             <Card key={row.family_id}>
               <div className="mb-2 flex flex-wrap items-center gap-3">
                 <span className="font-medium text-foreground">{row.family_name}</span>
+                {row.is_new && <Chip>{t("adm_new_family", "new family")}</Chip>}
+                {row.female !== undefined && row.male !== undefined && (
+                  <span className="text-xs text-muted-foreground">{t("adm_gender_mix", "{{f}} women, {{m}} men", { f: row.female, m: row.male })}</span>
+                )}
                 <span className="text-xs text-muted-foreground">{row.current} → {row.after} (+{row.added.length})</span>
               </div>
               {row.added.length === 0 ? (

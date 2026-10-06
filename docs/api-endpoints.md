@@ -17,6 +17,7 @@ Generated from the code (`manage.py spectacular`). For request and response shap
 | POST | `/api/admin-console/donations/recheck/` | POST donations/recheck/ : ask Chapa now about every pending payment (no waiting time). |
 | POST | `/api/admin-console/families/` | Create a family. Body: name, gender ("M" / "F" / empty = mixed), optional father_id (a man), |
 | GET | `/api/admin-console/families/distribution/` | api_admin_console_families_distribution_retrieve |
+| POST | `/api/admin-console/families/distribution/auto-preview/` | POST families/distribution/auto-preview/ : the system plans the families too (nothing is saved). |
 | POST | `/api/admin-console/families/distribution/batches/{id}/undo/` | api_admin_console_families_distribution_batches_undo_create |
 | POST | `/api/admin-console/families/distribution/confirm/` | api_admin_console_families_distribution_confirm_create |
 | POST | `/api/admin-console/families/distribution/preview/` | api_admin_console_families_distribution_preview_create |

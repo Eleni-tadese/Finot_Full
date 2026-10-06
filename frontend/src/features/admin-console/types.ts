@@ -131,8 +131,12 @@ export interface DistributionPreview {
     current: number;
     after: number;
     added: { id: number; name: string; dorm_block: number | null; section: number | null }[];
+    is_new?: boolean;
+    female?: number;
+    male?: number;
   }[];
   pairs: [number, number][];
+  new_families?: { temp_id: number; name: string }[];
   total_added: number;
   unplaced: { id: number; name: string; reason: string }[];
   limit: number;

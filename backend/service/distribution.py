@@ -9,8 +9,8 @@ Rules:
   * a family with a gender only takes students of that gender (no gender = mixed);
   * a family never exceeds max_size;
   * family sizes are kept as even as possible (always fill the emptiest eligible family);
-  * among equally empty families, prefer the one with the fewest students from the
-    same section, then from the same dorm block, so each family is a mix.
+  * among equally empty families, prefer the one with the fewest students of the same
+    gender, then from the same section, then from the same dorm block, so each family is a mix.
 """
 from collections import Counter
 from dataclasses import dataclass, field
@@ -36,6 +36,7 @@ class FamilyInfo:
     # section / dorm block of existing members, so new students spread against them
     sections: Counter = field(default_factory=Counter)
     blocks: Counter = field(default_factory=Counter)
+    genders: Counter = field(default_factory=Counter)
 
 
 @dataclass
@@ -54,6 +55,7 @@ def plan_distribution(students, families, max_size) -> Plan:
     sizes = {f.id: f.current_size for f in families}
     sections = {f.id: Counter(f.sections) for f in families}
     blocks = {f.id: Counter(f.blocks) for f in families}
+    genders = {f.id: Counter(f.genders) for f in families}
     assignments = {f.id: [] for f in families}
     unplaced = []
 
@@ -87,6 +89,7 @@ def plan_distribution(students, families, max_size) -> Plan:
             candidates,
             key=lambda f: (
                 sizes[f.id],
+                genders[f.id][student.gender] if student.gender else 0,
                 sections[f.id][student.section] if student.section is not None else 0,
                 blocks[f.id][student.dorm_block] if student.dorm_block is not None else 0,
                 f.name,
@@ -94,6 +97,8 @@ def plan_distribution(students, families, max_size) -> Plan:
         )
         assignments[best.id].append(student)
         sizes[best.id] += 1
+        if student.gender:
+            genders[best.id][student.gender] += 1
         if student.section is not None:
             sections[best.id][student.section] += 1
         if student.dorm_block is not None:

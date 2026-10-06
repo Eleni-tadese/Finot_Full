@@ -19,6 +19,7 @@ urlpatterns = [
     path("families/people/", v.FamilyPeopleView.as_view()),
     path("families/distribution/", v.DistributionOverviewView.as_view()),
     path("families/distribution/preview/", v.DistributionPreviewView.as_view()),
+    path("families/distribution/auto-preview/", v.DistributionAutoPreviewView.as_view()),
     path("families/distribution/confirm/", v.DistributionConfirmView.as_view()),
     path("families/distribution/batches/<int:pk>/undo/", v.DistributionUndoView.as_view()),
     path("departments/", v.DepartmentsView.as_view()),
