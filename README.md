@@ -11,7 +11,7 @@ A web platform for the **Gibi Gubae** student fellowship: students, service grou
 | **People and roles** | Students register themselves. A Super Admin gives roles (Service Admin, Event Manager, Course Coordinator, Family Admin, QA Counselor, QA Moderator). Role rules depend on the year of study. |
 | **Service groups** | Groups with their own admin, applicants, members and student-facing page. A student can belong to up to two groups. |
 | **Courses** | Curriculums are opened per semester; students of the matching year are enrolled automatically. Coordinators plan class days, take Present/Absent attendance, upload materials and start/complete the course. Students see their courses, attendance and materials. |
-| **Events** | Event managers create and manage their own general events; service admins create events for their group and take attendance of their group's members. Students see their events and their own attendance. |
+| **Events** | Like a channel: an Event Manager announces general events to everyone (what, when, where, what to bring) and takes their attendance; a Service Admin does the same for events of their own group, which only that group sees. Notification and email for every event. Students see their events and their own attendance. |
 | **Families** | Mentorship families with a father and mother; smart distribution of first-year students (preview, confirm, undo). |
 | **Questions and answers** | Public questions (moderated) and private questions routed to counselors by category, with alerts and a one-week "unanswered" check. |
 | **Donations** | Chapa payments. Signed-in students give their weekly donation; visitors simply support the fellowship. Super Admin donations page and Excel export. |

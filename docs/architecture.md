@@ -76,5 +76,5 @@ Behaviour worth knowing:
 
 ## Data and time
 
-- Dates are stored in UTC. Ethiopia has no daylight saving (UTC+3), so "tomorrow" for class reminders is computed at that fixed offset.
+- Times are stored in UTC, and the server's time zone is `Africa/Addis_Ababa`, so a time typed in a form (for example an event at 14:00) is read as Ethiopian local time and shown back the same way. Ethiopia has no daylight saving (UTC+3), so "tomorrow" for class reminders is computed at that fixed offset.
 - A student's **year of study** (batch) drives course enrolment, role eligibility, and family distribution. Only a Super Admin changes it after the student sets it once.

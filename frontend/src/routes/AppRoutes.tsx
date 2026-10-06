@@ -21,6 +21,7 @@ import AdminQaPage from "../features/admin-console/components/QaAdminPage";
 import AdminFamiliesPage from "../features/admin-console/components/FamiliesAdminPage";
 import AdminSmsPage from "../features/admin-console/components/SmsAdminPage";
 import AdminDonationsPage from "../features/admin-console/components/DonationsAdminPage";
+import AdminEventsPage from "../features/admin-console/components/EventsAdminPage";
 import AdminExportsPage from "../features/admin-console/components/ExportsPage";
 import DashboardProfile from "../pages/dashboard/DashboardProfile";
 import DashboardEvents from "../pages/dashboard/DashboardEvents";
@@ -113,6 +114,7 @@ export default function AppRoutes() {
                 <Route path="admin" element={<AdminOverviewPage />} />
                 <Route path="admin/groups" element={<AdminGroupsPage />} />
                 <Route path="admin/courses" element={<AdminCoursesPage />} />
+                <Route path="admin/events" element={<AdminEventsPage />} />
                 <Route path="admin/year" element={<AdminYearPage />} />
                 <Route path="admin/departments" element={<AdminDepartmentsPage />} />
                 <Route path="admin/sub-admins" element={<AdminSubAdminsPage />} />

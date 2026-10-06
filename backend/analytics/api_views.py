@@ -12,6 +12,8 @@ because the files contain personal data.
 """
 import datetime
 
+from django.db.models import Q
+
 from django.shortcuts import get_object_or_404
 from rest_framework.exceptions import PermissionDenied, ValidationError
 from rest_framework.permissions import IsAuthenticated
@@ -84,12 +86,17 @@ class EventAttendanceExportView(ExportView):
     def get(self, request):
         user = request.user
         records = ServiceAttendance.objects.all()
-        if _has_role(user, Role.SUPER_ADMIN):
-            pass
-        elif _has_role(user, Role.SERVICE_ADMIN):
-            records = records.filter(event__service_group__in=user.managed_service_groups.all())
-        else:
-            raise PermissionDenied("Not allowed to export attendance.")
+        if not _has_role(user, Role.SUPER_ADMIN):
+            # a Service Admin gets their group's events, an Event Manager the general events they made
+            allowed = None
+            if _has_role(user, Role.SERVICE_ADMIN):
+                allowed = Q(event__service_group__in=user.managed_service_groups.all())
+            if _has_role(user, Role.EVENT_MANAGER):
+                own = Q(event__service_group__isnull=True, event__created_by=user)
+                allowed = own if allowed is None else (allowed | own)
+            if allowed is None:
+                raise PermissionDenied("Not allowed to export attendance.")
+            records = records.filter(allowed)
         event_id = request.query_params.get("event")
         if event_id:
             if not event_id.isdigit():

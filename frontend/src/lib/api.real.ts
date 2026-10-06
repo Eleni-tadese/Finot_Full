@@ -267,14 +267,29 @@ export const api = {
   },
 
   // ========== EVENTS ==========
+  // The server sends 20 events at a time; follow every page so nothing is missing
   getEvents: async (): Promise<Event[]> => {
-    const response = await axiosInstance.get('/api/service/events/');
-    return unwrapResults<Event>(response.data);
+    const rows: Event[] = [];
+    let url: string | null = '/api/service/events/';
+    while (url) {
+      const response: any = await axiosInstance.get(url);
+      if (Array.isArray(response.data)) return response.data;
+      rows.push(...(response.data?.results || []));
+      url = response.data?.next ? new URL(response.data.next).pathname + new URL(response.data.next).search : null;
+    }
+    return rows;
   },
 
   getMyEvents: async (): Promise<Event[]> => {
-    const response = await axiosInstance.get('/api/service/events/my-events/');
-    return unwrapResults<Event>(response.data);
+    const rows: Event[] = [];
+    let url: string | null = '/api/service/events/my-events/';
+    while (url) {
+      const response: any = await axiosInstance.get(url);
+      if (Array.isArray(response.data)) return response.data;
+      rows.push(...(response.data?.results || []));
+      url = response.data?.next ? new URL(response.data.next).pathname + new URL(response.data.next).search : null;
+    }
+    return rows;
   },
 
   // ========== ATTENDANCE ==========

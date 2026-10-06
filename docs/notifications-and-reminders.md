@@ -7,7 +7,7 @@
 | Weekly donation reminder (Thursday) | every active student and graduate | in-app, **email**, push (and SMS if switched on) |
 | "Class tomorrow" | students enrolled in an **Open** course with a class day tomorrow | in-app, push |
 | Payment completed or failed | the donor | in-app, email, push |
-| New event published | students | in-app, email, push (and SMS if on) |
+| New event published | everyone for a general event; only that group's active members for a group event | in-app, email (with place, map link and description), push (and SMS if on) |
 | Private question answered | the asker | in-app, push (and SMS if on) |
 | New public question or answer to approve | every moderator (the Super Admin if there is none) | in-app, push |
 | New private question | counselors who can see it; the Super Admin when nobody can (sensitive or unhandled category) | in-app, push |

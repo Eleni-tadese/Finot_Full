@@ -85,6 +85,7 @@ const DashboardSidebar = ({
       { to: "/dashboard/admin", label: t("adm_nav_overview", "Overview"), icon: FiGrid, end: true },
       { to: "/dashboard/admin/groups", label: t("adm_nav_groups", "Service groups"), icon: FiBriefcase },
       { to: "/dashboard/admin/courses", label: t("adm_nav_courses", "Courses"), icon: FiBookOpen },
+      { to: "/dashboard/admin/events", label: t("adm_nav_events", "Events"), icon: FiCalendar },
       { to: "/dashboard/admin/sub-admins", label: t("adm_nav_sub_admins", "Sub-admins"), icon: FiShield },
       { to: "/dashboard/admin/users", label: t("adm_nav_users", "Users & roles"), icon: FiUsers },
       { to: "/dashboard/admin/year", label: t("adm_nav_year", "Academic year"), icon: FiTrendingUp },

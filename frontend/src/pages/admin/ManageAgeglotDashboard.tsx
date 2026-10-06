@@ -5,7 +5,7 @@ import { useTranslation } from "react-i18next";
 import { useAuth } from "../../context/AuthContext";
 import { api } from "../../lib/api";
 import GroupEventsManager from "./components/GroupEventsManager";
-import GroupAttendanceManager from "./components/GroupAttendanceManager";
+import EventAttendanceManager from "./components/EventAttendanceManager";
 import MaterialsManager from "./components/MaterialsManager";
 import GroupInfoEditor from "../../features/service-groups/components/GroupInfoEditor";
 import GroupMembersPanel from "../../features/service-groups/components/GroupMembersPanel";
@@ -128,7 +128,7 @@ export default function ManageAgeglotDashboard() {
         {activeTab === "info" && <GroupInfoEditor group={group} onSaved={setGroup} />}
         {activeTab === "members" && <GroupMembersPanel groupId={group.id} />}
         {activeTab === "events" && <GroupEventsManager groupId={group.id} eventType="group" />}
-        {activeTab === "attendance" && <GroupAttendanceManager groupId={group.id} />}
+        {activeTab === "attendance" && <EventAttendanceManager scope="group" groupId={group.id} />}
         {activeTab === "materials" && (
           <MaterialsManager
             materialType="SERVICE"

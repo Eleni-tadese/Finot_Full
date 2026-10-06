@@ -507,6 +507,7 @@ dependencies = [
     { name = "psycopg2-binary" },
     { name = "python-decouple" },
     { name = "python-dotenv" },
+    { name = "tzdata" },
     { name = "whitenoise" },
 ]
 
@@ -539,6 +540,7 @@ requires-dist = [
     { name = "psycopg2-binary", specifier = ">=2.9.0" },
     { name = "python-decouple", specifier = ">=3.8" },
     { name = "python-dotenv", specifier = ">=1.0.0" },
+    { name = "tzdata", specifier = ">=2025.3" },
     { name = "whitenoise", specifier = ">=6.0" },
 ]
 

@@ -188,6 +188,7 @@ Generated from the code (`manage.py spectacular`). For request and response shap
 | PUT | `/api/service/events/{id}/` | View for Events. |
 | PATCH | `/api/service/events/{id}/` | View for Events. |
 | DELETE | `/api/service/events/{id}/` | View for Events. |
+| GET | `/api/service/events/{id}/roster/` | GET /api/service/events/<id>/roster/?search= |
 | GET | `/api/service/families/` | Read-only view for Families. |
 | GET | `/api/service/families/my-family/` | Endpoint: /api/service/families/my-family/ |
 | GET | `/api/service/families/{id}/` | Read-only view for Families. |

@@ -39,6 +39,7 @@ class InAppChannel(NotificationChannel):
     def on_event_published(self, event):
         """Create in-app notification records for relevant active users."""
         from core.models import User
+        from service.event_rules import format_when
         from service.models import ServiceGroupMembership
 
         users_qs = User.objects.filter(is_active=True)
@@ -56,7 +57,7 @@ class InAppChannel(NotificationChannel):
                 title=f"New Event: {event.title}",
                 message=(
                     f"{event.title} is scheduled for "
-                    f"{event.start_date.strftime('%B %d, %Y at %I:%M %p')}. "
+                    f"{format_when(event)}. "
                     f"Check your events page for details."
                 ),
                 notification_type=Notification.TYPE_EVENT,

@@ -158,6 +158,7 @@ class PushChannel(NotificationChannel):
 
     def on_event_published(self, event):
         """Push notification to relevant active users about a new event efficiently."""
+        from service.event_rules import format_when
         from service.models import ServiceGroupMembership
 
         tokens_qs = FCMDeviceToken.objects.filter(user__is_active=True)
@@ -174,7 +175,7 @@ class PushChannel(NotificationChannel):
             return
 
         title = f"New Event: {event.title}"
-        body = f"{event.title} is scheduled for {event.start_date.strftime('%B %d, %Y at %I:%M %p')}."
+        body = f"{event.title} is scheduled for {format_when(event)}."
 
         _send_fcm_multicast(
             title=title,

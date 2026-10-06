@@ -30,6 +30,13 @@ There is no "add user" button on purpose: **every person registers themselves** 
 
 If enrolments ever look wrong, a developer can run `sync_course_enrolments` (it shows what it would change; add `--yes` to apply).
 
+## 3b. Events
+
+- **General events** (an announcement to everyone, like a channel): the **Event Manager** (or you, under **Events** in the admin menu) creates the event with title, start and end time, place (and a map link) and a description of what people need to know (what to bring, who speaks). Every active student gets a notification and an email.
+- **Group events**: the group's Service Admin creates them in **Manage Ageglot → Events**. Only that group's active members see them and are told by notification and email.
+- **Attendance**: open the **Attendance** tab, choose the event, tick the people who came (everyone unticked is saved as absent) and save. The Event Manager does this for their own general events, the Service Admin for their group's events, you for any event. Students see their own history under **Attendance**.
+- Times are entered and shown in Ethiopian local time.
+
 ## 4. Questions and answers
 
 - **Public questions**: anyone can ask (with an optional nickname). A **Moderator** approves the question; any signed-in person can answer; the Moderator approves answers. Moderators are alerted, and see a list of public questions with no answer for more than a week, which they can answer themselves (published at once).

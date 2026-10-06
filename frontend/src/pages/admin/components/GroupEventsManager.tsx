@@ -259,7 +259,7 @@ export default function GroupEventsManager({ groupId, eventType }: GroupEventsMa
           <div className="grid gap-4 md:grid-cols-2">
             <div>
               <label className="text-sm font-medium text-muted-foreground">{t("title")} *</label>
-              <input type="text" name="title" required value={formData.title} onChange={handleChange}
+              <input type="text" name="title" required value={formData.title} onChange={handleChange} placeholder={t("ev_title_ph", "e.g. Fellowship day, Christmas program")}
                 className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary" />
             </div>
             <div>
@@ -284,7 +284,7 @@ export default function GroupEventsManager({ groupId, eventType }: GroupEventsMa
             </div>
             <div className="md:col-span-2">
               <label className="text-sm font-medium text-muted-foreground">{t("description")}</label>
-              <textarea name="description" rows={3} value={formData.description} onChange={handleChange}
+              <textarea name="description" rows={5} value={formData.description} onChange={handleChange} placeholder={t("ev_desc_ph", "What is the program? Who should come? What to bring or wear? Who is speaking? Everything people need to know is told to them by notification and email.")}
                 className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary" />
             </div>
             <div className="md:col-span-2">

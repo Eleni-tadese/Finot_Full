@@ -9,6 +9,7 @@ from django.db.models import Count, Q
 from questionanswer.visibility import is_super_admin
 from .group_rules import MAX_GROUPS_PER_STUDENT, GroupContentSerializer
 from .i18n import group_name
+from .event_rules import attendance_roster, can_manage_event_attendance, has_role, person_name
 from .models import ServiceGroup, AgeglotSelection, Family, Event, ServiceConfiguration, ServiceGroupMembership, ServiceAttendance
 from .serializers import (
     ServiceGroupSerializer, 
@@ -451,27 +452,71 @@ class EventViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         user = self.request.user
-        
-        if user.is_superuser or user.roles.filter(name__in=['SuperAdmin', 'EventManager']).exists():
-             serializer.save(created_by=user)
-             return
-             
-        # If ServiceAdmin, enforce saving to their managed group
-        if user.roles.filter(name='ServiceAdmin').exists():
-            managed_group = user.managed_service_groups.first() # Assume one for now
-            if managed_group:
-                 serializer.save(created_by=user, service_group=managed_group)
-                 return
-                 
+        if is_super_admin(user):
+            serializer.save(created_by=user)
+            return
+
+        group = serializer.validated_data.get('service_group')
+        managed = list(user.managed_service_groups.all()) if has_role(user, 'ServiceAdmin') else []
+        if group is not None:
+            # a group event: only that group's own Service Admin may make it
+            if group in managed:
+                serializer.save(created_by=user)
+                return
+            raise PermissionDenied("You can only create events for the group you manage.")
+        if has_role(user, 'EventManager'):
+            # a general event: never tied to a group, whatever the form sent
+            serializer.save(created_by=user, service_group=None)
+            return
+        if managed:
+            serializer.save(created_by=user, service_group=managed[0])
+            return
         raise PermissionDenied("You do not have permission to create events.")
 
     def perform_update(self, serializer):
         self._check_edit_permissions(serializer.instance)
-        serializer.save()
+        if is_super_admin(self.request.user):
+            serializer.save()
+        else:
+            # nobody but the Super Admin moves an event between "general" and a group
+            serializer.save(service_group=serializer.instance.service_group)
 
     def perform_destroy(self, instance):
         self._check_edit_permissions(instance)
         instance.delete()
+
+    @action(detail=True, methods=['get'], url_path='roster')
+    def roster(self, request, pk=None):
+        """
+        GET /api/service/events/<id>/roster/?search=
+        The people whose attendance can be taken for this event, with what is already saved.
+        General event: all active in-campus students. Group event: the group's active members.
+        Only whoever may take attendance for the event can open it.
+        """
+        event = self.get_object()
+        if not can_manage_event_attendance(request.user, event):
+            raise PermissionDenied("You cannot take attendance for this event.")
+        saved = dict(ServiceAttendance.objects.filter(event=event).values_list('student_id', 'status'))
+        search = (request.query_params.get('search') or '').strip().lower()
+        rows = []
+        for person in attendance_roster(event):
+            name = person_name(person)
+            if search and search not in name.lower() and search not in (person.email or '').lower():
+                continue
+            profile = getattr(person, 'student_profile', None)
+            rows.append({
+                'id': person.id,
+                'name': name,
+                'email': person.email,
+                'batch_year': getattr(profile, 'batch_year', None),
+                'department': getattr(profile, 'department', None),
+                'status': saved.get(person.id),
+            })
+        return Response({
+            'event': {'id': event.id, 'title': event.title, 'start_date': event.start_date, 'service_group': event.service_group_id},
+            'count': len(rows),
+            'students': rows,
+        })
 
     def _check_edit_permissions(self, event):
         user = self.request.user
@@ -526,18 +571,21 @@ class ServiceAttendanceViewSet(viewsets.ReadOnlyModelViewSet):
             except Event.DoesNotExist:
                 return Response({"detail": "Event not found."}, status=status.HTTP_404_NOT_FOUND)
 
-            # Security: Verify if the user is authorized to mark attendance for this event
-            if not user.is_superuser and not user.roles.filter(name='SuperAdmin').exists():
-                if not user.roles.filter(name='ServiceAdmin').exists():
-                    return Response({"detail": "Not authorized to mark attendance for this event."}, status=status.HTTP_403_FORBIDDEN)
-                    
-                # If they are just a ServiceAdmin, the event's group must be one they manage.
-                # (For global events (service_group=None), you could decide if ServiceAdmins can mark attendance. Assuming no.)
-                if not event.service_group or event.service_group not in user.managed_service_groups.all():
-                    return Response({"detail": "Not authorized to mark attendance for this event."}, status=status.HTTP_403_FORBIDDEN)
+            # Event Manager: general events they made. Service Admin: their group's events. Super Admin: any event.
+            if not can_manage_event_attendance(user, event):
+                return Response({"detail": "Not authorized to mark attendance for this event."}, status=status.HTTP_403_FORBIDDEN)
 
             # Collect student IDs from the request payload
             student_ids = [item['student'].id for item in attendances_data]
+
+            # only people who are on this event's list can be marked
+            on_list = set(attendance_roster(event).values_list('id', flat=True))
+            outside = sorted({i for i in student_ids if i not in on_list})
+            if outside:
+                return Response(
+                    {"detail": "Some people are not on this event's list.", "invalid_student_ids": outside},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
 
             with transaction.atomic():
                 # Single query: fetch all existing attendance records for this event + these students

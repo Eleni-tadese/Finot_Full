@@ -149,7 +149,7 @@ CORS_ALLOW_HEADERS = [
 ]
 
 LANGUAGE_CODE = "en-us"
-TIME_ZONE = "UTC"
+TIME_ZONE = "Africa/Addis_Ababa"  # people type event times in local time; stored internally as UTC
 
 # Secret for the scheduled weekly-reminder trigger. Empty = trigger disabled.
 CRON_SECRET = os.getenv("CRON_SECRET", "")
