@@ -142,5 +142,5 @@ A sleeping instance is slow for the first visitor. A free uptime monitor that op
 
 - Free backend and database instances sleep when idle; the first request after a pause is slow.
 - The free mail plan caps daily emails: the weekly reminder email is limited by `WEEKLY_REMINDER_EMAIL_LIMIT`.
-- GitHub scheduled workflows can start a few minutes late, and GitHub pauses them if the repository has no activity for about 60 days (re-enable them under Actions).
+- GitHub scheduled workflows can start a few minutes late (more when GitHub is busy). They run from the repository's **default branch** (`main`), so a change to a workflow only takes effect after it is merged into `main`. GitHub documents that it pauses scheduled workflows after 60 days without repository activity for **public** repositories; yours is private, but look at the Actions tab if a job ever stops. A failed run is not retried by itself: re-run it from the Actions tab (the once-a-week guard prevents duplicates).
 - The container applies database migrations on every start. Take a database backup before a risky release.

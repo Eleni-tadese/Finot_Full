@@ -36,6 +36,8 @@ The server does not run its own scheduler. Three free GitHub Actions workflows c
 | `class-reminders.yml` | daily 18:00 Ethiopia time | `POST /api/notifications/cron/class-reminders/` |
 | `verify-donations.yml` | hourly | `POST /api/donations/cron/verify-pending/` |
 
+How a schedule works: GitHub's clock starts the workflow at the set time (the times above are UTC converted to Ethiopia time, UTC+3), the workflow calls the backend address with the secret, and the backend does the work. The server needs no clock of its own. If the server is asleep the call wakes it (the call waits up to 5 minutes).
+
 Each call must carry the header `X-Cron-Token: <CRON_SECRET>`. A wrong or missing token gets a plain 404, so strangers cannot trigger anything. Switch them on by setting `CRON_SECRET` in the backend and the repository secrets `CRON_SECRET` and `BACKEND_URL` (see [configuration.md](configuration.md)). Use **Actions → the workflow → Run workflow** to test; run the weekly one twice: the second answer says `skipped`.
 
 Local equivalents (no GitHub needed):
