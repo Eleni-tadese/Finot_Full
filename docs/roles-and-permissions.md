@@ -8,8 +8,8 @@ Everyone who registers is a **Student**. A student has no role row; the other ro
 |---|---|---|
 | **Student** | registering | profile, events and own attendance, own courses, family, service-group selection, donations, public and private questions, resources |
 | **Super Admin** | by another Super Admin, or `create_first_admin` | everything: the admin console (users and roles, service groups, courses, families, departments, academic year, private Q&A, donations, SMS, exports) |
-| **Service Admin** | by being made the admin of a group they are a **member** of (not tickable) | their own group: applicants, members, student-facing page, group materials, group events |
-| **Event Manager** | Users & roles | create and manage **their own** events and mark attendance for them |
+| **Service Admin** | by being made the admin of a group they are a **member** of (not tickable) | their own group: applicants, members, student-facing page, group materials, group events, and event attendance of their group's members (for group events and general events) |
+| **Event Manager** | Users & roles | create and manage **their own** general events (they see the general events plus their own) |
 | **Course Coordinator** | Users & roles, **plus** being named on a semester course | manage **only the courses where they are named**: class days, attendance, report and Excel, materials, start/complete the course |
 | **Family Admin** | Users & roles | help with families |
 | **QA Moderator** | Users & roles | approve public questions and answers; answer long-unanswered public questions; sees alerts |
