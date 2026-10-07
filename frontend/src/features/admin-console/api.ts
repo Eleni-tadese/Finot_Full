@@ -46,6 +46,10 @@ export const adminApi = {
     axiosInstance
       .post<{ batch_id: number; created: Credential[]; rejected: { row: number; errors: string[] }[] }>(`${C}/accounts/import/commit/`, body)
       .then((r) => r.data),
+  importBlank: (body: { count: number; batch_id?: number | null; grace_days?: number }) =>
+    axiosInstance
+      .post<{ batch_id: number; created: Credential[]; rejected: { row: number; errors: string[] }[] }>(`${C}/accounts/import/blank/`, body)
+      .then((r) => r.data),
   importBatches: () => axiosInstance.get<{ results: ImportBatchRow[] }>(`${C}/accounts/import/batches/`).then((r) => r.data.results),
   undoImport: (id: number) =>
     axiosInstance.post<{ deleted: number; kept: number }>(`${C}/accounts/import/batches/${id}/undo/`).then((r) => r.data),

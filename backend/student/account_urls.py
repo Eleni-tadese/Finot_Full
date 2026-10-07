@@ -7,4 +7,5 @@ urlpatterns = [
     path("email-code/", v.EmailCodeView.as_view()),
     path("confirm-email/", v.ConfirmEmailView.as_view()),
     path("change-password/", v.ChangePasswordView.as_view()),
+    path("names/", v.NamesView.as_view()),
 ]

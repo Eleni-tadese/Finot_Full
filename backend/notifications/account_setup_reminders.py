@@ -29,7 +29,7 @@ def send_account_setup_reminders():
         st = status_for(profile.user)
         if st is None or not st["pending"]:
             continue
-        due = [s for s in STAGES if st["days_left"] <= s[1] and (s[1] > 0 or st["required"])]
+        due = [s for s in STAGES if st["days_left"] <= s[1] and (s[1] > 0 or st["expired"])]
         if not due:
             continue
         stage, _, title, message = due[-1]

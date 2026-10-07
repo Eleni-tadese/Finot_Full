@@ -8,7 +8,7 @@ import { api } from "../../lib/api";
 import { Card, SectionHeader } from "../../components/ui/Card";
 import { firstApiError } from "../../features/resources/utils";
 
-type Setup = { pending: boolean; required: boolean; days_left: number; needs_email: boolean; needs_password: boolean } | null;
+type Setup = { pending: boolean; required: boolean; expired: boolean; needs_name: boolean; days_left: number; needs_email: boolean; needs_password: boolean } | null;
 
 /** Change the login email (confirmed with a code) and the password. Also the "finish your account" page for slip holders. */
 const AccountPage = () => {
@@ -25,6 +25,7 @@ const AccountPage = () => {
   const [next, setNext] = useState("");
   const [again, setAgain] = useState("");
   const [busy, setBusy] = useState(false);
+  const [names, setNames] = useState({ first_name: "", middle_name: "", last_name: "", gender: "" });
   const [wasPending, setWasPending] = useState(false);
   const sending = useRef(false); // blocks a double click before the screen has time to react
 
@@ -75,6 +76,20 @@ const AccountPage = () => {
     } catch (err) { fail(err); } finally { setBusy(false); sending.current = false; }
   };
 
+  const saveNames = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (sending.current) return;
+    sending.current = true;
+    setBusy(true);
+    try {
+      await api.saveNames(names);
+      toast.success(t("acc_name_saved", "Welcome! Your name is saved."));
+      const data = await load();
+      try { setUser(await api.getUser()); } catch { /* the page still works */ }
+      if (data.setup && !data.setup.required) navigate("/dashboard/profile/edit");
+    } catch (err) { fail(err); } finally { setBusy(false); sending.current = false; }
+  };
+
   const savePassword = async (e: React.FormEvent) => {
     e.preventDefault();
     if (next !== again) { toast.error(t("acc_mismatch", "The two new passwords are not the same.")); return; }
@@ -90,19 +105,45 @@ const AccountPage = () => {
   };
 
   const pending = !!setup?.pending;
+  const needsName = !!setup?.needs_name;
 
   return (
     <div className="mx-auto max-w-3xl space-y-6">
       <SectionHeader
-        title={pending ? t("acc_finish_title", "Finish your account") : t("acc_title", "Email and password")}
-        description={pending
-          ? (setup?.required
+        title={needsName ? t("acc_welcome", "Welcome to Finot") : pending ? t("acc_finish_title", "Finish your account") : t("acc_title", "Email and password")}
+        description={needsName ? t("acc_welcome_desc", "First tell us who you are. After that you can complete your profile.") : pending
+          ? (setup?.expired
             ? t("acc_required", "Your login slip has expired. Add your own email and choose a new password to continue.")
             : t("acc_pending", "Your login slip works for {{n}} more day(s). Add your own email and choose a new password before it ends.", { n: setup?.days_left ?? 0 }))
           : t("acc_desc", "Change the email you sign in with, or your password.")}
         icon={<FiShield className="h-6 w-6" />}
       />
 
+      {needsName && (
+        <Card className="border-l-4 border-l-accent">
+          <h2 className="mb-1 text-base font-semibold text-foreground">{t("acc_name_title", "Welcome! Write your name")}</h2>
+          <p className="mb-4 text-sm text-muted-foreground">{t("acc_name_hint", "Write your name exactly as it is on your ID. You can write it only once, so check it before you save.")}</p>
+          <form onSubmit={saveNames} className="space-y-3">
+            <div className="grid gap-3 sm:grid-cols-3">
+              {([["first_name", t("acc_first_name", "First name")], ["middle_name", t("acc_father_name", "Father's name")], ["last_name", t("acc_grandfather_name", "Grandfather's name")]] as const).map(([key, label]) => (
+                <div key={key}>
+                  <label className="text-sm font-medium text-foreground" htmlFor={`acc-${key}`}>{label}</label>
+                  <input id={`acc-${key}`} className="input mt-1 w-full" value={names[key]} maxLength={150} onChange={(e) => setNames({ ...names, [key]: e.target.value })} required />
+                </div>
+              ))}
+            </div>
+            <div className="flex flex-wrap items-center gap-4 text-sm">
+              <span className="font-medium text-foreground">{t("adm_gender", "Gender")}</span>
+              {([["M", t("male", "Male")], ["F", t("female", "Female")]] as const).map(([value, label]) => (
+                <label key={value} className="flex items-center gap-2"><input type="radio" name="acc-gender" checked={names.gender === value} onChange={() => setNames({ ...names, gender: value })} />{label}</label>
+              ))}
+            </div>
+            <button type="submit" disabled={busy || !names.gender} className="btn-primary px-4 py-2 text-sm">{busy ? t("saving") : t("acc_name_save", "Save my name")}</button>
+          </form>
+        </Card>
+      )}
+
+      {!needsName && (<>
       <Card className={pending && setup?.needs_email ? "border-l-4 border-l-accent" : ""}>
         <div className="mb-3 flex items-center gap-2"><FiMail className="h-5 w-5 text-primary" /><h2 className="text-base font-semibold text-foreground">{t("acc_email", "Your email")}</h2></div>
         <p className="mb-4 text-sm text-muted-foreground">
@@ -153,6 +194,8 @@ const AccountPage = () => {
           <button type="submit" disabled={busy} className="btn-primary px-4 py-2 text-sm">{busy ? t("saving") : t("acc_change_password", "Change password")}</button>
         </form>
       </Card>
+
+      </>)}
 
       {user && !pending && <p className="text-xs text-muted-foreground">{t("acc_forgot_hint", "Forgot your password? Use Forgot password on the sign-in page: the link goes to your own email.")}</p>}
     </div>

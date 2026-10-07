@@ -28,6 +28,7 @@ urlpatterns = [
     path("accounts/import/template/", imp.ImportTemplateView.as_view()),
     path("accounts/import/preview/", imp.ImportPreviewView.as_view()),
     path("accounts/import/commit/", imp.ImportCommitView.as_view()),
+    path("accounts/import/blank/", imp.ImportBlankView.as_view()),
     path("accounts/import/batches/", imp.ImportBatchesView.as_view()),
     path("accounts/import/batches/<int:pk>/undo/", imp.ImportUndoView.as_view()),
     path("departments/", v.DepartmentsView.as_view()),

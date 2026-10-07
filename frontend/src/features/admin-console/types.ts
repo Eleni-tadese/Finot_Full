@@ -27,7 +27,7 @@ export interface AdminUser {
   section: number | null;
   service_group: string | null;
   student_status: "IN_CAMPUS" | "GRADUATED" | null;
-  setup?: { pending: boolean; required: boolean; deadline: string; days_left: number } | null;
+  setup?: { pending: boolean; expired: boolean; needs_name: boolean; deadline: string; days_left: number } | null;
 }
 
 export interface UserFilterOptions {

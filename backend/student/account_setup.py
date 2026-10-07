@@ -52,10 +52,15 @@ def is_pending(profile):
     return bool(profile and profile.setup_deadline and not profile.setup_completed_at)
 
 
+def needs_name(user):
+    """A slip made without a name: the student must write their name (and gender) before anything else."""
+    return not (user.first_name and user.middle_name and user.last_name and user.gender)
+
+
 def is_blocked(user):
-    """True when the slip has expired and the set-up is still not finished: every other page stays closed."""
+    """True when every other page must stay closed: the slip expired, or the name is still missing."""
     profile = _profile(user)
-    return is_pending(profile) and timezone.now() >= profile.setup_deadline
+    return is_pending(profile) and (timezone.now() >= profile.setup_deadline or needs_name(user))
 
 
 def status_for(user):
@@ -65,9 +70,13 @@ def status_for(user):
         return None
     pending = is_pending(profile)
     remaining = (profile.setup_deadline - timezone.now()).total_seconds()
+    no_name = pending and needs_name(user)
     return {
         "pending": pending,
-        "required": pending and remaining <= 0,
+        "expired": pending and remaining <= 0,
+        # the Account page is the only open page while the slip is expired or the student has not written their name
+        "required": pending and (remaining <= 0 or no_name),
+        "needs_name": no_name,
         "deadline": profile.setup_deadline,
         "days_left": max(0, math.ceil(remaining / 86400)) if pending else 0,
         "needs_email": pending and is_slip_email(user.email),
@@ -146,6 +155,33 @@ def confirm_email_code(user, code):
     verification.save(update_fields=["expires_at"])
     refresh_completion(user)
     return user.email
+
+
+def _clean_name(value, label):
+    text = " ".join(str(value or "").split())
+    if not text:
+        raise SetupError(f"{label} is required.", label_field(label))
+    if len(text) > 150:
+        raise SetupError(f"{label} is too long.", label_field(label))
+    return text
+
+
+def label_field(label):
+    return {"First name": "first_name", "Father's name": "middle_name", "Grandfather's name": "last_name"}.get(label, "detail")
+
+
+def set_names(user, first_name, middle_name, last_name, gender):
+    """The student writes their own name once. Afterwards only the Super Admin can change it."""
+    profile = _profile(user)
+    if not is_pending(profile) or not needs_name(user):
+        raise SetupError("Your name is already saved. Ask an administrator to change it.")
+    user.first_name = _clean_name(first_name, "First name")
+    user.middle_name = _clean_name(middle_name, "Father's name")
+    user.last_name = _clean_name(last_name, "Grandfather's name")
+    if gender not in ("M", "F"):
+        raise SetupError("Choose male or female.", "gender")
+    user.gender = gender
+    user.save(update_fields=["first_name", "middle_name", "last_name", "gender"])
 
 
 def change_password(user, current_password, new_password_text):

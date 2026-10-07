@@ -224,7 +224,7 @@ const UsersPage = () => {
                   <td className="px-4 py-3">
                     {u.is_active ? <Chip tone="green">{t("adm_active", "Active")}</Chip> : <Chip tone="red">{t("adm_inactive", "Inactive")}</Chip>}
                     {u.setup?.pending && (
-                      <div className="mt-1"><Chip tone={u.setup.required ? "red" : "amber"}>{u.setup.required ? t("slip_expired", "Slip expired") : t("slip_days", "Slip: {{n}} days left", { n: u.setup.days_left })}</Chip></div>
+                      <div className="mt-1"><Chip tone={u.setup.expired ? "red" : "amber"}>{u.setup.expired ? t("slip_expired", "Slip expired") : u.setup.needs_name ? t("slip_no_name", "Slip: name not written yet") : t("slip_days", "Slip: {{n}} days left", { n: u.setup.days_left })}</Chip></div>
                     )}
                   </td>
                   <td className="px-4 py-3">

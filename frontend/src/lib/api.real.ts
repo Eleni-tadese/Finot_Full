@@ -278,6 +278,8 @@ export const api = {
   getAccountStatus: async () => (await axiosInstance.get('/api/account/status/')).data,
   requestEmailCode: async (email: string, currentPassword: string) =>
     (await axiosInstance.post('/api/account/email-code/', { email, current_password: currentPassword })).data,
+  saveNames: async (names: { first_name: string; middle_name: string; last_name: string; gender: string }) =>
+    (await axiosInstance.post('/api/account/names/', names)).data,
   confirmEmail: async (code: string) => (await axiosInstance.post('/api/account/confirm-email/', { code })).data,
   changePassword: async (currentPassword: string, newPassword: string) =>
     (await axiosInstance.post('/api/account/change-password/', { current_password: currentPassword, new_password: newPassword })).data,

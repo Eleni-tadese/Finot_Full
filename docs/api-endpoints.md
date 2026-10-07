@@ -9,6 +9,7 @@ Generated from the code (`manage.py spectacular`). For request and response shap
 | POST | `/api/account/change-password/` | api_account_change_password_create |
 | POST | `/api/account/confirm-email/` | api_account_confirm_email_create |
 | POST | `/api/account/email-code/` | api_account_email_code_create |
+| POST | `/api/account/names/` | api_account_names_create |
 | GET | `/api/account/status/` | api_account_status_retrieve |
 
 ## `/api/admin-console/`
@@ -20,6 +21,7 @@ Generated from the code (`manage.py spectacular`). For request and response shap
 | POST | `/api/admin-console/academic-year/rollover/{id}/undo/` | api_admin_console_academic_year_rollover_undo_create |
 | GET | `/api/admin-console/accounts/import/batches/` | api_admin_console_accounts_import_batches_retrieve |
 | POST | `/api/admin-console/accounts/import/batches/{id}/undo/` | api_admin_console_accounts_import_batches_undo_create |
+| POST | `/api/admin-console/accounts/import/blank/` | Slips for students whose names the organization does not know: each student writes their own name at first sign-in. |
 | POST | `/api/admin-console/accounts/import/commit/` | api_admin_console_accounts_import_commit_create |
 | POST | `/api/admin-console/accounts/import/preview/` | api_admin_console_accounts_import_preview_create |
 | GET | `/api/admin-console/accounts/import/template/` | api_admin_console_accounts_import_template_retrieve |

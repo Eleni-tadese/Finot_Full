@@ -20,7 +20,7 @@ def slip_student(days=21, password="Slip-Pass-1x"):
     batch = AccountImportBatch.objects.first() or AccountImportBatch.objects.create(grace_days=21)
     n = User.objects.filter(email__endswith="@temp.finot").count() + 1
     email = f"f{n:05d}@temp.finot"
-    user = User.objects.create_user(username=email, email=email, password=password, first_name="Abel", middle_name="T", last_name="G")
+    user = User.objects.create_user(username=email, email=email, password=password, first_name="Abel", middle_name="T", last_name="G", gender="M")
     StudentProfile.objects.filter(user=user).update(
         batch_year=1, import_batch=batch, setup_deadline=timezone.now() + timedelta(days=days))
     return User.objects.get(pk=user.pk), password
@@ -247,3 +247,81 @@ class TestCampusFriendlyLoginLimits:
             blocked += r.status_code == 429
         assert blocked >= 1
         cache.clear()
+
+
+@pytest.mark.django_db
+class TestSlipsWithoutNames:
+    BASE = "/api/admin-console/accounts/import/"
+
+    def boss(self):
+        boss = User.objects.create_user(username="boss@gmail.com", email="boss@gmail.com", password="x")
+        UserRole.objects.create(user=boss, role=Role.objects.get_or_create(name=Role.SUPER_ADMIN)[0])
+        return User.objects.get(pk=boss.pk)
+
+    def make(self, n=3):
+        res = client(self.boss()).post(self.BASE + "blank/", {"count": n, "grace_days": 21}, format="json")
+        assert res.status_code == 201
+        return res.json()
+
+    def test_blank_slips_have_no_name_and_work_for_sign_in(self):
+        data = self.make(4)
+        assert len(data["created"]) == 4 and all(c["name"] == "" for c in data["created"])
+        assert [c["row"] for c in data["created"]] == [1, 2, 3, 4]
+        first = data["created"][0]
+        assert first["email"].endswith("@temp.finot") and len(first["password"]) == 11
+        user = User.objects.get(email=first["email"])
+        assert user.first_name == "" and user.gender is None and user.student_profile.batch_year == 1
+        login = APIClient().post("/auth/jwt/create/", {"username": first["email"], "password": first["password"]}, format="json")
+        assert login.status_code == 200
+        user.refresh_from_db()
+        assert user.last_login is not None  # the import's Undo can now tell the slip was used
+
+    def test_limits(self):
+        c = client(self.boss())
+        assert c.post(self.BASE + "blank/", {"count": 0}, format="json").status_code == 400
+        assert c.post(self.BASE + "blank/", {"count": 151}, format="json").status_code == 400
+        assert c.post(self.BASE + "blank/", {"count": "x"}, format="json").status_code == 400
+        assert client(User.objects.create_user(username="s@gmail.com", email="s@gmail.com", password="x")).post(self.BASE + "blank/", {"count": 1}, format="json").status_code == 403
+
+    def test_the_name_must_be_written_first_and_only_once(self):
+        email = self.make(1)["created"][0]["email"]
+        user = User.objects.get(email=email)
+        c = client(user)
+        st = c.get(ACC + "status/").json()["setup"]
+        assert st["needs_name"] is True and st["required"] is True and st["expired"] is False
+        # every other page is closed until the name is written
+        from rest_framework_simplejwt.tokens import RefreshToken
+        gated = APIClient()
+        gated.credentials(HTTP_AUTHORIZATION="JWT " + str(RefreshToken.for_user(user).access_token))
+        assert gated.get("/api/notifications/").status_code == 403
+        assert gated.get("/auth/users/me/").status_code == 200
+        # rules
+        def send(**kw):
+            body = {"first_name": "Abel", "middle_name": "Tesfaye", "last_name": "Girma", "gender": "M", **kw}
+            return c.post(ACC + "names/", body, format="json")
+        assert send(first_name="  ").status_code == 400
+        assert send(last_name="").status_code == 400
+        assert send(gender="X").status_code == 400
+        assert send(first_name="x" * 151).status_code == 400
+        ok = send(first_name="  Abel   Y ")
+        assert ok.status_code == 200 and ok.json()["setup"]["needs_name"] is False and ok.json()["setup"]["required"] is False
+        user.refresh_from_db()
+        assert (user.first_name, user.middle_name, user.last_name, user.gender) == ("Abel Y", "Tesfaye", "Girma", "M")
+        assert gated.get("/api/notifications/").status_code == 200  # open now
+        assert send(first_name="Other").status_code == 400  # once only
+        user.refresh_from_db()
+        assert user.first_name == "Abel Y"
+
+    def test_other_students_cannot_use_the_names_call(self):
+        user = User.objects.create_user(username="plain@gmail.com", email="plain@gmail.com", password="x", first_name="A", middle_name="B", last_name="C", gender="M")
+        res = client(user).post(ACC + "names/", {"first_name": "Z", "middle_name": "Z", "last_name": "Z", "gender": "M"}, format="json")
+        assert res.status_code == 400
+        user.refresh_from_db()
+        assert user.first_name == "A"
+
+    def test_undo_keeps_slips_that_were_used(self):
+        data = self.make(3)
+        first = data["created"][0]
+        APIClient().post("/auth/jwt/create/", {"username": first["email"], "password": first["password"]}, format="json")
+        res = client(User.objects.get(email="boss@gmail.com")).post(f"{self.BASE}batches/{data['batch_id']}/undo/").json()
+        assert res == {"deleted": 2, "kept": 1}

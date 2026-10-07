@@ -137,7 +137,7 @@ def _setup_json(user):
     from student.account_setup import status_for
 
     st = status_for(user)
-    return None if st is None else {"pending": st["pending"], "required": st["required"], "deadline": st["deadline"], "days_left": st["days_left"]}
+    return None if st is None else {"pending": st["pending"], "expired": st["expired"], "needs_name": st["needs_name"], "deadline": st["deadline"], "days_left": st["days_left"]}
 
 
 def serialize_user(user):

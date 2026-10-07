@@ -4,6 +4,7 @@ Super Admin API for registering many students at once from an Excel / CSV list.
   GET   accounts/import/template/             the Excel template to fill in
   POST  accounts/import/preview/              multipart `file`: checks every row, writes nothing
   POST  accounts/import/commit/               {batch_id?, grace_days?, rows:[...]}  at most 150 rows per call
+  POST  accounts/import/blank/                {count, batch_id?, grace_days?}  slips without names (at most 150 per call)
   GET   accounts/import/batches/              earlier imports with counts
   POST  accounts/import/batches/<id>/undo/    remove the accounts of an import that nobody has used yet
 
@@ -101,6 +102,34 @@ class ImportCommitView(ConsoleView):
             "batch_id": batch.id, "created": created,
             "rejected": [{"row": c["row"], "errors": c["errors"]} for c in rejected],
         }, status=status.HTTP_201_CREATED if created else status.HTTP_200_OK)
+
+
+class ImportBlankView(ConsoleView):
+    """Slips for students whose names the organization does not know: each student writes their own name at first sign-in."""
+
+    parser_classes = [JSONParser]
+
+    def post(self, request):
+        try:
+            count = int(request.data.get("count"))
+        except (TypeError, ValueError):
+            raise ValidationError({"count": "Write how many slips you need."})
+        if not 1 <= count <= ai.CHUNK_LIMIT:
+            raise ValidationError({"count": f"Between 1 and {ai.CHUNK_LIMIT} slips per request."})
+        batch_id = request.data.get("batch_id")
+        if batch_id in (None, ""):
+            try:
+                days = int(request.data.get("grace_days") or ai.grace_days())
+            except (TypeError, ValueError):
+                raise ValidationError({"grace_days": "Must be a number."})
+            if not 7 <= days <= 60:
+                raise ValidationError({"grace_days": "Choose between 7 and 60 days."})
+            batch = ai.start_batch(request.user, days)
+        else:
+            batch = AccountImportBatch.objects.filter(pk=batch_id, undone_at__isnull=True).first()
+            if batch is None:
+                raise ValidationError({"batch_id": "This import no longer exists."})
+        return Response({"batch_id": batch.id, "created": ai.create_blank_accounts(batch, count), "rejected": []}, status=status.HTTP_201_CREATED)
 
 
 def batch_users(batch):

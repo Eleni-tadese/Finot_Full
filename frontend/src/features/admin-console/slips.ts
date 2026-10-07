@@ -18,13 +18,13 @@ export function slipsHtml(list: Credential[], graceDays: number, loginUrl: strin
   const slip = (c: Credential) => `
     <div class="slip">
       <div class="top"><span class="logo">F</span><b>Finot</b><span class="small">Gibi Gubae fellowship</span></div>
-      <div class="name">${esc(c.name)}</div>
+      <div class="name">${esc(c.name || "Slip no. " + (c.row || ""))}</div>
       <table>
         <tr><td>Website</td><td>${esc(loginUrl)}</td></tr>
         <tr><td>Email</td><td><span class="mono">${esc(c.email)}</span> <button class="cp" data-c="${esc(c.email)}">Copy</button></td></tr>
         <tr><td>Password</td><td><span class="mono big">${esc(c.password)}</span> <button class="cp" data-c="${esc(c.password)}">Copy</button></td></tr>
       </table>
-      <div class="note">Keep this slip. It works until <b>${esc(until)}</b>. Before then, sign in, complete your profile, and add your own real email and a new password.</div>
+      <div class="note">Keep this slip. It works until <b>${esc(until)}</b>. Before then, sign in, write your name, complete your profile, and add your own real email and a new password.</div>
     </div>`;
   return `<!doctype html><html><head><meta charset="utf-8"><title>Finot login slips</title><style>
     @page { size: A4; margin: 8mm; }

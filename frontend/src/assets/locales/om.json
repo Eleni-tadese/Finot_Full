@@ -1651,5 +1651,21 @@
   "slip_valid_days": "Guyyaa {{n}} hojjeta.",
   "acc_why": "Koodiin maaliif barbaachisa? Imeelii kun dhugumatti kan keessan ta'uu isaa mirkaneessa. Gara fuula duraatti jecha icciitii yoo irraanfattan, geessituun deebisanii kaa'uu gara imeelii kanaatti ergama; kanaaf isin qofatu fayyadama.",
   "acc_sending": "Imeelii ergaa jira...",
-  "copy": "Waraabi"
+  "copy": "Waraabi",
+  "imp_blank_range": "Lakkoofsa 1 hanga 3000 gidduu barreessaa.",
+  "imp_blank_confirm": "Kaardii maqaa hin qabne {{n}} haa hojjetaman? Barataan hundi yeroo jalqabaa seenuu maqaa mataa isaa barreessa. Kaardiin guyyaa {{d}} hojjeta.",
+  "imp_blank_title": "Ykn: kaardii maqaa hin qabne",
+  "imp_blank_hint": "Maqaa barattootaa yoo ammaaf hin beekne, lakkoofsaan kaardii duwwaa hojjedhaa. Kaardiin tokkoon tokkoon isaa imeelii fi jecha icciitii qofa qaba. Barataan seenee maqaa mataa isaa barreessa, achiis piroofaayilii isaa xumura.",
+  "imp_blank_count": "Kaardii meeqa",
+  "imp_blank_go": "Kaardii hojjedhu",
+  "acc_name_saved": "Baga nagaan dhuftan! Maqaan keessan kuufameera.",
+  "acc_welcome": "Baga nagaan gara Finot dhuftan",
+  "acc_welcome_desc": "Dursa eenyu akka taatan nutti himaa. Booda piroofaayilii keessan xumuruu dandeessu.",
+  "acc_name_title": "Baga nagaan dhuftan! Maqaa keessan barreessaa",
+  "acc_name_hint": "Maqaa keessan akkuma waraqaa eenyummaa irra jirutti barreessaa. Altokko qofa barreessuu dandeessu; kanaaf osoo hin kuufin sirreessaa.",
+  "acc_first_name": "Maqaa",
+  "acc_father_name": "Maqaa abbaa",
+  "acc_grandfather_name": "Maqaa akaakayyuu",
+  "acc_name_save": "Maqaa koo kuusi",
+  "slip_no_name": "Kaardii: maqaan ammaaf hin barreeffamne"
 }

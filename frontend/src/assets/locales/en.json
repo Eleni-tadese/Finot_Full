@@ -1651,5 +1651,21 @@
   "slip_valid_days": "It works for {{n}} days.",
   "acc_why": "Why a code? It proves that this email really belongs to you. Later, if you forget your password, the reset link goes to this email, so only you can use it.",
   "acc_sending": "Sending the email...",
-  "copy": "Copy"
+  "copy": "Copy",
+  "imp_blank_range": "Write a number between 1 and 3000.",
+  "imp_blank_confirm": "Make {{n}} slips without names? Each student will write their own name at the first sign-in. The slips work for {{d}} days.",
+  "imp_blank_title": "Or: slips without names",
+  "imp_blank_hint": "If you do not know the students' names yet, make a number of blank slips. Each slip has only an email and a password. The student signs in, writes their own name, and completes their profile.",
+  "imp_blank_count": "How many slips",
+  "imp_blank_go": "Make the slips",
+  "acc_name_saved": "Welcome! Your name is saved.",
+  "acc_welcome": "Welcome to Finot",
+  "acc_welcome_desc": "First tell us who you are. After that you can complete your profile.",
+  "acc_name_title": "Welcome! Write your name",
+  "acc_name_hint": "Write your name exactly as it is on your ID. You can write it only once, so check it before you save.",
+  "acc_first_name": "First name",
+  "acc_father_name": "Father's name",
+  "acc_grandfather_name": "Grandfather's name",
+  "acc_name_save": "Save my name",
+  "slip_no_name": "Slip: name not written yet"
 }

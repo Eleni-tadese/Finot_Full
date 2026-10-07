@@ -258,6 +258,38 @@ def create_accounts(batch, rows):
     ]
 
 
+def create_blank_accounts(batch, count):
+    """
+    Accounts with no name yet: the organization hands out slips and each student writes their own name at the first
+    sign-in. Same login and password rules as the list import. Returns [{row, name: "", email, password}].
+    """
+    from course.enrollment import latest_semester_courses
+    from course.models import CourseEnrollment
+
+    deadline = timezone.now() + timedelta(days=batch.grace_days)
+    number = _next_login_number()
+    users, passwords = [], []
+    for _ in range(count):
+        password = new_password()
+        email = f"f{number:05d}@{LOGIN_DOMAIN}"
+        number += 1
+        users.append(User(username=email, email=email, first_name="", middle_name="", last_name="", gender=None,
+                          password=quick_hash(password), is_active=True))
+        passwords.append(password)
+    with transaction.atomic():
+        created = User.objects.bulk_create(users)
+        StudentProfile.objects.bulk_create([
+            StudentProfile(user=u, batch_year=1, status=StudentProfile.IN_CAMPUS, import_batch=batch, setup_deadline=deadline)
+            for u in created
+        ])
+        for semester_course in latest_semester_courses(1):
+            CourseEnrollment.objects.bulk_create(
+                [CourseEnrollment(semester_course=semester_course, student=u) for u in created], ignore_conflicts=True
+            )
+    return [{"row": int(LOGIN_PATTERN.match(u.email).group(1)), "name": "", "email": u.email, "password": pw, "department": "", "phone": ""}
+            for u, pw in zip(created, passwords)]
+
+
 def undo_batch(batch):
     """Delete the accounts of this import that nobody has used yet. Returns (deleted, kept)."""
     students = User.objects.filter(student_profile__import_batch=batch)

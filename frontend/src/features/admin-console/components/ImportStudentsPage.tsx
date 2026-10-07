@@ -27,6 +27,9 @@ const ImportStudentsPage = () => {
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false); // the slips were printed or downloaded
   const [batches, setBatches] = useState<ImportBatchRow[]>([]);
+  const [mode, setMode] = useState<"list" | "blank">("list");
+  const [blankCount, setBlankCount] = useState("100");
+  const [blankTotal, setBlankTotal] = useState(0);
   const next = useRef(0);
   const batchId = useRef<number | null>(null);
 
@@ -99,11 +102,40 @@ const ImportStudentsPage = () => {
     if (!preview) return;
     const rows = preview.rows.filter((r) => r.errors.length === 0);
     if (!(await askConfirm(t("imp_confirm", "Register {{n}} students? Each gets a login slip valid for {{d}} days.", { n: rows.length, d: graceDays })))) return;
-    next.current = 0; batchId.current = null; setCreds([]); setRejected([]); setProgress(0); setSaved(false);
+    next.current = 0; batchId.current = null; setCreds([]); setRejected([]); setProgress(0); setSaved(false); setMode("list");
     run(rows);
   };
 
-  const resume = () => preview && run(preview.rows.filter((r) => r.errors.length === 0));
+  const runBlank = async (total: number) => {
+    setPhase("running");
+    setError(null);
+    try {
+      while (next.current < total) {
+        const n = Math.min(CHUNK, total - next.current);
+        const res = await adminApi.importBlank({ count: n, batch_id: batchId.current, grace_days: graceDays });
+        batchId.current = res.batch_id;
+        setCreds((prev) => [...prev, ...res.created]);
+        next.current += n;
+        setProgress(next.current);
+      }
+      setPhase("done");
+      loadBatches();
+    } catch (e: any) {
+      setError(firstApiError(e?.response?.data) || t("imp_failed", "The connection stopped. Nothing is lost: press Continue."));
+      setPhase("paused");
+    }
+  };
+
+  const startBlank = async () => {
+    const total = Number(blankCount);
+    if (!Number.isInteger(total) || total < 1 || total > 3000) { toast.error(t("imp_blank_range", "Write a number between 1 and 3000.")); return; }
+    if (!(await askConfirm(t("imp_blank_confirm", "Make {{n}} slips without names? Each student will write their own name at the first sign-in. The slips work for {{d}} days.", { n: total, d: graceDays })))) return;
+    next.current = 0; batchId.current = null; setCreds([]); setRejected([]); setProgress(0); setSaved(false);
+    setMode("blank"); setBlankTotal(total); setPreview(null);
+    runBlank(total);
+  };
+
+  const resume = () => (mode === "blank" ? runBlank(blankTotal) : preview && run(preview.rows.filter((r) => r.errors.length === 0)));
 
   const printSlips = () => {
     const w = window.open("", "_blank");
@@ -120,7 +152,7 @@ const ImportStudentsPage = () => {
 
   const again = () => {
     setPhase("choose"); setPreview(null); setCreds([]); setRejected([]); setProgress(0); setError(null); setSaved(false);
-    next.current = 0; batchId.current = null;
+    next.current = 0; batchId.current = null; setMode("list");
   };
 
   const undo = async (b: ImportBatchRow) => {
@@ -136,7 +168,8 @@ const ImportStudentsPage = () => {
 
   const shownRows = preview ? (showAll ? preview.rows : [...preview.rows.filter((r) => r.errors.length), ...preview.rows.filter((r) => !r.errors.length)].slice(0, 25)) : [];
   const validCount = preview?.valid ?? 0;
-  const pct = preview && validCount ? Math.round((progress / validCount) * 100) : 0;
+  const target = mode === "blank" ? blankTotal : validCount;
+  const pct = target ? Math.round((progress / target) * 100) : 0;
 
   return (
     <div className="mx-auto max-w-5xl space-y-6">
@@ -154,6 +187,26 @@ const ImportStudentsPage = () => {
           <button onClick={() => fileInput.current?.click()} disabled={busy} className="btn-primary px-5 py-2.5 text-sm">
             {busy ? t("adm_working", "Working...") : t("imp_choose", "Choose Excel or CSV file")}
           </button>
+        </Card>
+      )}
+
+      {phase === "choose" && (
+        <Card>
+          <h2 className="mb-1 text-base font-semibold text-foreground">{t("imp_blank_title", "Or: slips without names")}</h2>
+          <p className="mb-4 text-sm text-muted-foreground">{t("imp_blank_hint", "If you do not know the students' names yet, make a number of blank slips. Each slip has only an email and a password. The student signs in, writes their own name, and completes their profile.")}</p>
+          <div className="flex flex-wrap items-end gap-3">
+            <div>
+              <label className="text-sm font-medium text-foreground" htmlFor="blank-count">{t("imp_blank_count", "How many slips")}</label>
+              <input id="blank-count" type="number" min={1} max={3000} className="input mt-1 w-32" value={blankCount} onChange={(e) => setBlankCount(e.target.value)} />
+            </div>
+            <div>
+              <label className="text-sm font-medium text-foreground" htmlFor="blank-grace">{t("imp_grace", "The slip works for")}</label>
+              <select id="blank-grace" className="input mt-1 w-28" value={graceDays} onChange={(e) => setGraceDays(Number(e.target.value))}>
+                {[14, 21, 30, 45].map((d) => <option key={d} value={d}>{d} {t("days", "days")}</option>)}
+              </select>
+            </div>
+            <button onClick={startBlank} className="btn-primary px-5 py-2.5 text-sm">{t("imp_blank_go", "Make the slips")}</button>
+          </div>
         </Card>
       )}
 
@@ -215,7 +268,7 @@ const ImportStudentsPage = () => {
         <Card>
           <h2 className="mb-3 text-base font-semibold text-foreground">{t("imp_running", "Registering students...")}</h2>
           <div className="h-3 overflow-hidden rounded-full bg-muted"><div className="h-full bg-primary transition-all" style={{ width: `${pct}%` }} /></div>
-          <p className="mt-2 text-sm text-muted-foreground">{t("imp_progress", "{{a}} of {{b}} done. Keep this page open.", { a: progress, b: validCount })}</p>
+          <p className="mt-2 text-sm text-muted-foreground">{t("imp_progress", "{{a}} of {{b}} done. Keep this page open.", { a: progress, b: target })}</p>
           {phase === "paused" && (
             <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
               <p className="mb-2">{error}</p>

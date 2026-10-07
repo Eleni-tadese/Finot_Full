@@ -196,6 +196,8 @@ assignedGroup: any | null;
 export interface AccountSetup {
 pending: boolean;
 required: boolean;
+expired: boolean;
+needs_name: boolean;
 deadline: string;
 days_left: number;
 needs_email: boolean;

@@ -5,6 +5,7 @@ Account calls for every signed-in person (the set-up page and "change email / pa
   POST  /api/account/email-code/       {email, current_password}   send a 6-digit code to the new address
   POST  /api/account/confirm-email/    {code}                      the login email becomes the new address
   POST  /api/account/change-password/  {current_password, new_password}
+  POST  /api/account/names/            {first_name, middle_name, last_name, gender}   once, for slips made without names
 """
 from rest_framework import permissions, status
 from rest_framework.response import Response
@@ -44,6 +45,18 @@ class ConfirmEmailView(APIView):
         except setup.SetupError as exc:
             return _error(exc)
         return Response({"email": email, "setup": setup.status_for(request.user)})
+
+
+class NamesView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request):
+        d = request.data
+        try:
+            setup.set_names(request.user, d.get("first_name"), d.get("middle_name"), d.get("last_name"), d.get("gender"))
+        except setup.SetupError as exc:
+            return _error(exc)
+        return Response({"setup": setup.status_for(request.user)})
 
 
 class ChangePasswordView(APIView):
