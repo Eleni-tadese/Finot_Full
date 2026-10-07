@@ -9,6 +9,7 @@ urlpatterns = [
     path("users/filters/", v.UserFilterOptionsView.as_view()),
     path("users/", v.UsersView.as_view()),
     path("users/<int:pk>/", v.UserDetailView.as_view()),
+    path("users/<int:pk>/reissue/", v.UserReissueView.as_view()),
     path("sub-admins/", v.SubAdminsView.as_view()),
     path("service-groups/", v.ServiceGroupsView.as_view()),
     path("service-groups/<int:pk>/", v.ServiceGroupDetailView.as_view()),

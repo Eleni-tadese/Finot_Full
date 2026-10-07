@@ -133,6 +133,13 @@ class OverviewView(ConsoleView):
 
 # ── Users & roles ───────────────────────────────────────────────────────────
 
+def _setup_json(user):
+    from student.account_setup import status_for
+
+    st = status_for(user)
+    return None if st is None else {"pending": st["pending"], "required": st["required"], "deadline": st["deadline"], "days_left": st["days_left"]}
+
+
 def serialize_user(user):
     profile = getattr(user, "student_profile", None)
     memberships = list(user.service_memberships.all()) if hasattr(user, "service_memberships") else []
@@ -153,7 +160,23 @@ def serialize_user(user):
         "student_status": profile.status if profile else None,
         "roles": sorted(r.role.name for r in user.userrole_set.all()) if hasattr(user, "userrole_set") else [],
         "date_joined": user.date_joined,
+        "setup": _setup_json(user),
     }
+
+
+class UserReissueView(ConsoleView):
+    """POST users/<id>/reissue/ : a lost slip. New random password, the deadline starts again. Returns the credentials once."""
+
+    def post(self, request, pk):
+        from student.account_setup import SetupError, reissue_slip
+
+        user = User.objects.select_related("student_profile").filter(pk=pk).first()
+        if user is None:
+            return Response({"detail": "Not found."}, status=status.HTTP_404_NOT_FOUND)
+        try:
+            return Response(reissue_slip(user))
+        except SetupError as exc:
+            raise ValidationError({"detail": exc.message})
 
 
 class RolesView(ConsoleView):

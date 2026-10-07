@@ -85,6 +85,23 @@ class WeeklyReminderTriggerView(APIView):
         return Response(send_weekly_reminders(force=bool(request.data.get("force")), background_email=True))
 
 
+class AccountSetupReminderTriggerView(APIView):
+    """Daily trigger for the "finish your account" reminders (see .github/workflows/account-setup-reminders.yml)."""
+
+    permission_classes = [permissions.AllowAny]
+    authentication_classes = []
+    throttle_classes = []
+
+    def post(self, request):
+        from .account_setup_reminders import send_account_setup_reminders
+
+        secret = getattr(settings, "CRON_SECRET", "")
+        sent = request.headers.get("X-Cron-Token", "")
+        if not secret or not hmac.compare_digest(sent, secret):
+            return Response(status=status.HTTP_404_NOT_FOUND)
+        return Response(send_account_setup_reminders())
+
+
 class ClassReminderTriggerView(APIView):
     """Daily trigger for the "class tomorrow" notifications (see .github/workflows/class-reminders.yml). Same secret as the weekly one."""
 

@@ -74,9 +74,12 @@ const DashboardProfile = () => {
     <div className="space-y-6">
       <SectionHeader title={t("my_profile")} description={t("manage_personal_info")}
         action={
-          <Link to="/dashboard/profile/edit" className="btn-primary inline-flex items-center gap-2 text-sm">
-            <FiEdit className="h-4 w-4" /> {t("edit_profile")}
-          </Link>
+          <div className="flex flex-wrap gap-2">
+            <Link to="/dashboard/account" className="btn-outline inline-flex items-center gap-2 text-sm">{t("acc_title", "Email and password")}</Link>
+            <Link to="/dashboard/profile/edit" className="btn-primary inline-flex items-center gap-2 text-sm">
+              <FiEdit className="h-4 w-4" /> {t("edit_profile")}
+            </Link>
+          </div>
         }
       />
 

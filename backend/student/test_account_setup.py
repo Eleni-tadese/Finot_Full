@@ -1,0 +1,222 @@
+from datetime import timedelta
+
+import pytest
+from django.contrib.auth import get_user_model
+from django.core import mail
+from django.utils import timezone
+from rest_framework.test import APIClient
+
+from core.models import Role, UserRole
+from notifications.account_setup_reminders import send_account_setup_reminders
+from notifications.models import Notification
+from student import account_import as ai
+from student.models import AccountImportBatch, EmailVerification, StudentProfile
+
+User = get_user_model()
+ACC = "/api/account/"
+
+
+def slip_student(days=21, password="Slip-Pass-1x"):
+    batch = AccountImportBatch.objects.first() or AccountImportBatch.objects.create(grace_days=21)
+    n = User.objects.filter(email__endswith="@finot.invalid").count() + 1
+    email = f"f{n:05d}@finot.invalid"
+    user = User.objects.create_user(username=email, email=email, password=password, first_name="Abel", middle_name="T", last_name="G")
+    StudentProfile.objects.filter(user=user).update(
+        batch_year=1, import_batch=batch, setup_deadline=timezone.now() + timedelta(days=days))
+    return User.objects.get(pk=user.pk), password
+
+
+def client(user):
+    c = APIClient()
+    c.force_authenticate(user)
+    return c
+
+
+def code_from_outbox():
+    body = mail.outbox[-1].alternatives[0][0] if mail.outbox[-1].alternatives else mail.outbox[-1].body
+    import re
+    return re.search(r"letter-spacing: 6px;\">(\d{6})<", body).group(1)
+
+
+@pytest.mark.django_db
+class TestStatusAndGate:
+    def test_status_counts_days_and_asks_for_both(self):
+        user, _ = slip_student(days=10)
+        st = client(user).get(ACC + "status/").json()["setup"]
+        assert st["pending"] and not st["required"] and st["days_left"] == 10
+        assert st["needs_email"] and st["needs_password"]
+        me = client(user).get("/auth/users/me/").json()
+        assert me["setup"]["pending"] is True
+
+    def test_before_the_deadline_everything_works(self):
+        user, _ = slip_student(days=3)
+        assert client(user).get("/api/student/profiles/me/").status_code == 200
+        assert client(user).get("/api/notifications/").status_code == 200
+
+    def test_after_the_deadline_only_the_setup_calls_open(self):
+        user, _ = slip_student(days=-1)
+        c = APIClient()
+        from rest_framework_simplejwt.tokens import RefreshToken
+        token = str(RefreshToken.for_user(user).access_token)
+        c.credentials(HTTP_AUTHORIZATION="JWT " + token)
+        blocked = c.get("/api/notifications/")
+        assert blocked.status_code == 403 and blocked.json()["code"] == "account_setup_required"
+        assert c.get("/api/service/events/").status_code == 403
+        assert c.get("/auth/users/me/").status_code == 200
+        st = c.get(ACC + "status/")
+        assert st.status_code == 200 and st.json()["setup"]["required"] is True
+
+    def test_accounts_that_never_had_a_slip_are_never_blocked(self):
+        user = User.objects.create_user(username="a@gmail.com", email="a@gmail.com", password="x")
+        assert client(user).get("/api/notifications/").status_code == 200
+        assert client(user).get(ACC + "status/").json()["setup"] is None
+
+
+@pytest.mark.django_db
+class TestEmailChange:
+    def test_code_flow_changes_the_login_email(self, settings):
+        user, pw = slip_student()
+        c = client(user)
+        res = c.post(ACC + "email-code/", {"email": "Abel@Gmail.com", "current_password": pw}, format="json")
+        assert res.status_code == 200 and res.json()["sent_to"] == "abel@gmail.com"
+        assert mail.outbox[-1].to == ["abel@gmail.com"]
+        code = code_from_outbox()
+        assert c.post(ACC + "confirm-email/", {"code": "000000" if code != "000000" else "111111"}, format="json").status_code == 400
+        ok = c.post(ACC + "confirm-email/", {"code": code}, format="json")
+        assert ok.status_code == 200
+        user.refresh_from_db()
+        assert user.email == user.username == "abel@gmail.com"
+        # the new email signs in with the same password, the slip email no longer does
+        assert APIClient().post("/auth/jwt/create/", {"username": "abel@gmail.com", "password": pw}, format="json").status_code == 200
+        assert APIClient().post("/auth/jwt/create/", {"username": "f00001@finot.invalid", "password": pw}, format="json").status_code == 401
+        assert ok.json()["setup"]["needs_email"] is False and ok.json()["setup"]["needs_password"] is True
+
+    def test_rules(self):
+        user, pw = slip_student()
+        other = User.objects.create_user(username="taken@gmail.com", email="taken@gmail.com", password="x")
+        c = client(user)
+        def ask(email, password=pw):
+            return c.post(ACC + "email-code/", {"email": email, "current_password": password}, format="json")
+        assert ask("good@gmail.com", "wrong").status_code == 400
+        assert ask("not-an-email").status_code == 400
+        assert ask("someone@finot.invalid").status_code == 400
+        assert ask("x@example.com").status_code == 400            # cannot receive mail
+        assert ask("TAKEN@gmail.com").status_code == 400
+        assert len(mail.outbox) == 0 and not EmailVerification.objects.exists()
+
+    def test_code_expires_and_locks_after_wrong_tries(self):
+        user, pw = slip_student()
+        c = client(user)
+        c.post(ACC + "email-code/", {"email": "a@gmail.com", "current_password": pw}, format="json")
+        code = code_from_outbox()
+        wrong = "000000" if code != "000000" else "111111"
+        for _ in range(5):
+            assert c.post(ACC + "confirm-email/", {"code": wrong}, format="json").status_code == 400
+        assert c.post(ACC + "confirm-email/", {"code": code}, format="json").status_code == 400  # locked out
+        user.refresh_from_db()
+        assert user.email.endswith("@finot.invalid")
+        c.post(ACC + "email-code/", {"email": "a@gmail.com", "current_password": pw}, format="json")
+        EmailVerification.objects.update(expires_at=timezone.now() - timedelta(minutes=1))
+        assert c.post(ACC + "confirm-email/", {"code": code_from_outbox()}, format="json").status_code == 400
+
+    def test_codes_are_limited_per_hour(self):
+        user, pw = slip_student()
+        c = client(user)
+        results = [c.post(ACC + "email-code/", {"email": f"a{i}@gmail.com", "current_password": pw}, format="json").status_code for i in range(7)]
+        assert results[:5] == [200] * 5 and results[5:] == [400, 400]
+
+
+@pytest.mark.django_db
+class TestPasswordAndCompletion:
+    def test_change_password_rules(self):
+        user, pw = slip_student()
+        c = client(user)
+        assert c.post(ACC + "change-password/", {"current_password": "bad", "new_password": "Brand-new-9z!"}, format="json").status_code == 400
+        assert c.post(ACC + "change-password/", {"current_password": pw, "new_password": pw}, format="json").status_code == 400
+        assert c.post(ACC + "change-password/", {"current_password": pw, "new_password": "12345678"}, format="json").status_code == 400
+        assert c.post(ACC + "change-password/", {"current_password": pw, "new_password": "short"}, format="json").status_code == 400
+        ok = c.post(ACC + "change-password/", {"current_password": pw, "new_password": "Brand-new-9z!"}, format="json")
+        assert ok.status_code == 200 and ok.json()["setup"]["needs_password"] is False
+        user.refresh_from_db()
+        assert user.check_password("Brand-new-9z!") and not user.check_password(pw)
+
+    def test_setup_is_complete_only_when_both_are_done_and_then_the_gate_opens(self):
+        user, pw = slip_student(days=-2)
+        c = client(user)
+        c.post(ACC + "change-password/", {"current_password": pw, "new_password": "Brand-new-9z!"}, format="json")
+        assert StudentProfile.objects.get(user=user).setup_completed_at is None  # email still the slip one
+        c.post(ACC + "email-code/", {"email": "abel@gmail.com", "current_password": "Brand-new-9z!"}, format="json")
+        c.post(ACC + "confirm-email/", {"code": code_from_outbox()}, format="json")
+        profile = StudentProfile.objects.get(user=user)
+        assert profile.setup_completed_at is not None
+        assert client(User.objects.get(pk=user.pk)).get("/api/notifications/").status_code == 200  # no longer blocked
+        assert client(user).get(ACC + "status/").json()["setup"]["pending"] is False
+
+    def test_any_student_can_change_their_email_and_password(self):
+        user = User.objects.create_user(username="old@gmail.com", email="old@gmail.com", password="Original-1x!")
+        c = client(user)
+        c.post(ACC + "email-code/", {"email": "new@gmail.com", "current_password": "Original-1x!"}, format="json")
+        assert c.post(ACC + "confirm-email/", {"code": code_from_outbox()}, format="json").status_code == 200
+        assert c.post(ACC + "change-password/", {"current_password": "Original-1x!", "new_password": "Another-2y!"}, format="json").status_code == 200
+        user.refresh_from_db()
+        assert user.email == "new@gmail.com" and user.check_password("Another-2y!")
+
+
+@pytest.mark.django_db
+class TestRemindersAndReissue:
+    def test_each_stage_is_sent_once(self):
+        user, _ = slip_student(days=21)
+        assert send_account_setup_reminders()["reminded"] == 0          # 21 days left: nothing yet
+        StudentProfile.objects.filter(user=user).update(setup_deadline=timezone.now() + timedelta(days=13, hours=12))
+        assert send_account_setup_reminders()["reminded"] == 1
+        assert send_account_setup_reminders()["reminded"] == 0          # same stage: not again
+        StudentProfile.objects.filter(user=user).update(setup_deadline=timezone.now() + timedelta(days=5))
+        assert send_account_setup_reminders()["reminded"] == 1
+        StudentProfile.objects.filter(user=user).update(setup_deadline=timezone.now() - timedelta(hours=1))
+        assert send_account_setup_reminders()["reminded"] == 1
+        titles = list(Notification.objects.filter(user=user).order_by("created_at").values_list("title", flat=True))
+        assert len(titles) == 3 and titles[-1].startswith("Finish your account")
+
+    def test_finished_and_other_students_get_nothing(self):
+        user, _ = slip_student(days=2)
+        StudentProfile.objects.filter(user=user).update(setup_completed_at=timezone.now())
+        plain = User.objects.create_user(username="p@gmail.com", email="p@gmail.com", password="x")
+        assert send_account_setup_reminders()["reminded"] == 0
+        assert not Notification.objects.exists()
+
+    def test_cron_endpoint_needs_the_secret(self, settings):
+        settings.CRON_SECRET = "s3cret"
+        slip_student(days=1)
+        url = "/api/notifications/cron/account-setup-reminders/"
+        assert APIClient().post(url).status_code == 404
+        assert APIClient().post(url, HTTP_X_CRON_TOKEN="wrong").status_code == 404
+        res = APIClient().post(url, HTTP_X_CRON_TOKEN="s3cret")
+        assert res.status_code == 200 and res.json()["reminded"] == 1
+
+    def test_reissue_gives_a_new_password_and_restarts_the_clock(self):
+        boss = User.objects.create_user(username="boss@gmail.com", email="boss@gmail.com", password="x")
+        UserRole.objects.create(user=boss, role=Role.objects.get_or_create(name=Role.SUPER_ADMIN)[0])
+        user, old = slip_student(days=-3)
+        res = client(boss).post(f"/api/admin-console/users/{user.id}/reissue/")
+        assert res.status_code == 200
+        data = res.json()
+        assert data["email"] == user.email and data["password"] != old and data["grace_days"] == 21
+        user.refresh_from_db()
+        assert user.check_password(data["password"]) and not user.check_password(old)
+        st = client(user).get(ACC + "status/").json()["setup"]
+        assert st["required"] is False and st["days_left"] == 21 and st["needs_password"] is True
+        # only the Super Admin; not for finished or ordinary accounts
+        assert client(user).post(f"/api/admin-console/users/{user.id}/reissue/").status_code == 403
+        StudentProfile.objects.filter(user=user).update(setup_completed_at=timezone.now())
+        assert client(boss).post(f"/api/admin-console/users/{user.id}/reissue/").status_code == 400
+        assert client(boss).post(f"/api/admin-console/users/{boss.id}/reissue/").status_code == 400
+        assert client(boss).post("/api/admin-console/users/99999/reissue/").status_code == 404
+
+    def test_users_list_shows_the_setup_state(self):
+        boss = User.objects.create_user(username="boss@gmail.com", email="boss@gmail.com", password="x")
+        UserRole.objects.create(user=boss, role=Role.objects.get_or_create(name=Role.SUPER_ADMIN)[0])
+        user, _ = slip_student(days=5)
+        rows = client(boss).get("/api/admin-console/users/").json()["results"]
+        mine = next(r for r in rows if r["id"] == user.id)
+        assert mine["setup"]["pending"] is True and mine["setup"]["days_left"] == 5
+        assert next(r for r in rows if r["id"] == boss.id)["setup"] is None

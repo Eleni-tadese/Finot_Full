@@ -49,6 +49,8 @@ export const adminApi = {
   importBatches: () => axiosInstance.get<{ results: ImportBatchRow[] }>(`${C}/accounts/import/batches/`).then((r) => r.data.results),
   undoImport: (id: number) =>
     axiosInstance.post<{ deleted: number; kept: number }>(`${C}/accounts/import/batches/${id}/undo/`).then((r) => r.data),
+  reissueSlip: (id: number) =>
+    axiosInstance.post<{ name: string; email: string; password: string; grace_days: number; deadline: string }>(`${C}/users/${id}/reissue/`).then((r) => r.data),
   userCard: (id: number) => axiosInstance.get<PersonCard>(`${C}/users/${id}/`).then((r) => r.data),
   userFilterOptions: () => axiosInstance.get<UserFilterOptions>(`${C}/users/filters/`).then((r) => r.data),
   updateUser: (

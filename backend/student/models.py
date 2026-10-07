@@ -76,6 +76,9 @@ class StudentProfile(models.Model):
     )
     setup_deadline = models.DateTimeField(blank=True, null=True)
     setup_completed_at = models.DateTimeField(blank=True, null=True)
+    password_changed_at = models.DateTimeField(blank=True, null=True)
+    # how far the "finish your account" reminders have gone (0 = none yet)
+    setup_reminder_stage = models.PositiveSmallIntegerField(default=0)
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -102,6 +105,22 @@ class AccountImportBatch(models.Model):
 
     def __str__(self):
         return f"Import {self.created_at:%Y-%m-%d %H:%M}"
+
+
+class EmailVerification(models.Model):
+    """
+    A 6-digit code sent to a new email address. Only a keyed hash of the code is kept; the newest unexpired one counts.
+    """
+
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="email_verifications")
+    new_email = models.EmailField()
+    code_hash = models.CharField(max_length=64)
+    attempts = models.PositiveSmallIntegerField(default=0)
+    expires_at = models.DateTimeField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at"]
 
 
 class Department(models.Model):

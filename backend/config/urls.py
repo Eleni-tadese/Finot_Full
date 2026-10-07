@@ -34,6 +34,7 @@ urlpatterns = [
     path("auth/", include("djoser.urls")),
     path("auth/", include("djoser.urls.jwt")),
     path("api/student/", include("student.urls")),
+    path("api/account/", include("student.account_urls")),
     path("api/service/", include("service.urls")),
     path("api/qa/", include("questionanswer.urls")),
     path("api/donations/", include("donation.urls")),

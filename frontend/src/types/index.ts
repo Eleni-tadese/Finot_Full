@@ -193,6 +193,15 @@ status: 'graduated' | 'active';
 assignedGroup: any | null;
 }
 
+export interface AccountSetup {
+pending: boolean;
+required: boolean;
+deadline: string;
+days_left: number;
+needs_email: boolean;
+needs_password: boolean;
+}
+
 export interface AuthUser {
 id: number;
 full_name: string;
@@ -202,6 +211,8 @@ role: string;
 // every role the person holds (front-end names), see features/auth/roles.ts
 roles: string[];
 profile: AuthUserProfile;
+// set for students registered from a list while their login slip is still in use (see /api/account/status/)
+setup?: AccountSetup | null;
 }
 
 // DRF PageNumberPagination response envelope

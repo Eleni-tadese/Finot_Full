@@ -22,12 +22,18 @@ class UserCreateSerializer(BaseUserCreateSerializer):
 
 class UserSerializer(BaseUserSerializer):
     roles = serializers.SerializerMethodField()
+    setup = serializers.SerializerMethodField()
 
     class Meta(BaseUserSerializer.Meta):
         model = User
-        fields = ('id', 'username', 'email', 'first_name', 'middle_name', 'last_name', 'gender', 'roles')
-        read_only_fields = ('id', 'username', 'email', 'first_name', 'middle_name', 'last_name', 'gender', 'roles')
+        fields = ('id', 'username', 'email', 'first_name', 'middle_name', 'last_name', 'gender', 'roles', 'setup')
+        read_only_fields = ('id', 'username', 'email', 'first_name', 'middle_name', 'last_name', 'gender', 'roles', 'setup')
 
     def get_roles(self, obj):
         return list(obj.roles.values_list('name', flat=True))
+
+    def get_setup(self, obj):
+        from student.account_setup import status_for
+
+        return status_for(obj)
 

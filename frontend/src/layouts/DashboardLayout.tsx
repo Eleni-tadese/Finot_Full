@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
-import { Outlet, useNavigate } from "react-router-dom";
+import { Link, Navigate, Outlet, useLocation, useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { useAuth } from "../context/AuthContext";
 import DashboardSidebar from "../components/dashboard/DashboardSidebar";
 import DashboardTopNav from "../components/dashboard/DashboardTopNav";
@@ -23,6 +24,8 @@ const useIsTablet = () => {
 const DashboardLayout = () => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const { pathname } = useLocation();
+  const { t } = useTranslation();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [notifCount, setNotifCount] = useState(0);
@@ -51,6 +54,20 @@ const DashboardLayout = () => {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background">
         <div className="h-12 w-12 animate-spin rounded-full border-[3px] border-muted border-t-primary" />
+      </div>
+    );
+  }
+
+  // A student whose login slip has expired can only open the account page until the email and password are done.
+  if (user.setup?.required) {
+    if (pathname !== "/dashboard/account") return <Navigate to="/dashboard/account" replace />;
+    return (
+      <div className="min-h-screen bg-background">
+        <div className="flex items-center justify-between bg-primary px-4 py-3 text-white">
+          <span className="font-semibold">Finot</span>
+          <button onClick={handleLogout} className="rounded-lg px-3 py-1.5 text-sm hover:bg-white/10">{t("logout")}</button>
+        </div>
+        <div className="p-4 md:p-8"><Outlet /></div>
       </div>
     );
   }
@@ -104,6 +121,12 @@ const DashboardLayout = () => {
         {/* Page Content - Scrollable */}
         <main id="dashboard-main-scroll" className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8">
           <div className="mx-auto max-w-7xl">
+            {user.setup?.pending && pathname !== "/dashboard/account" && (
+              <div className="mb-4 flex flex-wrap items-center gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+                <span className="flex-1">{t("acc_banner", "Your login slip works for {{n}} more day(s). Add your own email and a new password before it ends.", { n: user.setup.days_left })}</span>
+                <Link to="/dashboard/account" className="btn-primary px-3 py-1.5 text-xs">{t("acc_banner_btn", "Finish my account")}</Link>
+              </div>
+            )}
             <Outlet />
           </div>
         </main>

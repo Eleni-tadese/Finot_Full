@@ -58,6 +58,7 @@ const combineUserWithProfile = (userData: Record<string, any>, profileData: Reco
     gender: userData.gender === 'M' ? 'Male' : (userData.gender === 'F' ? 'Female' : ''),
     role,
     roles: toFrontRoles(backendRoles),
+    setup: userData.setup ?? null,
     profile: {
       baptismal_name: profileData?.baptismal_name || '',
       profile_image: profileData?.profile_image || null,
@@ -273,6 +274,13 @@ export const api = {
     const response = await axiosInstance.get('/api/service/families/my-family/');
     return response.data;
   },
+
+  getAccountStatus: async () => (await axiosInstance.get('/api/account/status/')).data,
+  requestEmailCode: async (email: string, currentPassword: string) =>
+    (await axiosInstance.post('/api/account/email-code/', { email, current_password: currentPassword })).data,
+  confirmEmail: async (code: string) => (await axiosInstance.post('/api/account/confirm-email/', { code })).data,
+  changePassword: async (currentPassword: string, newPassword: string) =>
+    (await axiosInstance.post('/api/account/change-password/', { current_password: currentPassword, new_password: newPassword })).data,
 
   sendFamilyMessage: async (body: string, toStudentId?: number | null, email = false) => {
     const response = await axiosInstance.post('/api/service/families/my-family/messages/', { body, to_student_id: toStudentId ?? null, email });

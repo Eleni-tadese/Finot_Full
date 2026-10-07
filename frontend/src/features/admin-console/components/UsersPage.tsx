@@ -11,6 +11,7 @@ import { SPECIALIZATIONS } from "../types";
 import type { AdminUser, Department, RoleOption, Specialization, UserFilterOptions } from "../types";
 import { eligibilityProblem } from "../eligibility";
 import StudentCard from "../../../components/people/StudentCard";
+import { slipsHtml, type Credential } from "../slips";
 import { Chip, Empty, Loading, Modal, PageHeader } from "./AdminUi";
 
 const UsersPage = () => {
@@ -33,6 +34,7 @@ const UsersPage = () => {
   const [departments, setDepartments] = useState<Department[]>([]);
   const [details, setDetails] = useState<AdminUser | null>(null);
   const [viewing, setViewing] = useState<AdminUser | null>(null);
+  const [slip, setSlip] = useState<{ cred: Credential; days: number } | null>(null);
   const [detailsForm, setDetailsForm] = useState({ batch: "", department: "", stage: "IN_CAMPUS" });
 
   useEffect(() => {
@@ -85,6 +87,25 @@ const UsersPage = () => {
 
   const replaceUser = (updated: AdminUser) => setUsers((prev) => prev.map((u) => (u.id === updated.id ? updated : u)));
   const roleLabel = (name: string) => t(`role_${name}`, roles.find((r) => r.name === name)?.label ?? name);
+
+  const reissue = async (user: AdminUser) => {
+    if (!(await confirm(t("slip_reissue_confirm", "Make a new slip for {{name}}? The old password stops working and the waiting time starts again.", { name: user.full_name })))) return;
+    try {
+      const res = await adminApi.reissueSlip(user.id);
+      setSlip({ cred: { row: 0, name: res.name, email: res.email, password: res.password }, days: res.grace_days });
+      load();
+    } catch (e: any) {
+      toast.error(firstApiError(e?.response?.data) || t("adm_save_failed", "Could not save."));
+    }
+  };
+
+  const printSlip = () => {
+    if (!slip) return;
+    const w = window.open("", "_blank");
+    if (!w) { toast.error(t("imp_popup", "Allow pop-ups for this site to print the slips.")); return; }
+    w.document.write(slipsHtml([slip.cred], slip.days, `${window.location.origin}/login`));
+    w.document.close();
+  };
 
   const openEditor = (user: AdminUser) => {
     setEditing(user);
@@ -200,12 +221,18 @@ const UsersPage = () => {
                       {u.roles.length === 0 ? <span className="text-xs text-muted-foreground">{t("adm_no_roles", "Student (default)")}</span> : u.roles.map((r) => <Chip key={r} tone="primary">{roleLabel(r)}</Chip>)}
                     </div>
                   </td>
-                  <td className="px-4 py-3">{u.is_active ? <Chip tone="green">{t("adm_active", "Active")}</Chip> : <Chip tone="red">{t("adm_inactive", "Inactive")}</Chip>}</td>
+                  <td className="px-4 py-3">
+                    {u.is_active ? <Chip tone="green">{t("adm_active", "Active")}</Chip> : <Chip tone="red">{t("adm_inactive", "Inactive")}</Chip>}
+                    {u.setup?.pending && (
+                      <div className="mt-1"><Chip tone={u.setup.required ? "red" : "amber"}>{u.setup.required ? t("slip_expired", "Slip expired") : t("slip_days", "Slip: {{n}} days left", { n: u.setup.days_left })}</Chip></div>
+                    )}
+                  </td>
                   <td className="px-4 py-3">
                     <div className="flex justify-end gap-2">
                       <button onClick={() => setViewing(u)} className="btn-outline px-3 py-1.5 text-xs">{t("sp_view", "View")}</button>
                       <button onClick={() => openDetails(u)} className="btn-outline px-3 py-1.5 text-xs">{t("usr_edit_details", "Edit details")}</button>
                       <button onClick={() => openEditor(u)} className="btn-outline px-3 py-1.5 text-xs">{t("adm_edit_roles", "Edit roles")}</button>
+                      {u.setup?.pending && <button onClick={() => reissue(u)} className="btn-outline px-3 py-1.5 text-xs">{t("slip_reissue", "New slip")}</button>}
                       <button onClick={() => toggleActive(u)} className="btn-outline px-3 py-1.5 text-xs">
                         {u.is_active ? t("adm_deactivate", "Deactivate") : t("adm_activate", "Activate")}
                       </button>
@@ -270,6 +297,25 @@ const UsersPage = () => {
           <p className="mt-3 text-xs text-muted-foreground">
             {t("adm_roles_hint", "A person can have several roles. Super Admin gives full access, so give it with care.")}
           </p>
+        </Modal>
+      )}
+      {slip && (
+        <Modal
+          title={t("slip_title", "New slip for {{name}}", { name: slip.cred.name })}
+          onClose={() => setSlip(null)}
+          footer={
+            <>
+              <button onClick={() => setSlip(null)} className="btn-outline px-4 py-2 text-sm">{t("close")}</button>
+              <button onClick={printSlip} className="btn-primary px-4 py-2 text-sm">{t("slip_print", "Print the slip")}</button>
+            </>
+          }
+        >
+          <p className="mb-3 text-sm text-muted-foreground">{t("slip_shown_once", "The password is shown only now. Print the slip or write it down before you close this window.")}</p>
+          <div className="space-y-1 rounded-xl bg-muted/50 p-4 text-sm">
+            <p><span className="text-muted-foreground">{t("email", "Email")}:</span> <code className="font-semibold text-foreground">{slip.cred.email}</code></p>
+            <p><span className="text-muted-foreground">{t("password", "Password")}:</span> <code className="text-lg font-bold tracking-wider text-foreground">{slip.cred.password}</code></p>
+            <p className="text-xs text-muted-foreground">{t("slip_valid_days", "It works for {{n}} days.", { n: slip.days })}</p>
+          </div>
         </Modal>
       )}
       {viewing && (

@@ -2,6 +2,15 @@
 
 Generated from the code (`manage.py spectacular`). For request and response shapes use the live Swagger UI at `/api/docs/swagger/`. Conventions, authentication and examples are in [api.md](api.md).
 
+## `/api/account/`
+
+| Method | Path | Summary |
+|---|---|---|
+| POST | `/api/account/change-password/` | api_account_change_password_create |
+| POST | `/api/account/confirm-email/` | api_account_confirm_email_create |
+| POST | `/api/account/email-code/` | api_account_email_code_create |
+| GET | `/api/account/status/` | api_account_status_retrieve |
+
 ## `/api/admin-console/`
 
 | Method | Path | Summary |
@@ -49,6 +58,7 @@ Generated from the code (`manage.py spectacular`). For request and response shap
 | GET | `/api/admin-console/users/filters/` | Values that actually exist, so the filter dropdowns only offer choices that match someone. |
 | GET | `/api/admin-console/users/{id}/` | Everything about one person (Super Admin only). |
 | PATCH | `/api/admin-console/users/{id}/` | api_admin_console_users_partial_update |
+| POST | `/api/admin-console/users/{id}/reissue/` | POST users/<id>/reissue/ : a lost slip. New random password, the deadline starts again. Returns the credentials once. |
 
 ## `/api/analytics/`
 
@@ -125,6 +135,7 @@ Generated from the code (`manage.py spectacular`). For request and response shap
 | Method | Path | Summary |
 |---|---|---|
 | GET | `/api/notifications/` | List user notifications. Allows marking as read. |
+| POST | `/api/notifications/cron/account-setup-reminders/` | Daily trigger for the "finish your account" reminders (see .github/workflows/account-setup-reminders.yml). |
 | POST | `/api/notifications/cron/class-reminders/` | Daily trigger for the "class tomorrow" notifications (see .github/workflows/class-reminders.yml). Same secret as the weekly one. |
 | POST | `/api/notifications/cron/weekly-reminders/` | Called by a free external scheduler (see .github/workflows/weekly-reminders.yml). |
 | GET | `/api/notifications/device-token/` | Registers the Firebase Cloud Messaging device token. |

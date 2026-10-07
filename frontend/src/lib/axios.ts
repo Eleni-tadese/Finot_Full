@@ -47,6 +47,12 @@ axiosInstance.interceptors.response.use(
       return Promise.reject(error);
     }
 
+    // A bulk-registered student whose slip has expired must finish the account set-up first
+    if (error.response?.status === 403 && error.response?.data?.code === 'account_setup_required') {
+      if (!window.location.pathname.startsWith('/dashboard/account')) window.location.assign('/dashboard/account');
+      return Promise.reject(error);
+    }
+
     if (error.response?.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true;
       const refreshToken = localStorage.getItem('refresh_token');

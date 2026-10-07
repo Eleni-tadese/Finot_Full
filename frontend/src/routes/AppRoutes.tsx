@@ -24,6 +24,7 @@ import AdminDonationsPage from "../features/admin-console/components/DonationsAd
 import AdminEventsPage from "../features/admin-console/components/EventsAdminPage";
 import AdminExportsPage from "../features/admin-console/components/ExportsPage";
 import AdminImportPage from "../features/admin-console/components/ImportStudentsPage";
+import AccountPage from "../pages/dashboard/AccountPage";
 import DashboardProfile from "../pages/dashboard/DashboardProfile";
 import DashboardEvents from "../pages/dashboard/DashboardEvents";
 import DashboardAttendance from "../pages/dashboard/DashboardAttendance";
@@ -95,6 +96,7 @@ export default function AppRoutes() {
               <Route index element={<DashboardIndex />} />
               <Route path="profile" element={<DashboardProfile />} />
               <Route path="profile/edit" element={<EditProfile />} />
+              <Route path="account" element={<AccountPage />} />
               <Route path="events" element={<DashboardEvents />} />
               <Route path="attendance" element={<DashboardAttendance />} />
               <Route path="my-courses" element={<MyCoursesPage />} />
