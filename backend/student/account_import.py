@@ -24,8 +24,10 @@ from .models import AccountImportBatch, Department, StudentProfile
 
 User = get_user_model()
 
-LOGIN_DOMAIN = "finot.invalid"  # cannot receive mail, so reminders and emails are never sent to a slip address
-LOGIN_PATTERN = re.compile(r"^f(\d+)@" + re.escape(LOGIN_DOMAIN) + "$")
+LOGIN_DOMAIN = "temp.finot"  # "temp" tells everybody it is temporary; it cannot receive mail, so nothing is ever sent to it
+LEGACY_LOGIN_DOMAINS = ("finot.invalid",)  # used by the very first test import; still treated as a slip address
+SLIP_DOMAINS = (LOGIN_DOMAIN,) + LEGACY_LOGIN_DOMAINS
+LOGIN_PATTERN = re.compile(r"^f(\d+)@(?:" + "|".join(re.escape(d) for d in SLIP_DOMAINS) + ")$")
 MAX_ROWS = 3000
 CHUNK_LIMIT = 150
 # Slip passwords are random (about 54 bits). A lighter hash keeps a 1000-student import quick; Django re-hashes
@@ -197,10 +199,11 @@ def quick_hash(password):
 
 def _next_login_number():
     highest = 0
-    for email in User.objects.filter(email__iendswith="@" + LOGIN_DOMAIN).values_list("email", flat=True):
-        match = LOGIN_PATTERN.match(email.lower())
-        if match:
-            highest = max(highest, int(match.group(1)))
+    for domain in SLIP_DOMAINS:
+        for email in User.objects.filter(email__iendswith="@" + domain).values_list("email", flat=True):
+            match = LOGIN_PATTERN.match(email.lower())
+            if match:
+                highest = max(highest, int(match.group(1)))
     return highest + 1
 
 

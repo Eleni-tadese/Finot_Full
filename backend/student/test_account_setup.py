@@ -18,8 +18,8 @@ ACC = "/api/account/"
 
 def slip_student(days=21, password="Slip-Pass-1x"):
     batch = AccountImportBatch.objects.first() or AccountImportBatch.objects.create(grace_days=21)
-    n = User.objects.filter(email__endswith="@finot.invalid").count() + 1
-    email = f"f{n:05d}@finot.invalid"
+    n = User.objects.filter(email__endswith="@temp.finot").count() + 1
+    email = f"f{n:05d}@temp.finot"
     user = User.objects.create_user(username=email, email=email, password=password, first_name="Abel", middle_name="T", last_name="G")
     StudentProfile.objects.filter(user=user).update(
         batch_year=1, import_batch=batch, setup_deadline=timezone.now() + timedelta(days=days))
@@ -88,7 +88,7 @@ class TestEmailChange:
         assert user.email == user.username == "abel@gmail.com"
         # the new email signs in with the same password, the slip email no longer does
         assert APIClient().post("/auth/jwt/create/", {"username": "abel@gmail.com", "password": pw}, format="json").status_code == 200
-        assert APIClient().post("/auth/jwt/create/", {"username": "f00001@finot.invalid", "password": pw}, format="json").status_code == 401
+        assert APIClient().post("/auth/jwt/create/", {"username": "f00001@temp.finot", "password": pw}, format="json").status_code == 401
         assert ok.json()["setup"]["needs_email"] is False and ok.json()["setup"]["needs_password"] is True
 
     def test_rules(self):
@@ -99,7 +99,8 @@ class TestEmailChange:
             return c.post(ACC + "email-code/", {"email": email, "current_password": password}, format="json")
         assert ask("good@gmail.com", "wrong").status_code == 400
         assert ask("not-an-email").status_code == 400
-        assert ask("someone@finot.invalid").status_code == 400
+        assert ask("someone@temp.finot").status_code == 400
+        assert ask("someone@finot.invalid").status_code == 400  # the older slip ending is refused too
         assert ask("x@example.com").status_code == 400            # cannot receive mail
         assert ask("TAKEN@gmail.com").status_code == 400
         assert len(mail.outbox) == 0 and not EmailVerification.objects.exists()
@@ -114,7 +115,7 @@ class TestEmailChange:
             assert c.post(ACC + "confirm-email/", {"code": wrong}, format="json").status_code == 400
         assert c.post(ACC + "confirm-email/", {"code": code}, format="json").status_code == 400  # locked out
         user.refresh_from_db()
-        assert user.email.endswith("@finot.invalid")
+        assert user.email.endswith("@temp.finot")
         c.post(ACC + "email-code/", {"email": "a@gmail.com", "current_password": pw}, format="json")
         EmailVerification.objects.update(expires_at=timezone.now() - timedelta(minutes=1))
         assert c.post(ACC + "confirm-email/", {"code": code_from_outbox()}, format="json").status_code == 400

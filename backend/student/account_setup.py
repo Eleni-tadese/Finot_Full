@@ -21,7 +21,7 @@ from django.core.exceptions import ValidationError as DjangoValidationError
 from django.core.validators import validate_email
 from django.utils import timezone
 
-from .account_import import LOGIN_DOMAIN, new_password, quick_hash
+from .account_import import SLIP_DOMAINS, new_password, quick_hash
 from .models import EmailVerification, StudentProfile
 
 User = get_user_model()
@@ -41,7 +41,7 @@ class SetupError(Exception):
 
 
 def is_slip_email(email):
-    return (email or "").lower().endswith("@" + LOGIN_DOMAIN)
+    return (email or "").lower().endswith(tuple("@" + d for d in SLIP_DOMAINS))
 
 
 def _profile(user):

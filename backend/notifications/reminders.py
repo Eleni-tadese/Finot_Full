@@ -59,7 +59,7 @@ def _process_batch(users):
 
 # Addresses that can never receive mail (reserved for tests and documentation). Sending to them only produces
 # bounces, which waste the daily allowance and make the mail provider distrust the account.
-UNDELIVERABLE_SUFFIXES = (".test", ".example", ".invalid", ".localhost")
+UNDELIVERABLE_SUFFIXES = (".test", ".example", ".invalid", ".localhost", ".finot")
 UNDELIVERABLE_DOMAINS = {"example.com", "example.org", "example.net"}
 
 

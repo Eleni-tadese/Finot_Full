@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import toast from "react-hot-toast";
@@ -26,6 +26,7 @@ const AccountPage = () => {
   const [again, setAgain] = useState("");
   const [busy, setBusy] = useState(false);
   const [wasPending, setWasPending] = useState(false);
+  const sending = useRef(false); // blocks a double click before the screen has time to react
 
   const load = useCallback(async () => {
     const data = await api.getAccountStatus();
@@ -51,35 +52,41 @@ const AccountPage = () => {
 
   const sendCode = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (sending.current) return;
+    sending.current = true;
     setBusy(true);
     try {
       const res = await api.requestEmailCode(newEmail, emailPassword);
       setSentTo(res.sent_to);
       toast.success(t("acc_code_sent", "A code was sent to {{email}}.", { email: res.sent_to }));
-    } catch (err) { fail(err); } finally { setBusy(false); }
+    } catch (err) { fail(err); } finally { setBusy(false); sending.current = false; }
   };
 
   const confirm = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (sending.current) return;
+    sending.current = true;
     setBusy(true);
     try {
       await api.confirmEmail(code);
       toast.success(t("acc_email_changed", "Your email was changed. Use it to sign in from now on."));
       setSentTo(null); setCode(""); setNewEmail(""); setEmailPassword("");
       await refreshUser();
-    } catch (err) { fail(err); } finally { setBusy(false); }
+    } catch (err) { fail(err); } finally { setBusy(false); sending.current = false; }
   };
 
   const savePassword = async (e: React.FormEvent) => {
     e.preventDefault();
     if (next !== again) { toast.error(t("acc_mismatch", "The two new passwords are not the same.")); return; }
+    if (sending.current) return;
+    sending.current = true;
     setBusy(true);
     try {
       await api.changePassword(current, next);
       toast.success(t("acc_password_changed", "Your password was changed."));
       setCurrent(""); setNext(""); setAgain("");
       await refreshUser();
-    } catch (err) { fail(err); } finally { setBusy(false); }
+    } catch (err) { fail(err); } finally { setBusy(false); sending.current = false; }
   };
 
   const pending = !!setup?.pending;
@@ -102,6 +109,7 @@ const AccountPage = () => {
           {t("acc_email_now", "You sign in with:")} <strong className="text-foreground">{email}</strong>
           {pending && setup?.needs_email && <span className="ml-2 text-amber-700">{t("acc_email_temp", "(a temporary email from your slip)")}</span>}
         </p>
+        <p className="mb-3 rounded-lg bg-muted/50 p-3 text-xs text-muted-foreground">{t("acc_why", "Why a code? It proves that this email really belongs to you. Later, if you forget your password, the reset link goes to this email, so only you can use it.")}</p>
         {!sentTo ? (
           <form onSubmit={sendCode} className="space-y-3">
             <div>
@@ -112,7 +120,7 @@ const AccountPage = () => {
               <label className="text-sm font-medium text-foreground" htmlFor="acc-email-pass">{t("acc_current_password", "Current password")}</label>
               <input id="acc-email-pass" type="password" className="input mt-1 w-full" value={emailPassword} onChange={(e) => setEmailPassword(e.target.value)} autoComplete="current-password" required />
             </div>
-            <button type="submit" disabled={busy} className="btn-primary px-4 py-2 text-sm">{busy ? t("adm_working", "Working...") : t("acc_send_code", "Send me a code")}</button>
+            <button type="submit" disabled={busy} className="btn-primary px-4 py-2 text-sm">{busy ? t("acc_sending", "Sending the email...") : t("acc_send_code", "Send me a code")}</button>
           </form>
         ) : (
           <form onSubmit={confirm} className="space-y-3">

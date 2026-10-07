@@ -1648,5 +1648,8 @@
   "slip_title": "{{name}}f kaardii haaraa",
   "slip_print": "Kaardii maxxansi",
   "slip_shown_once": "Jechi icciitii amma qofa mul'ata. Foddaa kana osoo hin cufin kaardii maxxansaa ykn barreessaa.",
-  "slip_valid_days": "Guyyaa {{n}} hojjeta."
+  "slip_valid_days": "Guyyaa {{n}} hojjeta.",
+  "acc_why": "Koodiin maaliif barbaachisa? Imeelii kun dhugumatti kan keessan ta'uu isaa mirkaneessa. Gara fuula duraatti jecha icciitii yoo irraanfattan, geessituun deebisanii kaa'uu gara imeelii kanaatti ergama; kanaaf isin qofatu fayyadama.",
+  "acc_sending": "Imeelii ergaa jira...",
+  "copy": "Waraabi"
 }

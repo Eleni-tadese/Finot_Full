@@ -1648,5 +1648,8 @@
   "slip_title": "New slip for {{name}}",
   "slip_print": "Print the slip",
   "slip_shown_once": "The password is shown only now. Print the slip or write it down before you close this window.",
-  "slip_valid_days": "It works for {{n}} days."
+  "slip_valid_days": "It works for {{n}} days.",
+  "acc_why": "Why a code? It proves that this email really belongs to you. Later, if you forget your password, the reset link goes to this email, so only you can use it.",
+  "acc_sending": "Sending the email...",
+  "copy": "Copy"
 }

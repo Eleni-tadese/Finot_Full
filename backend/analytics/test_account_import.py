@@ -119,7 +119,7 @@ class TestCommit:
         data = res.json()
         assert len(data["created"]) == 5 and data["rejected"] == []
         emails = [x["email"] for x in data["created"]]
-        assert len(set(emails)) == 5 and all(e.endswith("@finot.invalid") for e in emails)
+        assert len(set(emails)) == 5 and all(e.endswith("@temp.finot") for e in emails)
         assert len({x["password"] for x in data["created"]}) == 5 and all(len(x["password"]) == 11 and x["password"] == x["password"].lower() and x["password"].isalnum() for x in data["created"])
         first = data["created"][0]
         user = User.objects.get(email=first["email"])
@@ -137,14 +137,14 @@ class TestCommit:
         b = c.post(BASE + "commit/", {"batch_id": a["batch_id"], "rows": commit_rows(3, start=3)}, format="json").json()
         assert b["batch_id"] == a["batch_id"] and AccountImportBatch.objects.count() == 1
         emails = sorted(x["email"] for x in a["created"] + b["created"])
-        assert emails == [f"f{n:05d}@finot.invalid" for n in range(1, 7)]
+        assert emails == [f"f{n:05d}@temp.finot" for n in range(1, 7)]
 
     def test_retry_does_not_duplicate_and_bad_rows_are_rejected(self):
         c = client(boss())
         first = c.post(BASE + "commit/", {"rows": commit_rows(2)}, format="json").json()
         again = c.post(BASE + "commit/", {"batch_id": first["batch_id"], "rows": commit_rows(2) + [{"row": 9, "first_name": "", "gender": "M"}]}, format="json").json()
         assert again["created"] == [] and len(again["rejected"]) == 3
-        assert User.objects.filter(email__endswith="@finot.invalid").count() == 2
+        assert User.objects.filter(email__endswith="@temp.finot").count() == 2
 
     def test_limits_and_validation(self):
         c = client(boss())
@@ -178,7 +178,7 @@ class TestBatches:
         assert listing["created"] == 3 and listing["signed_in"] == 1 and listing["completed"] == 0
         res = c.post(f"{BASE}batches/{batch['batch_id']}/undo/").json()
         assert res == {"deleted": 2, "kept": 1}
-        assert User.objects.filter(email__endswith="@finot.invalid").count() == 1
+        assert User.objects.filter(email__endswith="@temp.finot").count() == 1
         assert c.post(f"{BASE}batches/{batch['batch_id']}/undo/").status_code == 400
         assert c.post(f"{BASE}batches/999/undo/").status_code == 404
 
