@@ -140,12 +140,12 @@ const EditProfile = () => {
 
         <form onSubmit={handleSubmit} className="space-y-5">
           {/* Photo */}
-          <div className="flex items-center gap-5">
-            <ProfilePicture src={imagePreview} name={user?.full_name || ""} className="h-20 w-20 rounded-2xl border-2 border-accent/30 text-3xl" />
-            <div>
+          <div className="flex items-center gap-4 sm:gap-5">
+            <ProfilePicture src={imagePreview} name={user?.full_name || ""} className="h-20 w-20 flex-shrink-0 rounded-2xl border-2 border-accent/30 text-3xl" />
+            <div className="min-w-0 flex-1">
               <label className={labelClass}>{t("change_photo")}</label>
               <input type="file" accept="image/*" onChange={handleImageChange}
-                className="text-sm text-muted-foreground file:mr-3 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-semibold file:bg-accent file:text-accent-foreground hover:file:bg-accent-hover file:cursor-pointer" />
+                className="block w-full max-w-full text-sm text-muted-foreground file:mr-3 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-semibold file:bg-accent file:text-accent-foreground hover:file:bg-accent-hover file:cursor-pointer" />
               <p className={hintClass}>{t("prof_photo_hint", "A clear photo of your face. Without one, your first initial is shown.")}</p>
             </div>
           </div>

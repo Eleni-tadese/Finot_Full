@@ -95,12 +95,12 @@ const ResourcesList = () => {
       </motion.div>
 
       {/* Type Filter Tabs */}
-      <div className="flex gap-2 mb-6 border-b border-border">
+      <div className="flex flex-wrap gap-x-1 gap-y-0 mb-6 border-b border-border">
         {(["ALL", "COURSE", "SERVICE", "GENERAL"] as const).map((type) => (
           <button
             key={type}
             onClick={() => setActiveType(type)}
-            className={`px-4 py-2 font-medium text-sm transition-all border-b-2 ${
+            className={`px-3 sm:px-4 py-2 font-medium text-sm transition-all border-b-2 ${
               activeType === type
                 ? "border-primary text-primary"
                 : "border-transparent text-muted-foreground hover:text-foreground"

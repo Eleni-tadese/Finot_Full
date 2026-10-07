@@ -204,7 +204,7 @@ const Navbar = ({ solid = false }: { solid?: boolean }) => {
                   </Link>
                 </div>
                 <div className="px-1 pt-2">
-                  <LanguageSelector />
+                  <LanguageSelector variant="inline" />
                 </div>
               </div>
             </motion.div>
