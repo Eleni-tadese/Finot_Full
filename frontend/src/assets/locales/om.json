@@ -1681,5 +1681,8 @@
   "hide_password": "Jecha icciitii dhoksi",
   "show_password": "Jecha icciitii agarsiisi",
   "get_account_link": "Herrega akkamitti argadha?",
-  "get_account_btn": "Herrega argadhaa"
+  "get_account_btn": "Herrega argadhaa",
+  "login_email_required": "Teessoo imeelii kee galchi.",
+  "login_email_invalid": "Kun teessoo imeelii fakkaachuu dhiisa. Irra deebi'ii mirkaneessi, fakkeenyaaf name@example.com.",
+  "login_password_required": "Jecha darbii kee galchi."
 }

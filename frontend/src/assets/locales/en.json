@@ -1701,5 +1701,8 @@
   "adm_nav_h_people": "People",
   "adm_nav_h_fellowship": "Fellowship",
   "adm_nav_h_setup": "Yearly setup",
-  "adm_nav_h_reports": "Reports and messages"
+  "adm_nav_h_reports": "Reports and messages",
+  "login_email_required": "Enter your email address.",
+  "login_email_invalid": "This does not look like an email address. Check it, for example name@example.com.",
+  "login_password_required": "Enter your password."
 }

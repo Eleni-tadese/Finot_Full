@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { useTranslation } from "react-i18next";
-import { EyeIcon, EyeSlashIcon } from "@heroicons/react/24/outline";
+import { EyeIcon, EyeSlashIcon, ExclamationCircleIcon } from "@heroicons/react/24/outline";
 import Swal from "../../lib/popup";
 import { useAuth } from "../../context/AuthContext";
 
@@ -19,21 +19,27 @@ const LoginPage = () => {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [touched, setTouched] = useState({ email: false, password: false });
+
+  const emailError = !email.trim()
+    ? t("login_email_required")
+    : !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())
+      ? t("login_email_invalid")
+      : "";
+  const passwordError = password ? "" : t("login_password_required");
+  const showEmailError = touched.email && emailError;
+  const showPasswordError = touched.password && passwordError;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email || !password) {
-      Swal.fire({
-        icon: "warning",
-        title: t("missing_fields"),
-        text: t("missing_fields_text"),
-        confirmButtonColor: "hsl(52, 94%, 54%)",
-      });
+    if (emailError || passwordError) {
+      setTouched({ email: true, password: true });
+      document.getElementById(emailError ? "email" : "password")?.focus();
       return;
     }
     setIsSubmitting(true);
     try {
-      await login(email, password);
+      await login(email.trim(), password);
       navigate("/dashboard");
     } catch (error: any) {
       Swal.fire({
@@ -66,7 +72,7 @@ const LoginPage = () => {
             {t("sign_in_to_account")}
           </p>
 
-          <form onSubmit={handleSubmit} className="space-y-5">
+          <form onSubmit={handleSubmit} noValidate className="space-y-5">
             <div>
               <label htmlFor="email" className="block text-sm font-medium text-foreground mb-1.5">
                 {t("email_address")}
@@ -76,9 +82,19 @@ const LoginPage = () => {
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
+                onBlur={() => setTouched((v) => ({ ...v, email: true }))}
                 placeholder="you@example.com"
-                className="input"
+                autoComplete="username"
+                aria-invalid={!!showEmailError}
+                aria-describedby={showEmailError ? "email-error" : undefined}
+                className={`input ${showEmailError ? "border-destructive focus:ring-destructive/30" : ""}`}
               />
+              {showEmailError && (
+                <p id="email-error" role="alert" className="mt-1.5 flex items-start gap-1.5 text-sm text-destructive">
+                  <ExclamationCircleIcon className="mt-0.5 h-4 w-4 flex-shrink-0" />
+                  {emailError}
+                </p>
+              )}
             </div>
 
             <div>
@@ -91,8 +107,12 @@ const LoginPage = () => {
                   type={showPassword ? "text" : "password"}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
+                  onBlur={() => setTouched((v) => ({ ...v, password: true }))}
                   placeholder={t("enter_password")}
-                  className="input pr-10"
+                  autoComplete="current-password"
+                  aria-invalid={!!showPasswordError}
+                  aria-describedby={showPasswordError ? "password-error" : undefined}
+                  className={`input pr-10 ${showPasswordError ? "border-destructive focus:ring-destructive/30" : ""}`}
                 />
                 <button
                   type="button"
@@ -102,6 +122,12 @@ const LoginPage = () => {
                   {showPassword ? <EyeSlashIcon className="h-5 w-5" /> : <EyeIcon className="h-5 w-5" />}
                 </button>
               </div>
+              {showPasswordError && (
+                <p id="password-error" role="alert" className="mt-1.5 flex items-start gap-1.5 text-sm text-destructive">
+                  <ExclamationCircleIcon className="mt-0.5 h-4 w-4 flex-shrink-0" />
+                  {passwordError}
+                </p>
+              )}
             </div>
 
             <div className="flex items-center justify-between text-sm">
