@@ -21,8 +21,8 @@ export function slipsHtml(list: Credential[], graceDays: number, loginUrl: strin
       <div class="name">${esc(c.name)}</div>
       <table>
         <tr><td>Website</td><td>${esc(loginUrl)}</td></tr>
-        <tr><td>Email</td><td class="mono">${esc(c.email)}</td></tr>
-        <tr><td>Password</td><td class="mono big">${esc(c.password)}</td></tr>
+        <tr><td>Email</td><td><span class="mono">${esc(c.email)}</span> <button class="cp" data-c="${esc(c.email)}">Copy</button></td></tr>
+        <tr><td>Password</td><td><span class="mono big">${esc(c.password)}</span> <button class="cp" data-c="${esc(c.password)}">Copy</button></td></tr>
       </table>
       <div class="note">Keep this slip. It works until <b>${esc(until)}</b>. Before then, sign in, complete your profile, and add your own real email and a new password.</div>
     </div>`;
@@ -44,11 +44,24 @@ export function slipsHtml(list: Credential[], graceDays: number, loginUrl: strin
     .mono { font-family: Consolas, "Courier New", monospace; font-weight: 700; word-break: break-all; }
     .big { font-size: 16px; letter-spacing: 1px; }
     .note { font-size: 9.5px; color: #374151; line-height: 1.35; }
-    @media print { .bar { display: none; } }
+    .mono { user-select: all; }
+    .cp { margin-left: 6px; padding: 1px 8px; font-size: 11px; border: 1px solid #1e3a8a; background: #fff; color: #1e3a8a; border-radius: 6px; cursor: pointer; }
+    .cp:hover { background: #eef2ff; }
+    @media print { .bar, .cp { display: none; } }
   </style></head><body>
   <div class="bar">${list.length} slips. Print on A4 (8 per page), cut along the dashed lines, and hand one to each student.
     <button onclick="window.print()">Print</button></div>
-  <div class="sheet">${list.map(slip).join("")}</div></body></html>`;
+  <div class="sheet">${list.map(slip).join("")}</div>
+  <script>
+    document.addEventListener("click", function (e) {
+      var b = e.target.closest(".cp");
+      if (!b) return;
+      var text = b.getAttribute("data-c"), done = function () { b.textContent = "Copied"; setTimeout(function () { b.textContent = "Copy"; }, 1200); };
+      if (navigator.clipboard && window.isSecureContext) { navigator.clipboard.writeText(text).then(done, done); return; }
+      var t = document.createElement("textarea"); t.value = text; document.body.appendChild(t); t.select();
+      try { document.execCommand("copy"); } catch (err) {} document.body.removeChild(t); done();
+    });
+  </script></body></html>`;
 }
 
 /** CSV with a BOM so Excel shows Amharic names correctly. */

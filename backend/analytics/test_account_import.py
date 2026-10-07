@@ -120,7 +120,7 @@ class TestCommit:
         assert len(data["created"]) == 5 and data["rejected"] == []
         emails = [x["email"] for x in data["created"]]
         assert len(set(emails)) == 5 and all(e.endswith("@finot.invalid") for e in emails)
-        assert len({x["password"] for x in data["created"]}) == 5 and all(len(x["password"]) == 10 for x in data["created"])
+        assert len({x["password"] for x in data["created"]}) == 5 and all(len(x["password"]) == 11 and x["password"] == x["password"].lower() and x["password"].isalnum() for x in data["created"])
         first = data["created"][0]
         user = User.objects.get(email=first["email"])
         assert user.check_password(first["password"]) and user.username == user.email

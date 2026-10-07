@@ -312,8 +312,8 @@ const UsersPage = () => {
         >
           <p className="mb-3 text-sm text-muted-foreground">{t("slip_shown_once", "The password is shown only now. Print the slip or write it down before you close this window.")}</p>
           <div className="space-y-1 rounded-xl bg-muted/50 p-4 text-sm">
-            <p><span className="text-muted-foreground">{t("email", "Email")}:</span> <code className="font-semibold text-foreground">{slip.cred.email}</code></p>
-            <p><span className="text-muted-foreground">{t("password", "Password")}:</span> <code className="text-lg font-bold tracking-wider text-foreground">{slip.cred.password}</code></p>
+            <p><span className="text-muted-foreground">{t("email", "Email")}:</span> <code className="select-all font-semibold text-foreground">{slip.cred.email}</code> <button type="button" onClick={() => navigator.clipboard?.writeText(slip.cred.email)} className="btn-outline px-2 py-0.5 text-xs">{t("copy", "Copy")}</button></p>
+            <p><span className="text-muted-foreground">{t("password", "Password")}:</span> <code className="select-all text-lg font-bold tracking-wider text-foreground">{slip.cred.password}</code> <button type="button" onClick={() => navigator.clipboard?.writeText(slip.cred.password)} className="btn-outline px-2 py-0.5 text-xs">{t("copy", "Copy")}</button></p>
             <p className="text-xs text-muted-foreground">{t("slip_valid_days", "It works for {{n}} days.", { n: slip.days })}</p>
           </div>
         </Modal>

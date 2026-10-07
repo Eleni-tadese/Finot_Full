@@ -28,11 +28,13 @@ LOGIN_DOMAIN = "finot.invalid"  # cannot receive mail, so reminders and emails a
 LOGIN_PATTERN = re.compile(r"^f(\d+)@" + re.escape(LOGIN_DOMAIN) + "$")
 MAX_ROWS = 3000
 CHUNK_LIMIT = 150
-# Slip passwords are random (about 58 bits). A lighter hash keeps a 1000-student import quick; Django re-hashes
+# Slip passwords are random (about 54 bits). A lighter hash keeps a 1000-student import quick; Django re-hashes
 # with the full strength at the student's first sign-in.
 IMPORT_HASH_ITERATIONS = 30000
-PASSWORD_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789"  # no 0/O, 1/l/I: read from paper
-PASSWORD_LENGTH = 10
+# Small letters and digits only (no capitals, no look-alikes such as l, i, o, 0, 1): easy to read from paper and to type.
+# 11 characters of 31 is about 54 bits, plenty for a password that is replaced within weeks.
+PASSWORD_ALPHABET = "abcdefghjkmnpqrstuvwxyz23456789"
+PASSWORD_LENGTH = 11
 
 # Header names we accept (lower case, spaces and punctuation removed) -> our field
 HEADER_ALIASES = {
