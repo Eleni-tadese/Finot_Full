@@ -117,6 +117,9 @@ AUTH_PASSWORD_VALIDATORS = [
 
 SITE_ID = 1
 
+# Accounts are given by the organization on printed slips. Set SELF_REGISTRATION_OPEN=true to let visitors sign up themselves.
+SELF_REGISTRATION_OPEN = (os.environ.get("SELF_REGISTRATION_OPEN") or "").lower() in ("1", "true", "yes")
+
 # Students registered by the bulk import may use their printed slip (email + password) for this many days;
 # after that they must give a real email and choose a new password.
 ACCOUNT_SETUP_GRACE_DAYS = int(os.environ.get("ACCOUNT_SETUP_GRACE_DAYS") or 21)
@@ -213,6 +216,7 @@ DJOSER = {
         "user": ["core.permissions.IsAuthenticatedAndReadOnly"],
         "user_list": ["djoser.permissions.CurrentUserOrAdminOrReadOnly"],
         "user_delete": ["rest_framework.permissions.IsAdminUser"],
+        "user_create": ["core.permissions.SelfRegistrationOpen"],
     },
 }
 

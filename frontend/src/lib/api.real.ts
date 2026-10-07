@@ -111,7 +111,7 @@ export const api = {
       console.log("LOGIN RAW RESPONSE:", response);
     } catch (error: any) {
       if (error.response && error.response.status === 401) {
-        throw new Error("Incorrect Email or Password. If you don't have an account, please register.");
+        throw new Error("Incorrect Email or Password. Your account is given by the organization on a printed slip.");
       }
       throw error;
     }

@@ -7,6 +7,7 @@ import { useAuth } from "../../context/AuthContext";
 import { api } from "../../lib/api";
 import { Card, SectionHeader } from "../../components/ui/Card";
 import { firstApiError } from "../../features/resources/utils";
+import PasswordField from "../../components/ui/PasswordField";
 
 type Setup = { pending: boolean; required: boolean; expired: boolean; needs_name: boolean; days_left: number; needs_email: boolean; needs_password: boolean } | null;
 
@@ -47,7 +48,15 @@ const AccountPage = () => {
       toast.success(t("acc_done", "Your account is ready."));
       navigate("/dashboard");
     }
+    return data;
   };
+
+  // After one step is done, take the person to the one that is still missing
+  const goTo = (id: string) => setTimeout(() => {
+    const el = document.getElementById(id);
+    el?.scrollIntoView({ behavior: "smooth", block: "center" });
+    el?.focus();
+  }, 250);
 
   const fail = (e: any) => toast.error(firstApiError(e?.response?.data) || e?.response?.data?.detail || t("adm_save_failed", "Could not save."));
 
@@ -72,7 +81,11 @@ const AccountPage = () => {
       await api.confirmEmail(code);
       toast.success(t("acc_email_changed", "Your email was changed. Use it to sign in from now on."));
       setSentTo(null); setCode(""); setNewEmail(""); setEmailPassword("");
-      await refreshUser();
+      const data = await refreshUser();
+      if (data.setup?.pending && data.setup.needs_password) {
+        toast(t("acc_now_password", "Your email is confirmed. Now choose your new password."), { icon: "👇", duration: 6000 });
+        goTo("acc-cur");
+      }
     } catch (err) { fail(err); } finally { setBusy(false); sending.current = false; }
   };
 
@@ -100,7 +113,11 @@ const AccountPage = () => {
       await api.changePassword(current, next);
       toast.success(t("acc_password_changed", "Your password was changed."));
       setCurrent(""); setNext(""); setAgain("");
-      await refreshUser();
+      const data = await refreshUser();
+      if (data.setup?.pending && data.setup.needs_email) {
+        toast(t("acc_now_email", "Your password is changed. Now add your own email."), { icon: "👆", duration: 6000 });
+        goTo("acc-new-email");
+      }
     } catch (err) { fail(err); } finally { setBusy(false); sending.current = false; }
   };
 
@@ -159,7 +176,7 @@ const AccountPage = () => {
             </div>
             <div>
               <label className="text-sm font-medium text-foreground" htmlFor="acc-email-pass">{t("acc_current_password", "Current password")}</label>
-              <input id="acc-email-pass" type="password" className="input mt-1 w-full" value={emailPassword} onChange={(e) => setEmailPassword(e.target.value)} autoComplete="current-password" required />
+              <div className="mt-1"><PasswordField id="acc-email-pass" value={emailPassword} onChange={(e) => setEmailPassword(e.target.value)} autoComplete="current-password" required /></div>
             </div>
             <button type="submit" disabled={busy} className="btn-primary px-4 py-2 text-sm">{busy ? t("acc_sending", "Sending the email...") : t("acc_send_code", "Send me a code")}</button>
           </form>
@@ -180,16 +197,16 @@ const AccountPage = () => {
         <form onSubmit={savePassword} className="space-y-3">
           <div>
             <label className="text-sm font-medium text-foreground" htmlFor="acc-cur">{t("acc_current_password", "Current password")}</label>
-            <input id="acc-cur" type="password" className="input mt-1 w-full" value={current} onChange={(e) => setCurrent(e.target.value)} autoComplete="current-password" required />
+            <div className="mt-1"><PasswordField id="acc-cur" value={current} onChange={(e) => setCurrent(e.target.value)} autoComplete="current-password" required /></div>
           </div>
           <div>
             <label className="text-sm font-medium text-foreground" htmlFor="acc-new">{t("acc_new_password", "New password")}</label>
-            <input id="acc-new" type="password" className="input mt-1 w-full" value={next} onChange={(e) => setNext(e.target.value)} autoComplete="new-password" required />
+            <div className="mt-1"><PasswordField id="acc-new" value={next} onChange={(e) => setNext(e.target.value)} autoComplete="new-password" required /></div>
             <p className="mt-1 text-xs text-muted-foreground">{t("acc_password_rules", "At least 8 letters, not only numbers, and not a common password.")}</p>
           </div>
           <div>
             <label className="text-sm font-medium text-foreground" htmlFor="acc-again">{t("acc_repeat_password", "Repeat the new password")}</label>
-            <input id="acc-again" type="password" className="input mt-1 w-full" value={again} onChange={(e) => setAgain(e.target.value)} autoComplete="new-password" required />
+            <div className="mt-1"><PasswordField id="acc-again" value={again} onChange={(e) => setAgain(e.target.value)} autoComplete="new-password" required /></div>
           </div>
           <button type="submit" disabled={busy} className="btn-primary px-4 py-2 text-sm">{busy ? t("saving") : t("acc_change_password", "Change password")}</button>
         </form>

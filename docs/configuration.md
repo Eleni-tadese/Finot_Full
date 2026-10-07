@@ -30,6 +30,7 @@ All configuration is read from **environment variables**. Nothing secret is stor
 | `FIREBASE_CREDENTIALS_B64` | optional | Firebase service-account JSON, base64-encoded; empty disables push |
 | `GOOGLE_APPLICATION_CREDENTIALS` | optional | alternative: path to the service-account file |
 | `THROTTLE_ANON`, `THROTTLE_USER` | optional | rate limits per address / per signed-in user, for example `120/minute` (defaults: 120 and 120; many students share one campus address) |
+| `SELF_REGISTRATION_OPEN` | optional | `true` lets visitors create their own account; empty (default) means accounts come only from the organization's printed slips and the public sign-up call is refused |
 | `THROTTLE_LOGIN_IP`, `THROTTLE_LOGIN_USER` | optional | sign-in limits: per address (default `600/minute`) and per account (default `10/minute`) |
 | `NUM_PROXIES` | on a host | how many proxies sit in front of the app (Render: `1`), so the visitor's real address is used for the limits |
 | `WEB_CONCURRENCY`, `GUNICORN_THREADS` | optional | gunicorn workers (default 2) and threads per worker (default 4) |

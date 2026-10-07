@@ -156,6 +156,7 @@ Generated from the code (`manage.py spectacular`). For request and response shap
 | Method | Path | Summary |
 |---|---|---|
 | GET | `/api/public/overview/` | api_public_overview_retrieve |
+| GET | `/api/public/registration/` | GET /api/public/registration/ : is the public sign-up open? (The sign-up page shows how to get a slip when it is not.) |
 
 ## `/api/qa/`
 

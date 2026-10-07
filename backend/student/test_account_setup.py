@@ -325,3 +325,34 @@ class TestSlipsWithoutNames:
         APIClient().post("/auth/jwt/create/", {"username": first["email"], "password": first["password"]}, format="json")
         res = client(User.objects.get(email="boss@gmail.com")).post(f"{self.BASE}batches/{data['batch_id']}/undo/").json()
         assert res == {"deleted": 2, "kept": 1}
+
+
+@pytest.mark.django_db
+class TestSelfRegistrationIsClosedByDefault:
+    BODY = {"username": "new@gmail.com", "email": "new@gmail.com", "password": "Strong-Pass-9x!", "first_name": "A", "middle_name": "B", "last_name": "C", "gender": "M"}
+
+    def test_closed_means_nobody_can_create_an_account_by_the_public_call(self, settings):
+        settings.SELF_REGISTRATION_OPEN = False
+        res = APIClient().post("/auth/users/", self.BODY, format="json")
+        assert res.status_code in (401, 403)  # refused (a visitor without a token is answered 401)
+        assert not User.objects.filter(email="new@gmail.com").exists()
+        assert APIClient().get("/api/public/registration/").json() == {"open": False}
+
+    def test_the_owner_can_open_it(self, settings):
+        settings.SELF_REGISTRATION_OPEN = True
+        assert APIClient().get("/api/public/registration/").json() == {"open": True}
+        assert APIClient().post("/auth/users/", self.BODY, format="json").status_code == 201
+
+    def test_the_real_default_is_closed(self):
+        import importlib
+        import os
+        from unittest import mock
+
+        with mock.patch.dict(os.environ, {"SELF_REGISTRATION_OPEN": ""}):
+            from config.settings import base
+            importlib.reload(base)
+            assert base.SELF_REGISTRATION_OPEN is False
+        with mock.patch.dict(os.environ, {"SELF_REGISTRATION_OPEN": "true"}):
+            importlib.reload(base)
+            assert base.SELF_REGISTRATION_OPEN is True
+        importlib.reload(base)

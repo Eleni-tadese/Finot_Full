@@ -23,3 +23,6 @@ REST_FRAMEWORK = {
 
 # Tests use made-up addresses such as s1@finot.test; keep them deliverable here (real runs skip such addresses).
 REMINDER_EMAIL_SKIP_UNDELIVERABLE = False
+
+# Existing tests register people through the public call; the closed default is tested on its own.
+SELF_REGISTRATION_OPEN = True

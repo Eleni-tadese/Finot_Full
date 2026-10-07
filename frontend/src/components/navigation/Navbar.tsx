@@ -123,7 +123,7 @@ const Navbar = ({ solid = false }: { solid?: boolean }) => {
               {t("sign_in")}
             </Link>
             <Link to="/register" className="btn-primary text-sm px-5 py-2">
-              {t("sign_up")}
+              {t("get_account_btn", "Get an account")}
             </Link>
             <div className="ml-2">
               <LanguageSelector />
@@ -200,7 +200,7 @@ const Navbar = ({ solid = false }: { solid?: boolean }) => {
                     onClick={() => setIsOpen(false)}
                     className="btn-primary text-sm flex-1 text-center py-2.5"
                   >
-                    {t("sign_up")}
+                    {t("get_account_btn", "Get an account")}
                   </Link>
                 </div>
                 <div className="px-1 pt-2">

@@ -1,4 +1,14 @@
+from django.conf import settings
 from rest_framework import permissions
+
+
+class SelfRegistrationOpen(permissions.BasePermission):
+    """Accounts are given by the organization (printed slips); the public sign-up call is closed unless the owner opens it."""
+
+    message = "Accounts are given by the organization. Ask for your login slip."
+
+    def has_permission(self, request, view):
+        return bool(getattr(settings, "SELF_REGISTRATION_OPEN", False))
 
 class IsAuthenticatedAndReadOnly(permissions.BasePermission):
     """

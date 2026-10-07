@@ -20,7 +20,7 @@ from django.urls import path, include
 from core.throttles import LoginView
 from drf_spectacular.views import SpectacularAPIView, SpectacularRedocView, SpectacularSwaggerView
 from analytics.admin_views import ExportDashboardView
-from analytics.public_views import PublicOverviewView
+from analytics.public_views import PublicOverviewView, PublicRegistrationView
 
 def health(request):
     """Is the server up? No database call, so hosts and uptime monitors can ask often."""
@@ -46,6 +46,7 @@ urlpatterns = [
     path("api/analytics/", include("analytics.urls")),
     path("api/admin-console/", include("analytics.console_urls")),
     path("api/public/overview/", PublicOverviewView.as_view()),
+    path("api/public/registration/", PublicRegistrationView.as_view()),
 ]
 
 

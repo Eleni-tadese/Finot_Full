@@ -5,7 +5,7 @@ import TeacherQaDashboard from "../pages/admin/CounselorQueue";
 import HomePage from "../pages/home/HomePage";
 import AboutPage from "../pages/about/AboutPage";
 import ContactPage from "../pages/contact/ContactPage";
-import RegisterPage from "../pages/auth/RegisterPage";
+import RegisterGate from "../pages/auth/RegisterGate";
 import LoginPage from "../pages/auth/LoginPage";
 import ForgotPasswordPage from "../pages/auth/ForgotPasswordPage";
 import ResetPasswordConfirmPage from "../pages/auth/ResetPasswordConfirmPage";
@@ -69,7 +69,7 @@ export default function AppRoutes() {
           <Route index element={<HomePage />} />
           <Route path="about" element={<AboutPage />} />
           <Route path="contact" element={<ContactPage />} />
-          <Route path="register" element={<RegisterPage />} />
+          <Route path="register" element={<RegisterGate />} />
           <Route path="login" element={<LoginPage />} />
           <Route path="forgot-password" element={<ForgotPasswordPage />} />
           <Route

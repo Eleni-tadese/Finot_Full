@@ -12,6 +12,18 @@ from service.models import Event, Family, ServiceGroup
 from student.models import StudentProfile
 
 
+class PublicRegistrationView(APIView):
+    """GET /api/public/registration/ : is the public sign-up open? (The sign-up page shows how to get a slip when it is not.)"""
+
+    permission_classes = [permissions.AllowAny]
+    authentication_classes: list = []
+
+    def get(self, request):
+        from django.conf import settings
+
+        return Response({"open": bool(getattr(settings, "SELF_REGISTRATION_OPEN", False))})
+
+
 class PublicOverviewView(APIView):
     permission_classes = [permissions.AllowAny]
     authentication_classes: list = []  # public: never needs (or trusts) a token

@@ -109,7 +109,7 @@ const LoginPage = () => {
                 {t("forgot_password_q")}
               </Link>
               <Link to="/register" className="text-primary hover:text-primary-light font-medium transition">
-                {t("create_account")}
+                {t("get_account_link", "How do I get an account?")}
               </Link>
             </div>
 
