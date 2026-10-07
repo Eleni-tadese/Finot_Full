@@ -3,7 +3,6 @@ import { Link, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { useTranslation } from "react-i18next";
 import { EyeIcon, EyeSlashIcon, ExclamationCircleIcon } from "@heroicons/react/24/outline";
-import Swal from "../../lib/popup";
 import { useAuth } from "../../context/AuthContext";
 
 const fadeInUp = {
@@ -19,6 +18,8 @@ const LoginPage = () => {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [formError, setFormError] = useState("");
+  const [wrongLogin, setWrongLogin] = useState(false);
   const [touched, setTouched] = useState({ email: false, password: false });
 
   const emailError = !email.trim()
@@ -37,19 +38,16 @@ const LoginPage = () => {
       document.getElementById(emailError ? "email" : "password")?.focus();
       return;
     }
+    setFormError("");
+    setWrongLogin(false);
     setIsSubmitting(true);
     try {
       await login(email.trim(), password);
       navigate("/dashboard");
     } catch (error: any) {
-      Swal.fire({
-        icon: "error",
-        title: t("login_failed"),
-        html: error.message?.includes("Incorrect")
-          ? t("incorrect_credentials")
-          : error.message || t("invalid_credentials"),
-        confirmButtonColor: "hsl(52, 94%, 54%)",
-      });
+      const wrong = !error.message || error.message.includes("Incorrect");
+      setWrongLogin(wrong);
+      setFormError(wrong ? t("login_wrong") : error.message);
     } finally {
       setIsSubmitting(false);
     }
@@ -73,6 +71,20 @@ const LoginPage = () => {
           </p>
 
           <form onSubmit={handleSubmit} noValidate className="space-y-5">
+            {formError && (
+              <div role="alert" className="flex items-start gap-2 rounded-xl border border-destructive/30 bg-destructive/10 px-3.5 py-3 text-sm text-destructive">
+                <ExclamationCircleIcon className="mt-0.5 h-5 w-5 flex-shrink-0" />
+                <div>
+                  <p className="font-semibold">{t("login_failed")}</p>
+                  <p>{formError}</p>
+                  {wrongLogin && (
+                    <Link to="/register" className="mt-1 inline-block font-medium underline">
+                      {t("get_account_link", "How do I get an account?")}
+                    </Link>
+                  )}
+                </div>
+              </div>
+            )}
             <div>
               <label htmlFor="email" className="block text-sm font-medium text-foreground mb-1.5">
                 {t("email_address")}
@@ -81,7 +93,7 @@ const LoginPage = () => {
                 id="email"
                 type="email"
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                onChange={(e) => { setEmail(e.target.value); setFormError(""); }}
                 onBlur={() => setTouched((v) => ({ ...v, email: true }))}
                 placeholder="you@example.com"
                 autoComplete="username"
@@ -106,7 +118,7 @@ const LoginPage = () => {
                   id="password"
                   type={showPassword ? "text" : "password"}
                   value={password}
-                  onChange={(e) => setPassword(e.target.value)}
+                  onChange={(e) => { setPassword(e.target.value); setFormError(""); }}
                   onBlur={() => setTouched((v) => ({ ...v, password: true }))}
                   placeholder={t("enter_password")}
                   autoComplete="current-password"

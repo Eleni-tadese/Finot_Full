@@ -1704,5 +1704,6 @@
   "adm_nav_h_reports": "Reports and messages",
   "login_email_required": "Enter your email address.",
   "login_email_invalid": "This does not look like an email address. Check it, for example name@example.com.",
-  "login_password_required": "Enter your password."
+  "login_password_required": "Enter your password.",
+  "login_wrong": "Incorrect email or password. Your account is given by the organization on a printed slip."
 }

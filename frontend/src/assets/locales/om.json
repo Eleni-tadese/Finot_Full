@@ -1684,5 +1684,6 @@
   "get_account_btn": "Herrega argadhaa",
   "login_email_required": "Teessoo imeelii kee galchi.",
   "login_email_invalid": "Kun teessoo imeelii fakkaachuu dhiisa. Irra deebi'ii mirkaneessi, fakkeenyaaf name@example.com.",
-  "login_password_required": "Jecha darbii kee galchi."
+  "login_password_required": "Jecha darbii kee galchi.",
+  "login_wrong": "Imeelii ykn jecha darbii dogoggoraadha. Herregni kee dhaabbata biraa waraqaa maxxanfamaan kennama."
 }

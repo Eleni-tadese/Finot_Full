@@ -1684,5 +1684,6 @@
   "get_account_btn": "መለያ ያግኙ",
   "login_email_required": "የኢሜይል አድራሻዎን ያስገቡ።",
   "login_email_invalid": "ይህ የኢሜይል አድራሻ አይመስልም። ያረጋግጡ፣ ለምሳሌ name@example.com።",
-  "login_password_required": "የይለፍ ቃልዎን ያስገቡ።"
+  "login_password_required": "የይለፍ ቃልዎን ያስገቡ።",
+  "login_wrong": "ኢሜይሉ ወይም የይለፍ ቃሉ ትክክል አይደለም። መለያዎ በድርጅቱ በታተመ ወረቀት ይሰጣል።"
 }
