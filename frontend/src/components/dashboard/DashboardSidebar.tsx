@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { Fragment, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { NavLink, useLocation } from "react-router-dom";
 import { AuthUser } from "../../types";
@@ -12,6 +12,8 @@ type NavItem = {
   icon: React.ElementType;
   end?: boolean;
   badge?: number;
+  /** Heading shown above this item (admin menu only). */
+  heading?: string;
 };
 
 type DashboardSidebarProps = {
@@ -86,17 +88,17 @@ const DashboardSidebar = ({
     studentPages = navItems.slice(1, 10);
     navItems.splice(0, navItems.length,
       { to: "/dashboard/admin", label: t("adm_nav_overview", "Overview"), icon: FiGrid, end: true },
-      { to: "/dashboard/admin/groups", label: t("adm_nav_groups", "Service groups"), icon: FiBriefcase },
+      { to: "/dashboard/admin/users", label: t("adm_nav_users", "Users & roles"), icon: FiUsers, heading: t("adm_nav_h_people", "People") },
+      { to: "/dashboard/admin/import", label: t("adm_nav_import", "Register students"), icon: FiUpload },
+      { to: "/dashboard/admin/sub-admins", label: t("adm_nav_sub_admins", "Sub-admins"), icon: FiShield },
+      { to: "/dashboard/admin/families", label: t("adm_nav_families", "Families"), icon: UserGroupIcon },
+      { to: "/dashboard/admin/groups", label: t("adm_nav_groups", "Service groups"), icon: FiBriefcase, heading: t("adm_nav_h_fellowship", "Fellowship") },
       { to: "/dashboard/admin/courses", label: t("adm_nav_courses", "Courses"), icon: FiBookOpen },
       { to: "/dashboard/admin/events", label: t("adm_nav_events", "Events"), icon: FiCalendar },
-      { to: "/dashboard/admin/sub-admins", label: t("adm_nav_sub_admins", "Sub-admins"), icon: FiShield },
-      { to: "/dashboard/admin/users", label: t("adm_nav_users", "Users & roles"), icon: FiUsers },
-      { to: "/dashboard/admin/import", label: t("adm_nav_import", "Register students"), icon: FiUpload },
-      { to: "/dashboard/admin/year", label: t("adm_nav_year", "Academic year"), icon: FiTrendingUp },
-      { to: "/dashboard/admin/departments", label: t("adm_nav_departments", "Departments"), icon: FiLayers },
       { to: "/dashboard/admin/qa", label: t("adm_nav_qa", "Private Q&A"), icon: FiMessageCircle },
-      { to: "/dashboard/admin/families", label: t("adm_nav_families", "Families"), icon: UserGroupIcon },
-      { to: "/dashboard/admin/donations", label: t("adm_nav_donations", "Donations"), icon: FiHeart },
+      { to: "/dashboard/admin/year", label: t("adm_nav_year", "Academic year"), icon: FiTrendingUp, heading: t("adm_nav_h_setup", "Yearly setup") },
+      { to: "/dashboard/admin/departments", label: t("adm_nav_departments", "Departments"), icon: FiLayers },
+      { to: "/dashboard/admin/donations", label: t("adm_nav_donations", "Donations"), icon: FiHeart, heading: t("adm_nav_h_reports", "Reports and messages") },
       { to: "/dashboard/admin/sms", label: t("adm_nav_sms", "SMS"), icon: FiSmartphone },
       { to: "/dashboard/admin/exports", label: t("adm_nav_exports", "Export to Excel"), icon: FiDownload },
     );
@@ -116,8 +118,11 @@ const DashboardSidebar = ({
   };
 
   const renderLink = (item: NavItem, nested = false) => (
+    <Fragment key={item.to}>
+    {item.heading && (collapsed
+      ? <div className="mx-3 my-2 border-t border-white/10" />
+      : <p className="px-3 pb-1 pt-3 text-[11px] font-semibold uppercase tracking-wider text-white/40">{item.heading}</p>)}
     <NavLink
-      key={item.to}
       to={item.to}
       end={item.end}
       onClick={onNavClick}
@@ -147,6 +152,7 @@ const DashboardSidebar = ({
         <span className="absolute right-1 top-1 h-2 w-2 rounded-full bg-destructive" />
       )}
     </NavLink>
+    </Fragment>
   );
 
   return (

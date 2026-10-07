@@ -89,11 +89,11 @@
   "no_courses_assigned": "No courses assigned to you",
   "year": "Year",
   "create_session": "Add one class day",
-  "create_new_session": "Create New Session",
+  "create_new_session": "Add one class day",
   "session_created_success": "Session created successfully",
   "failed_to_create_session": "Failed to create session",
   "no_sessions_yet": "No sessions created yet",
-  "create_first_session": "Create First Session",
+  "create_first_session": "Add the first class day",
   "topic_optional": "Topic (Optional)",
   "topic_placeholder": "e.g., Introduction to Theology",
   "select_session": "Select Session",
@@ -1697,5 +1697,9 @@
   "adm_exp_sms": "SMS log",
   "adm_exp_sms_d": "The latest 5000 SMS messages with their status.",
   "adm_exp_all": "Everything in one file",
-  "adm_exp_all_d": "One Excel file with every table above, one sheet each. Use it as a backup copy. Contains personal information: keep it safe."
+  "adm_exp_all_d": "One Excel file with every table above, one sheet each. Use it as a backup copy. Contains personal information: keep it safe.",
+  "adm_nav_h_people": "People",
+  "adm_nav_h_fellowship": "Fellowship",
+  "adm_nav_h_setup": "Yearly setup",
+  "adm_nav_h_reports": "Reports and messages"
 }
