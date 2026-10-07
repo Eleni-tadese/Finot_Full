@@ -1,7 +1,8 @@
 import axiosInstance from "../../lib/axios";
 import type { PersonCard } from "../../components/people/StudentCard";
+import type { Credential } from "./slips";
 import type {
-  AdminGroup, AdminUser, FamilyRow, Counselor, SubAdminRole, DistributionBatch, DistributionOverview, DistributionPreview, Overview,
+  AdminGroup, AdminUser, FamilyRow, ImportBatchRow, ImportPreview, ImportRow, Counselor, SubAdminRole, DistributionBatch, DistributionOverview, DistributionPreview, Overview,
   Curriculum, SemesterCourseRow, DonationsPage, UserFilterOptions, Department, AcademicYearData, Paginated, PrivateQuestion, RoleOption, SmsLogRow, SmsSettings, Specialization,
 } from "./types";
 
@@ -35,6 +36,19 @@ export const adminApi = {
     axiosInstance.get<Paginated<AdminUser>>(`${C}/users/`, { params }).then((r) => r.data),
   familyPeople: (search: string) =>
     axiosInstance.get<{ results: AdminUser[] }>(`${C}/families/people/`, { params: { search } }).then((r) => r.data),
+  importTemplate: () => axiosInstance.get(`${C}/accounts/import/template/`, { responseType: "blob" }).then((r) => r.data as Blob),
+  importPreview: (file: File) => {
+    const form = new FormData();
+    form.append("file", file);
+    return axiosInstance.post<ImportPreview>(`${C}/accounts/import/preview/`, form).then((r) => r.data);
+  },
+  importCommit: (body: { batch_id?: number | null; grace_days?: number; rows: Partial<ImportRow>[] }) =>
+    axiosInstance
+      .post<{ batch_id: number; created: Credential[]; rejected: { row: number; errors: string[] }[] }>(`${C}/accounts/import/commit/`, body)
+      .then((r) => r.data),
+  importBatches: () => axiosInstance.get<{ results: ImportBatchRow[] }>(`${C}/accounts/import/batches/`).then((r) => r.data.results),
+  undoImport: (id: number) =>
+    axiosInstance.post<{ deleted: number; kept: number }>(`${C}/accounts/import/batches/${id}/undo/`).then((r) => r.data),
   userCard: (id: number) => axiosInstance.get<PersonCard>(`${C}/users/${id}/`).then((r) => r.data),
   userFilterOptions: () => axiosInstance.get<UserFilterOptions>(`${C}/users/filters/`).then((r) => r.data),
   updateUser: (

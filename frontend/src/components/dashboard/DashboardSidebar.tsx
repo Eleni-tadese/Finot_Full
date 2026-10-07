@@ -3,7 +3,7 @@ import { useTranslation } from "react-i18next";
 import { NavLink, useLocation } from "react-router-dom";
 import { AuthUser } from "../../types";
 import { hasRole } from "../../features/auth/roles";
-import { FiGrid, FiUser, FiCalendar, FiCheckCircle, FiUsers, FiBriefcase, FiHeart, FiMessageCircle, FiLogOut, FiChevronLeft, FiChevronRight, FiChevronDown, FiSettings, FiFile, FiShield, FiSmartphone, FiDownload, FiExternalLink, FiBookOpen, FiTrendingUp, FiLayers } from "react-icons/fi";
+import { FiGrid, FiUser, FiCalendar, FiCheckCircle, FiUsers, FiBriefcase, FiHeart, FiMessageCircle, FiLogOut, FiChevronLeft, FiChevronRight, FiChevronDown, FiSettings, FiFile, FiShield, FiSmartphone, FiDownload, FiUpload, FiExternalLink, FiBookOpen, FiTrendingUp, FiLayers } from "react-icons/fi";
 import { ChatBubbleLeftRightIcon, RectangleGroupIcon, ShieldCheckIcon, UserGroupIcon } from "@heroicons/react/24/outline";
 
 type NavItem = {
@@ -91,6 +91,7 @@ const DashboardSidebar = ({
       { to: "/dashboard/admin/events", label: t("adm_nav_events", "Events"), icon: FiCalendar },
       { to: "/dashboard/admin/sub-admins", label: t("adm_nav_sub_admins", "Sub-admins"), icon: FiShield },
       { to: "/dashboard/admin/users", label: t("adm_nav_users", "Users & roles"), icon: FiUsers },
+      { to: "/dashboard/admin/import", label: t("adm_nav_import", "Register students"), icon: FiUpload },
       { to: "/dashboard/admin/year", label: t("adm_nav_year", "Academic year"), icon: FiTrendingUp },
       { to: "/dashboard/admin/departments", label: t("adm_nav_departments", "Departments"), icon: FiLayers },
       { to: "/dashboard/admin/qa", label: t("adm_nav_qa", "Private Q&A"), icon: FiMessageCircle },

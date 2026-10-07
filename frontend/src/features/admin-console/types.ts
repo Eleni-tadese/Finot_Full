@@ -262,3 +262,39 @@ export interface AcademicYearData {
   preview: RolloverPreview;
   history: RolloverRun[];
 }
+
+export interface ImportRow {
+  row: number;
+  first_name: string;
+  middle_name: string;
+  last_name: string;
+  gender: string | null;
+  department: string;
+  phone: string;
+  dorm_block: number | null;
+  dorm_room: number | null;
+  section: number | null;
+  errors: string[];
+  warnings: string[];
+}
+
+export interface ImportPreview {
+  rows: ImportRow[];
+  total: number;
+  valid: number;
+  invalid: number;
+  warnings: number;
+  chunk_limit: number;
+  grace_days: number;
+}
+
+export interface ImportBatchRow {
+  id: number;
+  created_at: string;
+  created_by: string | null;
+  grace_days: number;
+  undone_at: string | null;
+  created: number;
+  signed_in: number;
+  completed: number;
+}

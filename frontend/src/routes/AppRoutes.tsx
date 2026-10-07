@@ -23,6 +23,7 @@ import AdminSmsPage from "../features/admin-console/components/SmsAdminPage";
 import AdminDonationsPage from "../features/admin-console/components/DonationsAdminPage";
 import AdminEventsPage from "../features/admin-console/components/EventsAdminPage";
 import AdminExportsPage from "../features/admin-console/components/ExportsPage";
+import AdminImportPage from "../features/admin-console/components/ImportStudentsPage";
 import DashboardProfile from "../pages/dashboard/DashboardProfile";
 import DashboardEvents from "../pages/dashboard/DashboardEvents";
 import DashboardAttendance from "../pages/dashboard/DashboardAttendance";
@@ -123,6 +124,7 @@ export default function AppRoutes() {
                 <Route path="admin/donations" element={<AdminDonationsPage />} />
                 <Route path="admin/sms" element={<AdminSmsPage />} />
                 <Route path="admin/exports" element={<AdminExportsPage />} />
+                <Route path="admin/import" element={<AdminImportPage />} />
               </Route>
               <Route element={<ProtectedRoute allowedRoles={["Super_admin", "family_admin"]} />}>
                 <Route path="admin/families" element={<AdminFamiliesPage />} />
