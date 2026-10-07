@@ -165,7 +165,7 @@ const DashboardOverview = () => {
                    <p className="text-xs text-muted-foreground mt-0.5">{t("latest_events_assigned", "Latest events assigned to you")}</p>
                 </div>
                 <Link to="/dashboard/events" className="text-sm font-medium bg-slate-50 hover:bg-slate-100 border border-slate-200 px-3 py-1.5 rounded-lg transition-colors flex items-center gap-2 self-start">
-                   View All <FiArrowRight className="h-4 w-4" />
+                   {t("view_all_plain", "View all")} <FiArrowRight className="h-4 w-4" />
                 </Link>
              </div>
              <div className="p-4 sm:p-6">
@@ -217,7 +217,7 @@ const DashboardOverview = () => {
                     <p className="text-xs text-muted-foreground mt-0.5">{t("ui_recent_participation")}</p>
                  </div>
                  <Link to="/dashboard/attendance" className="text-sm font-medium bg-slate-50 hover:bg-slate-100 border border-slate-200 px-3 py-1.5 rounded-lg transition-colors flex items-center gap-2 self-start">
-                    View All <FiArrowRight className="h-4 w-4" />
+                    {t("view_all_plain", "View all")} <FiArrowRight className="h-4 w-4" />
                  </Link>
               </div>
              <div className="p-4 sm:p-6">

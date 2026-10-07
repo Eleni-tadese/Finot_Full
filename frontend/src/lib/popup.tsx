@@ -1,4 +1,5 @@
 import toast from "react-hot-toast";
+import i18n from "./i18n";
 import { FiAlertCircle, FiAlertTriangle, FiCheckCircle, FiInfo, FiX } from "react-icons/fi";
 
 type Icon = "success" | "error" | "warning" | "info" | "question";
@@ -44,7 +45,7 @@ function fire(options: PopupOptions): Promise<{ isConfirmed: boolean }> {
             {options.title && <p className="text-sm font-semibold text-foreground">{options.title}</p>}
             {body && <p className="mt-0.5 break-words text-sm text-muted-foreground">{body}</p>}
           </div>
-          <button type="button" onClick={() => toast.dismiss(item.id)} className="text-muted-foreground hover:text-foreground" aria-label="Close">
+          <button type="button" onClick={() => toast.dismiss(item.id)} className="text-muted-foreground hover:text-foreground" aria-label={i18n.t("close")}>
             <FiX className="h-4 w-4" />
           </button>
         </div>

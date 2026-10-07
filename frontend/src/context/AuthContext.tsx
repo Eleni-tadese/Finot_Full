@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { api } from "../lib/api";
+import i18n from "../lib/i18n";
 import { AuthUser } from "../types";
 
 interface AuthContextType {
@@ -84,7 +85,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         <div className="flex h-screen w-full items-center justify-center bg-background">
           <div className="text-center">
             <div className="h-12 w-12 mx-auto mb-4 animate-spin rounded-full border-[3px] border-muted border-t-primary" />
-            <p className="text-muted-foreground text-sm">Loading...</p>
+            <p className="text-muted-foreground text-sm">{i18n.t("loading")}</p>
           </div>
         </div>
       )}
