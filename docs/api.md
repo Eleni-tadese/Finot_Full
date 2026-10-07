@@ -2,7 +2,7 @@
 
 The backend is a JSON API. The authoritative, always-current reference is generated from the code:
 
-- **Swagger UI:** `/api/docs/swagger/` on the running backend
+- **Swagger UI:** `/api/docs/swagger/` on a local backend (closed in production unless `API_DOCS_PUBLIC` is set)
 - **ReDoc:** `/api/docs/redoc/`
 - **OpenAPI schema:** `/api/schema/`
 - A readable list of every endpoint, generated from the same schema: [api-endpoints.md](api-endpoints.md)

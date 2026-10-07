@@ -70,9 +70,12 @@ GitHub (you have it), Neon, Render, Cloudflare, Cloudinary, an SMTP provider, Ch
    | `EMAIL_BACKEND` | `django.core.mail.backends.smtp.EmailBackend` |
    | `EMAIL_HOST`, `EMAIL_PORT`, `EMAIL_USE_TLS`, `EMAIL_HOST_USER`, `EMAIL_HOST_PASSWORD`, `DEFAULT_FROM_EMAIL` | from your mail provider |
    | `CRON_SECRET` | a new long random string (`python -c "import secrets; print(secrets.token_urlsafe(48))"`) |
+   | `NUM_PROXIES` | `1` (Render sits in front of the app; sign-in limits then count each visitor's real address) |
+   | `SECURE_HSTS_SECONDS` | optional; default one week. Raise to `31536000` (one year) once everything works over HTTPS |
+   | `API_DOCS_PUBLIC` | optional; leave unset. Set to `1` only if you want the API documentation pages (`/api/docs/swagger/`) to be public; they are closed in production by default |
 
    `DJANGO_SETTINGS_MODULE` is already `config.settings.prod` inside the Docker image.
-4. **Create Web Service.** The first start collects static files, runs the database migrations, and starts the server. Watch the **Logs** tab. When it is live, open `https://<your-backend>/health/`: you should see `{"status":"ok"}`. Also open `/api/docs/swagger/`.
+4. **Create Web Service.** The first start collects static files, runs the database migrations, and starts the server. Watch the **Logs** tab. When it is live, open `https://<your-backend>/health/`: you should see `{"status":"ok"}`. (The API documentation pages are closed in production unless `API_DOCS_PUBLIC` is set.)
 
 ### 3. Frontend (Cloudflare Pages)
 

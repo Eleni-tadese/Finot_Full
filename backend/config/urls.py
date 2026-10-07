@@ -14,6 +14,9 @@ Including another URLconf
     1. Import the include() function: from django.urls import include, path
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
+import os
+
+from django.conf import settings
 from django.contrib import admin
 from django.http import JsonResponse
 from django.urls import path, include
@@ -52,11 +55,13 @@ urlpatterns = [
 
 
 
-urlpatterns += [
-    # Download the raw schema file (YAML/JSON)
-    path('api/schema/', SpectacularAPIView.as_view(), name='schema'),
-    # Interactive UI (Swagger)
-    path('api/docs/swagger/', SpectacularSwaggerView.as_view(url_name='schema'), name='swagger-ui'),
-    # Alternative UI (Redoc)
-    path('api/docs/redoc/', SpectacularRedocView.as_view(url_name='schema'), name='redoc'),
-]
+# The API documentation lists every endpoint: public only while developing (or when API_DOCS_PUBLIC is set).
+if settings.DEBUG or os.environ.get("API_DOCS_PUBLIC"):
+    urlpatterns += [
+        # Download the raw schema file (YAML/JSON)
+        path('api/schema/', SpectacularAPIView.as_view(), name='schema'),
+        # Interactive UI (Swagger)
+        path('api/docs/swagger/', SpectacularSwaggerView.as_view(url_name='schema'), name='swagger-ui'),
+        # Alternative UI (Redoc)
+        path('api/docs/redoc/', SpectacularRedocView.as_view(url_name='schema'), name='redoc'),
+    ]

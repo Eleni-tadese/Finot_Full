@@ -13,6 +13,8 @@ SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 SESSION_COOKIE_SECURE = True
 CSRF_COOKIE_SECURE = True
 SECURE_BROWSER_XSS_FILTER = True
+# Browsers remember to use HTTPS only. One week to start; raise to 31536000 (one year) once everything works.
+SECURE_HSTS_SECONDS = int(os.environ.get("SECURE_HSTS_SECONDS") or 604800)
 SECURE_CONTENT_TYPE_NOSNIFF = True
 
 # We use whitenoise in prod for static assets

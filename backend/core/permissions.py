@@ -12,22 +12,17 @@ class SelfRegistrationOpen(permissions.BasePermission):
 
 class IsAuthenticatedAndReadOnly(permissions.BasePermission):
     """
-    Allows access only to authenticated users and ensures it is read-only.
-    Used to disable PUT/PATCH/DELETE on Djoser user endpoints.
+    Djoser user endpoints (read only): a signed-in person may read their OWN record; a Super Admin may read any.
+    Nobody else can look up another account by its id, and visitors who are not signed in get nothing.
     """
-    def has_permission(self, request, view):
-        # return (
-        #     # request.user and 
-        #     # request.user.is_authenticated and 
-        #     # request.method in permissions.SAFE_METHODS
 
-        # )
-        return True
+    def has_permission(self, request, view):
+        return bool(request.user and request.user.is_authenticated and request.method in permissions.SAFE_METHODS)
 
     def has_object_permission(self, request, view, obj):
-        # return (
-        #     request.user and 
-        #     request.user.is_authenticated and 
-        #     request.method in permissions.SAFE_METHODS
-        # )
-        return True
+        user = request.user
+        if not (user and user.is_authenticated and request.method in permissions.SAFE_METHODS):
+            return False
+        if getattr(obj, "pk", None) == user.pk:
+            return True
+        return user.is_superuser or user.roles.filter(name="SuperAdmin").exists()

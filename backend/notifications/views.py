@@ -80,7 +80,7 @@ class WeeklyReminderTriggerView(APIView):
     def post(self, request):
         secret = getattr(settings, "CRON_SECRET", "")
         sent = request.headers.get("X-Cron-Token", "")
-        if not secret or not hmac.compare_digest(sent, secret):
+        if not secret or not hmac.compare_digest(sent.encode(), secret.encode()):
             return Response(status=status.HTTP_404_NOT_FOUND)
         return Response(send_weekly_reminders(force=bool(request.data.get("force")), background_email=True))
 
@@ -97,7 +97,7 @@ class AccountSetupReminderTriggerView(APIView):
 
         secret = getattr(settings, "CRON_SECRET", "")
         sent = request.headers.get("X-Cron-Token", "")
-        if not secret or not hmac.compare_digest(sent, secret):
+        if not secret or not hmac.compare_digest(sent.encode(), secret.encode()):
             return Response(status=status.HTTP_404_NOT_FOUND)
         return Response(send_account_setup_reminders())
 
@@ -112,6 +112,6 @@ class ClassReminderTriggerView(APIView):
     def post(self, request):
         secret = getattr(settings, "CRON_SECRET", "")
         sent = request.headers.get("X-Cron-Token", "")
-        if not secret or not hmac.compare_digest(sent, secret):
+        if not secret or not hmac.compare_digest(sent.encode(), secret.encode()):
             return Response(status=status.HTTP_404_NOT_FOUND)
         return Response(send_class_reminders())

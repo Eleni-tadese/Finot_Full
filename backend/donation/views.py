@@ -264,17 +264,17 @@ class ChapaWebhookView(APIView):
             "CHAPA_WEBHOOK_SECRET", default=config("CHAPA_SECRET_KEY", default="")
         )
 
+        # Without a secret anybody could compute a valid signature and fake a paid donation.
+        if not secret:
+            logger.error("Chapa webhook refused: no CHAPA_WEBHOOK_SECRET / CHAPA_SECRET_KEY is set.")
+            return Response({"error": "Webhook is not configured"}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
+
         # We need the raw body to compute the HMAC
         body = request.body
         hash_val = hmac.new(secret.encode("utf-8"), body, hashlib.sha256).hexdigest()
 
-        # Use hmac.compare_digest() for timing-safe comparison.
-        # A plain != comparison is vulnerable to timing attacks.
-        if not hmac.compare_digest(hash_val, chapa_signature):
-            logger.warning("Chapa webhook received with invalid signature.")
-        # Use hmac.compare_digest() for timing-safe comparison.
-        # A plain != comparison is vulnerable to timing attacks.
-        if not hmac.compare_digest(hash_val, chapa_signature):
+        # Timing-safe comparison (a plain != is open to timing attacks); bytes so odd characters cannot crash it.
+        if not hmac.compare_digest(hash_val.encode(), chapa_signature.encode("utf-8", "ignore")):
             logger.warning("Chapa webhook received with invalid signature.")
             return Response(
                 {"error": "Invalid signature"}, status=status.HTTP_400_BAD_REQUEST
@@ -339,7 +339,7 @@ class VerifyPendingTriggerView(APIView):
 
         secret = getattr(dj_settings, "CRON_SECRET", "")
         sent = request.headers.get("X-Cron-Token", "")
-        if not secret or not hmac.compare_digest(sent, secret):
+        if not secret or not hmac.compare_digest(sent.encode(), secret.encode()):
             return Response(status=status.HTTP_404_NOT_FOUND)
         return Response(recheck_pending_payments())
 

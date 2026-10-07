@@ -215,7 +215,7 @@ DJOSER = {
     },
     "PERMISSIONS": {
         "user": ["core.permissions.IsAuthenticatedAndReadOnly"],
-        "user_list": ["djoser.permissions.CurrentUserOrAdminOrReadOnly"],
+        "user_list": ["rest_framework.permissions.IsAuthenticated"],
         "user_delete": ["rest_framework.permissions.IsAdminUser"],
         "user_create": ["core.permissions.SelfRegistrationOpen"],
     },
