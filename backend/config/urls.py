@@ -17,6 +17,7 @@ Including another URLconf
 from django.contrib import admin
 from django.http import JsonResponse
 from django.urls import path, include
+from core.throttles import LoginView
 from drf_spectacular.views import SpectacularAPIView, SpectacularRedocView, SpectacularSwaggerView
 from analytics.admin_views import ExportDashboardView
 from analytics.public_views import PublicOverviewView
@@ -31,6 +32,7 @@ urlpatterns = [
     path('', include('core.urls')),
     path('admin/reports-and-exports/', ExportDashboardView.as_view(), name='reports_and_exports'),
     path('admin/', admin.site.urls),
+    path("auth/jwt/create/", LoginView.as_view(), name="jwt-create"),  # before djoser: its own throttles
     path("auth/", include("djoser.urls")),
     path("auth/", include("djoser.urls.jwt")),
     path("api/student/", include("student.urls")),

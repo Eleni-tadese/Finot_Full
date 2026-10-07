@@ -252,7 +252,7 @@ Generated from the code (`manage.py spectacular`). For request and response shap
 
 | Method | Path | Summary |
 |---|---|---|
-| POST | `/auth/jwt/create/` | Takes a set of user credentials and returns an access and refresh JSON web |
+| POST | `/auth/jwt/create/` | POST /auth/jwt/create/ with the campus-friendly limits above. |
 | POST | `/auth/jwt/refresh/` | Takes a refresh type JSON web token and returns an access type JSON web |
 | POST | `/auth/jwt/verify/` | Takes a token and indicates if it is valid.  This view provides no |
 | GET | `/auth/users/` | auth_users_list |

@@ -29,7 +29,11 @@ All configuration is read from **environment variables**. Nothing secret is stor
 | `DEFAULT_FROM_EMAIL` | optional | "from" address; defaults to `EMAIL_HOST_USER` |
 | `FIREBASE_CREDENTIALS_B64` | optional | Firebase service-account JSON, base64-encoded; empty disables push |
 | `GOOGLE_APPLICATION_CREDENTIALS` | optional | alternative: path to the service-account file |
-| `THROTTLE_ANON`, `THROTTLE_USER` | optional | rate limits, for example `30/minute` (defaults: anonymous 30, signed-in 42) |
+| `THROTTLE_ANON`, `THROTTLE_USER` | optional | rate limits per address / per signed-in user, for example `120/minute` (defaults: 120 and 120; many students share one campus address) |
+| `THROTTLE_LOGIN_IP`, `THROTTLE_LOGIN_USER` | optional | sign-in limits: per address (default `600/minute`) and per account (default `10/minute`) |
+| `NUM_PROXIES` | on a host | how many proxies sit in front of the app (Render: `1`), so the visitor's real address is used for the limits |
+| `WEB_CONCURRENCY`, `GUNICORN_THREADS` | optional | gunicorn workers (default 2) and threads per worker (default 4) |
+| `ACCOUNT_SETUP_GRACE_DAYS` | optional | days a bulk-registered student may use the printed slip (default 21) |
 | `CRON_SECRET` | for schedules | long random string; the GitHub workflows send it as `X-Cron-Token`. Empty disables the scheduled triggers |
 | `WEEKLY_DONATION_AMOUNT` | optional | amount (birr) named in the Thursday reminder; default `10` |
 | `EVENT_EMAIL_LIMIT` | optional | most emails one new event may send; default `300` |

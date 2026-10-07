@@ -220,3 +220,29 @@ class TestRemindersAndReissue:
         mine = next(r for r in rows if r["id"] == user.id)
         assert mine["setup"]["pending"] is True and mine["setup"]["days_left"] == 5
         assert next(r for r in rows if r["id"] == boss.id)["setup"] is None
+
+
+@pytest.mark.django_db
+class TestCampusFriendlyLoginLimits:
+    def test_one_account_is_limited_but_a_whole_campus_on_one_ip_is_not(self, monkeypatch):
+        from django.core.cache import cache
+        from rest_framework.throttling import SimpleRateThrottle
+
+        cache.clear()
+        monkeypatch.setitem(SimpleRateThrottle.THROTTLE_RATES, "login_user", "3/minute")
+        monkeypatch.setitem(SimpleRateThrottle.THROTTLE_RATES, "login_ip", "50/minute")
+        users = [User.objects.create_user(username=f"s{i}@gmail.com", email=f"s{i}@gmail.com", password="Right-Pass-1x") for i in range(20)]
+        c = APIClient()
+        # 20 different students from the same address all get in
+        for u in users:
+            assert c.post("/auth/jwt/create/", {"username": u.email, "password": "Right-Pass-1x"}, format="json").status_code == 200
+        # one account being guessed is stopped after 3 tries a minute
+        codes = [c.post("/auth/jwt/create/", {"username": "victim@gmail.com", "password": f"guess{i}"}, format="json").status_code for i in range(5)]
+        assert codes[:3] == [401, 401, 401] and codes[3:] == [429, 429]
+        # ... and one address trying many different emails is stopped by the high ceiling
+        blocked = 0
+        for i in range(60):
+            r = APIClient().post("/auth/jwt/create/", {"username": f"nobody{i}@gmail.com", "password": "x"}, format="json")
+            blocked += r.status_code == 429
+        assert blocked >= 1
+        cache.clear()

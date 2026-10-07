@@ -17,7 +17,8 @@ The development commands (`reset_dev_data`, `seed_people`, `seed_demo`, `create_
 - JWT sign-in through Djoser; the access token lasts one day.
 - Passwords must pass Django's validators; `create_first_admin` refuses weak ones.
 - Every endpoint is permission-checked on the server (see [roles-and-permissions.md](roles-and-permissions.md)). Hiding a button in the website is never the protection.
-- Default rate limits: 30 requests a minute for anonymous users and 42 for signed-in users (`THROTTLE_ANON`, `THROTTLE_USER`).
+- Default rate limits: 120 requests a minute per address for anonymous users and 120 per signed-in user (`THROTTLE_ANON`, `THROTTLE_USER`). Sign-in has its own limits: 10 attempts a minute for one account and 600 a minute for one address, so a whole campus behind one IP can sign in while one account cannot be guessed quickly.
+- Students registered from a list get a printed slip (made-up email and random password) that works for a limited time (`ACCOUNT_SETUP_GRACE_DAYS`); afterwards every page except the Account page is closed until the student confirms a real email with a 6-digit code and chooses a new password. Only a keyed hash of the code is stored.
 - Scheduled-job URLs need the `X-Cron-Token` header; a wrong or missing token gets a bare 404.
 - Chapa webhooks are accepted only with a valid signature.
 

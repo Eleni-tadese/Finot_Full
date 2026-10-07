@@ -179,9 +179,15 @@ REST_FRAMEWORK = {
     ],
     "DEFAULT_THROTTLE_RATES": {
         # Override in .env, e.g. THROTTLE_USER=600/minute for local testing.
-        "anon": os.environ.get("THROTTLE_ANON") or "30/minute",
-        "user": os.environ.get("THROTTLE_USER") or "42/minute",
+        # Many students share one campus IP, so these are per address and generous; sign-in has its own limits.
+        "anon": os.environ.get("THROTTLE_ANON") or "120/minute",
+        "user": os.environ.get("THROTTLE_USER") or "120/minute",
+        "login_ip": os.environ.get("THROTTLE_LOGIN_IP") or "600/minute",
+        "login_user": os.environ.get("THROTTLE_LOGIN_USER") or "10/minute",
     },
+    # How many proxies sit in front of the app (Render: 1). Needed so the visitor's real address is used and cannot be
+    # faked with an X-Forwarded-For header. Leave empty on a laptop.
+    "NUM_PROXIES": int(os.environ["NUM_PROXIES"]) if os.environ.get("NUM_PROXIES") else None,
     "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.PageNumberPagination",
     "PAGE_SIZE": 20,
 }
