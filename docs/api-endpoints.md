@@ -67,12 +67,20 @@ Generated from the code (`manage.py spectacular`). For request and response shap
 | Method | Path | Summary |
 |---|---|---|
 | GET | `/api/analytics/export/course-attendance/{semester_course_id}/` | api_analytics_export_course_attendance_retrieve |
+| GET | `/api/analytics/export/courses/` | api_analytics_export_courses_retrieve |
 | GET | `/api/analytics/export/donations/` | api_analytics_export_donations_retrieve |
 | GET | `/api/analytics/export/event-attendance/` | api_analytics_export_event_attendance_retrieve |
 | GET | `/api/analytics/export/events/` | api_analytics_export_events_retrieve |
+| GET | `/api/analytics/export/everything/` | api_analytics_export_everything_retrieve |
 | GET | `/api/analytics/export/families/` | api_analytics_export_families_retrieve |
+| GET | `/api/analytics/export/materials/` | api_analytics_export_materials_retrieve |
 | GET | `/api/analytics/export/private-qa/` | api_analytics_export_private_qa_retrieve |
+| GET | `/api/analytics/export/public-qa/` | api_analytics_export_public_qa_retrieve |
+| GET | `/api/analytics/export/service-groups/` | api_analytics_export_service_groups_retrieve |
+| GET | `/api/analytics/export/setup/` | api_analytics_export_setup_retrieve |
+| GET | `/api/analytics/export/sms-log/` | api_analytics_export_sms_log_retrieve |
 | GET | `/api/analytics/export/students/` | api_analytics_export_students_retrieve |
+| GET | `/api/analytics/export/users/` | api_analytics_export_users_retrieve |
 
 ## `/api/auth/`
 

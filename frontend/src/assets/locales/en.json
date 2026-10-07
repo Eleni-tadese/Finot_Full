@@ -1681,5 +1681,21 @@
   "hide_password": "Hide password",
   "show_password": "Show password",
   "get_account_link": "How do I get an account?",
-  "get_account_btn": "Get an account"
+  "get_account_btn": "Get an account",
+  "adm_exp_users": "Users and roles",
+  "adm_exp_users_d": "Every account with its roles, year, department, stage and whether it came from a slip. No passwords.",
+  "adm_exp_groups": "Service groups",
+  "adm_exp_groups_d": "Groups with their admin, members and the groups students chose (three sheets).",
+  "adm_exp_courses": "Courses",
+  "adm_exp_courses_d": "Curriculums, semester courses, enrolments, class days and all course attendance (five sheets).",
+  "adm_exp_pubqa": "Public Q&A",
+  "adm_exp_pubqa_d": "Public questions and their answers with approval status.",
+  "adm_exp_materials": "Materials",
+  "adm_exp_materials_d": "Uploaded course and group materials with who added them.",
+  "adm_exp_setup": "Departments, year changes and registrations",
+  "adm_exp_setup_d": "Departments, the yearly promotion history and the slip registration batches (three sheets).",
+  "adm_exp_sms": "SMS log",
+  "adm_exp_sms_d": "The latest 5000 SMS messages with their status.",
+  "adm_exp_all": "Everything in one file",
+  "adm_exp_all_d": "One Excel file with every table above, one sheet each. Use it as a backup copy. Contains personal information: keep it safe."
 }

@@ -7,6 +7,7 @@ from .api_views import (
     FamiliesExportView,
     DonationsExportView,
     PrivateQAExportView,
+    EXTRA_EXPORT_VIEWS,
     StudentsExportView,
 )
 
@@ -22,4 +23,8 @@ urlpatterns = [
         CourseAttendanceExportView.as_view(),
         name="export-course-attendance",
     ),
+]
+
+urlpatterns += [
+    path(f"export/{slug}/", view.as_view(), name=f"export-{slug}") for slug, view in EXTRA_EXPORT_VIEWS.items()
 ]

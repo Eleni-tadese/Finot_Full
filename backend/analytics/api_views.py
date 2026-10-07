@@ -24,6 +24,7 @@ from course.models import SemesterCourse
 from course.reports import course_attendance_report
 from service.models import Event, ServiceAttendance
 
+from . import exports
 from .exports import (
     donations_sheets, event_attendance_sheets, events_sheets, families_sheets, private_qa_sheets, students_sheets,
 )
@@ -54,6 +55,30 @@ class FamiliesExportView(ExportView):
         if not _has_role(request.user, Role.SUPER_ADMIN, Role.FAMILY_ADMIN):
             raise PermissionDenied("Not allowed to export families.")
         return xlsx_response(f"families-{_stamp()}.xlsx", families_sheets())
+
+
+def _super_admin_export(slug, builder):
+    """A view class for a Super Admin only export (these files hold personal data)."""
+    class View(ExportView):
+        def get(self, request):
+            if not _has_role(request.user, Role.SUPER_ADMIN):
+                raise PermissionDenied("Only the Super Admin can export this.")
+            return xlsx_response(f"{slug}-{_stamp()}.xlsx", getattr(exports, builder)())
+    View.__name__ = f"{builder}_view"
+    return View
+
+
+EXTRA_EXPORTS = {
+    "users": "users_sheets",
+    "service-groups": "service_groups_sheets",
+    "courses": "courses_sheets",
+    "public-qa": "public_qa_sheets",
+    "materials": "materials_sheets",
+    "setup": "setup_sheets",
+    "sms-log": "sms_log_sheets",
+    "everything": "everything_sheets",
+}
+EXTRA_EXPORT_VIEWS = {slug: _super_admin_export(slug, b) for slug, b in EXTRA_EXPORTS.items()}
 
 
 class DonationsExportView(ExportView):
