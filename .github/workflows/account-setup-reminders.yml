@@ -1,0 +1,17 @@
+name: Account set-up reminders
+
+on:
+  schedule:
+    # every day 05:00 UTC = 08:00 Ethiopia time: students still on their login slip are asked to add a real email
+    - cron: "0 5 * * *"
+  workflow_dispatch: {}
+
+jobs:
+  remind:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Call the backend trigger
+        run: |
+          curl --fail --silent --show-error --max-time 300 -X POST \
+            -H "X-Cron-Token: ${{ secrets.CRON_SECRET }}" \
+            "${{ secrets.BACKEND_URL }}/api/notifications/cron/account-setup-reminders/"
