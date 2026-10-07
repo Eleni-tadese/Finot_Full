@@ -216,3 +216,16 @@ class TestWebhookAndCronGuards:
         settings.CRON_SECRET = "real-secret"
         res = Client().post("/api/notifications/cron/weekly-reminders/", HTTP_X_CRON_TOKEN="wrong-é")
         assert res.status_code == 404
+
+
+@pytest.mark.django_db
+class TestBackendFrontDoor:
+    def test_root_sends_visitors_to_the_website(self, settings):
+        settings.FRONTEND_URL = "https://finot.example.org"
+        res = Client().get("/")
+        assert res.status_code == 302 and res["Location"] == "https://finot.example.org"
+
+    def test_root_without_a_site_address_says_the_api_runs(self, settings):
+        settings.FRONTEND_URL = ""
+        res = Client().get("/")
+        assert res.status_code == 200 and res.json()["service"] == "Finot API"

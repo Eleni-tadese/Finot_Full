@@ -1,4 +1,4 @@
-from django.shortcuts import render
+from django.http import HttpResponseRedirect, JsonResponse
 from rest_framework import viewsets, permissions, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -10,7 +10,11 @@ from django.conf import settings
 
 
 def home_page(request):
-    return render(request, "core/index.html")
+    """The backend's front door: visitors belong on the website, so send them there (address from FRONTEND_URL)."""
+    site = (getattr(settings, "FRONTEND_URL", "") or "").strip()
+    if site:
+        return HttpResponseRedirect(site)
+    return JsonResponse({"service": "Finot API", "status": "ok"})
 
 
 class GoogleLogin(SocialLoginView):
