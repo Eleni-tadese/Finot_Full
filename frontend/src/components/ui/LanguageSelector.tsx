@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
 import { motion, AnimatePresence } from "framer-motion";
 import { ChevronDownIcon } from "@heroicons/react/24/outline";
@@ -17,6 +18,8 @@ const LanguageSelector: React.FC<LanguageSelectorProps> = ({ variant = "nav" }) 
   const { i18n } = useTranslation();
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+  const [pos, setPos] = useState({ top: 0, left: 0 });
 
   const currentLanguage = languages.find((lang) => lang.code === i18n.language) || languages[0];
 
@@ -27,13 +30,32 @@ const LanguageSelector: React.FC<LanguageSelectorProps> = ({ variant = "nav" }) 
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-        setIsOpen(false);
-      }
+      const target = event.target as Node;
+      if (dropdownRef.current?.contains(target) || menuRef.current?.contains(target)) return;
+      setIsOpen(false);
     };
+    const close = () => setIsOpen(false);
     document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
+    window.addEventListener("resize", close);
+    window.addEventListener("scroll", close, true);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      window.removeEventListener("resize", close);
+      window.removeEventListener("scroll", close, true);
+    };
   }, []);
+
+  // The list is drawn on top of the page (not inside the header) and placed from the button's real position,
+  // so it never runs off the edge of a phone or tablet screen.
+  const MENU_WIDTH = 192;
+  const toggle = (event: React.MouseEvent<HTMLButtonElement>) => {
+    if (!isOpen) {
+      const r = event.currentTarget.getBoundingClientRect();
+      const left = Math.min(Math.max(r.right - MENU_WIDTH, 8), window.innerWidth - MENU_WIDTH - 8);
+      setPos({ top: r.bottom + 8, left });
+    }
+    setIsOpen(!isOpen);
+  };
 
   // Inside a menu panel that clips (the phone menu) a drop-down would be cut off: show the choices side by side.
   if (variant === "inline") {
@@ -61,7 +83,7 @@ const LanguageSelector: React.FC<LanguageSelectorProps> = ({ variant = "nav" }) 
       <motion.button
         whileHover={{ scale: 1.02 }}
         whileTap={{ scale: 0.98 }}
-        onClick={() => setIsOpen(!isOpen)}
+        onClick={toggle}
         data-language-selector="button"
         aria-haspopup="listbox"
         aria-expanded={isOpen}
@@ -78,14 +100,17 @@ const LanguageSelector: React.FC<LanguageSelectorProps> = ({ variant = "nav" }) 
         />
       </motion.button>
 
+      {createPortal(
       <AnimatePresence>
         {isOpen && (
           <motion.div
+            ref={menuRef}
+            style={{ position: "fixed", top: pos.top, left: pos.left, width: MENU_WIDTH }}
             initial={{ opacity: 0, y: 10, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 10, scale: 0.95 }}
             transition={{ duration: 0.15, ease: "easeOut" }}
-            className="absolute right-0 mt-2 w-48 rounded-2xl bg-card border border-border shadow-elevated z-50 overflow-hidden"
+            className="z-[100] rounded-2xl bg-card border border-border shadow-elevated overflow-hidden"
           >
             <div className="p-1.5">
               {languages.map((lang) => (
@@ -110,7 +135,8 @@ const LanguageSelector: React.FC<LanguageSelectorProps> = ({ variant = "nav" }) 
             </div>
           </motion.div>
         )}
-      </AnimatePresence>
+      </AnimatePresence>,
+      document.body)}
     </div>
   );
 };
