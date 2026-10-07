@@ -1,6 +1,7 @@
 from django.urls import path
 
 from . import console_views as v
+from . import import_views as imp
 
 urlpatterns = [
     path("overview/", v.OverviewView.as_view()),
@@ -23,6 +24,11 @@ urlpatterns = [
     path("families/distribution/auto-preview/", v.DistributionAutoPreviewView.as_view()),
     path("families/distribution/confirm/", v.DistributionConfirmView.as_view()),
     path("families/distribution/batches/<int:pk>/undo/", v.DistributionUndoView.as_view()),
+    path("accounts/import/template/", imp.ImportTemplateView.as_view()),
+    path("accounts/import/preview/", imp.ImportPreviewView.as_view()),
+    path("accounts/import/commit/", imp.ImportCommitView.as_view()),
+    path("accounts/import/batches/", imp.ImportBatchesView.as_view()),
+    path("accounts/import/batches/<int:pk>/undo/", imp.ImportUndoView.as_view()),
     path("departments/", v.DepartmentsView.as_view()),
     path("departments/<int:pk>/", v.DepartmentDetailView.as_view()),
     path("academic-year/", v.AcademicYearView.as_view()),

@@ -9,6 +9,11 @@ Generated from the code (`manage.py spectacular`). For request and response shap
 | GET | `/api/admin-console/academic-year/` | What "Start new year" would do right now, plus the history of earlier runs. |
 | POST | `/api/admin-console/academic-year/rollover/` | api_admin_console_academic_year_rollover_create |
 | POST | `/api/admin-console/academic-year/rollover/{id}/undo/` | api_admin_console_academic_year_rollover_undo_create |
+| GET | `/api/admin-console/accounts/import/batches/` | api_admin_console_accounts_import_batches_retrieve |
+| POST | `/api/admin-console/accounts/import/batches/{id}/undo/` | api_admin_console_accounts_import_batches_undo_create |
+| POST | `/api/admin-console/accounts/import/commit/` | api_admin_console_accounts_import_commit_create |
+| POST | `/api/admin-console/accounts/import/preview/` | api_admin_console_accounts_import_preview_create |
+| GET | `/api/admin-console/accounts/import/template/` | api_admin_console_accounts_import_template_retrieve |
 | GET | `/api/admin-console/departments/` | api_admin_console_departments_retrieve |
 | POST | `/api/admin-console/departments/` | api_admin_console_departments_create |
 | PATCH | `/api/admin-console/departments/{id}/` | api_admin_console_departments_partial_update |

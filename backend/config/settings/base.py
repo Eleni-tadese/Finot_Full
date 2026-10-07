@@ -117,6 +117,10 @@ AUTH_PASSWORD_VALIDATORS = [
 
 SITE_ID = 1
 
+# Students registered by the bulk import may use their printed slip (email + password) for this many days;
+# after that they must give a real email and choose a new password.
+ACCOUNT_SETUP_GRACE_DAYS = int(os.environ.get("ACCOUNT_SETUP_GRACE_DAYS") or 21)
+
 # Where Django sends users after a login that has no ?next= (e.g. /admin/login/ opened directly).
 LOGIN_REDIRECT_URL = "/admin/"
 

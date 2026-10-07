@@ -69,11 +69,39 @@ class StudentProfile(models.Model):
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default=IN_CAMPUS)
     graduated_at = models.DateTimeField(blank=True, null=True)
 
+    # Accounts made by the bulk import: the slip email and password work until `setup_deadline`;
+    # then the student must give a real email and a new password (see student/account_setup.py).
+    import_batch = models.ForeignKey(
+        "AccountImportBatch", on_delete=models.SET_NULL, null=True, blank=True, related_name="students"
+    )
+    setup_deadline = models.DateTimeField(blank=True, null=True)
+    setup_completed_at = models.DateTimeField(blank=True, null=True)
+
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
         return f"{self.user} Profile"
+
+
+class AccountImportBatch(models.Model):
+    """
+    One bulk registration of students from a list. Lets the Super Admin see what was imported and undo it
+    (only accounts nobody has signed in to yet are removed).
+    """
+
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name="+"
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    grace_days = models.PositiveSmallIntegerField(default=21)
+    undone_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"Import {self.created_at:%Y-%m-%d %H:%M}"
 
 
 class Department(models.Model):
