@@ -5,6 +5,7 @@ Run daily (see .github/workflows/account-setup-reminders.yml). Each stage is sen
 """
 from django.utils import timezone
 
+from core.messages import tr
 from student.account_setup import is_slip_email, status_for
 from student.models import StudentProfile
 
@@ -35,7 +36,9 @@ def send_account_setup_reminders():
         stage, _, title, message = due[-1]
         if stage <= profile.setup_reminder_stage:
             continue
-        text = message.format(days=st["days_left"])
+        lang = profile.language
+        title = tr(title, lang)
+        text = tr(message, lang, days=st["days_left"])
         notes.append(Notification(user=profile.user, title=title, message=text, notification_type=Notification.TYPE_SYSTEM))
         user_ids_for_push[profile.user_id] = (title, text)
         StudentProfile.objects.filter(pk=profile.pk).update(setup_reminder_stage=stage)

@@ -1,6 +1,7 @@
 
 import axios, { InternalAxiosRequestConfig, AxiosHeaders, AxiosResponse } from 'axios';
 import toast from 'react-hot-toast';
+import i18n from './i18n';
 
 // Extend the InternalAxiosRequestConfig interface to include the _retry property
 interface CustomAxiosRequestConfig extends InternalAxiosRequestConfig {
@@ -21,6 +22,9 @@ axiosInstance.interceptors.request.use(
     if (!config.headers) {
       config.headers = new AxiosHeaders();
     }
+
+    // The server answers (errors, emails, reminders) in the language the person chose on the site.
+    (config.headers as any)['Accept-Language'] = i18n.language || 'en';
 
     if (token) {
        // DIRECT ASSIGNMENT: This is safer than .set() for mixed environments

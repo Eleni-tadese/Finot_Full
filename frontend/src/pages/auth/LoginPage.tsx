@@ -45,7 +45,7 @@ const LoginPage = () => {
       await login(email.trim(), password);
       navigate("/dashboard");
     } catch (error: any) {
-      const wrong = !error.message || error.message.includes("Incorrect");
+      const wrong = !error.message || error.code === "wrong_credentials";
       setWrongLogin(wrong);
       setFormError(wrong ? t("login_wrong") : error.message);
     } finally {

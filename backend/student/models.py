@@ -79,6 +79,8 @@ class StudentProfile(models.Model):
     password_changed_at = models.DateTimeField(blank=True, null=True)
     # how far the "finish your account" reminders have gone (0 = none yet)
     setup_reminder_stage = models.PositiveSmallIntegerField(default=0)
+    # the language the student last used on the site (en, am, om); server emails and reminders use it
+    language = models.CharField(max_length=2, default="en")
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

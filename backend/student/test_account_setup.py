@@ -356,3 +356,46 @@ class TestSelfRegistrationIsClosedByDefault:
             importlib.reload(base)
             assert base.SELF_REGISTRATION_OPEN is True
         importlib.reload(base)
+
+
+@pytest.mark.django_db
+class TestLanguages:
+    def test_errors_follow_the_language_of_the_request(self):
+        user, pw = slip_student()
+        c = client(user)
+        body = {"email": "abel@gmail.com", "current_password": "wrong"}
+        assert c.post(ACC + "email-code/", body, format="json").json()["current_password"] == "The current password is not correct."
+        am = c.post(ACC + "email-code/", body, format="json", HTTP_ACCEPT_LANGUAGE="am-ET,am;q=0.9").json()
+        assert am["current_password"] == "የአሁኑ የይለፍ ቃል ትክክል አይደለም።"
+        om = c.post(ACC + "email-code/", body, format="json", HTTP_ACCEPT_LANGUAGE="om").json()
+        assert om["current_password"] == "Jechi darbii amma ibsame sirrii miti."
+
+    def test_password_rules_are_translated(self):
+        user, pw = slip_student()
+        res = client(user).post(ACC + "change-password/", {"current_password": pw, "new_password": "abc"}, format="json", HTTP_ACCEPT_LANGUAGE="om")
+        assert res.status_code == 400
+        assert "arfii 8" in res.json()["new_password"] and "too short" not in res.json()["new_password"]
+        en = client(user).post(ACC + "change-password/", {"current_password": pw, "new_password": "12345678"}, format="json").json()
+        assert "entirely numeric" in en["new_password"]
+
+    def test_code_email_is_sent_in_the_chosen_language(self):
+        user, pw = slip_student()
+        client(user).post(ACC + "email-code/", {"email": "abel@gmail.com", "current_password": pw}, format="json", HTTP_ACCEPT_LANGUAGE="am")
+        assert mail.outbox[-1].subject == "የፊኖት ማረጋገጫ ኮድዎ"
+        assert code_from_outbox().isdigit()
+
+    def test_language_is_remembered_and_reminders_use_it(self):
+        user, _ = slip_student(days=5)
+        client(user).get(ACC + "status/", HTTP_ACCEPT_LANGUAGE="am")
+        assert user.student_profile.__class__.objects.get(user=user).language == "am"
+        send_account_setup_reminders()
+        note = Notification.objects.filter(user=user).latest("created_at")
+        assert note.title == "ለመግቢያ ወረቀትዎ አንድ ሳምንት ቀርቷል" and "5" in note.message
+
+    def test_expired_slip_message_is_translated(self):
+        user, _ = slip_student(days=-1)
+        from rest_framework_simplejwt.tokens import RefreshToken
+        c = APIClient()
+        c.credentials(HTTP_AUTHORIZATION="JWT " + str(RefreshToken.for_user(user).access_token))
+        res = c.get("/api/notifications/", HTTP_ACCEPT_LANGUAGE="om")
+        assert res.status_code == 403 and res.json()["code"] == "account_setup_required" and "Waraqaan" in res.json()["detail"]

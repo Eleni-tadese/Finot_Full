@@ -11,17 +11,20 @@ from rest_framework import permissions, status
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from service.i18n import request_language
+
 from . import account_setup as setup
 
 
-def _error(exc):
-    return Response({exc.field: exc.message}, status=status.HTTP_400_BAD_REQUEST)
+def _error(exc, request):
+    return Response({exc.field: exc.text_for(request_language(request))}, status=status.HTTP_400_BAD_REQUEST)
 
 
 class AccountStatusView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request):
+        setup.remember_language(request.user, request_language(request))
         return Response({"email": request.user.email, "setup": setup.status_for(request.user)})
 
 
@@ -30,9 +33,9 @@ class EmailCodeView(APIView):
 
     def post(self, request):
         try:
-            email = setup.request_email_code(request.user, request.data.get("email"), request.data.get("current_password"))
+            email = setup.request_email_code(request.user, request.data.get("email"), request.data.get("current_password"), request_language(request))
         except setup.SetupError as exc:
-            return _error(exc)
+            return _error(exc, request)
         return Response({"sent_to": email})
 
 
@@ -43,7 +46,7 @@ class ConfirmEmailView(APIView):
         try:
             email = setup.confirm_email_code(request.user, request.data.get("code"))
         except setup.SetupError as exc:
-            return _error(exc)
+            return _error(exc, request)
         return Response({"email": email, "setup": setup.status_for(request.user)})
 
 
@@ -55,7 +58,7 @@ class NamesView(APIView):
         try:
             setup.set_names(request.user, d.get("first_name"), d.get("middle_name"), d.get("last_name"), d.get("gender"))
         except setup.SetupError as exc:
-            return _error(exc)
+            return _error(exc, request)
         return Response({"setup": setup.status_for(request.user)})
 
 
@@ -66,5 +69,5 @@ class ChangePasswordView(APIView):
         try:
             setup.change_password(request.user, request.data.get("current_password"), request.data.get("new_password"))
         except setup.SetupError as exc:
-            return _error(exc)
+            return _error(exc, request)
         return Response({"setup": setup.status_for(request.user)})

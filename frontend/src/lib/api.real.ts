@@ -1,5 +1,6 @@
 // src/services/api.real.js
 import { toFrontRoles } from "../features/auth/roles";
+import i18n from './i18n';
 import axiosInstance from './axios';
 import { AuthUser, AttendanceRecord, Donation, Event, Question, PaginatedResponse, ServiceGroup, ServiceSelection, Answer } from '../types';
 import { Resource } from '@/types/resource';
@@ -111,7 +112,9 @@ export const api = {
       console.log("LOGIN RAW RESPONSE:", response);
     } catch (error: any) {
       if (error.response && error.response.status === 401) {
-        throw new Error("Incorrect Email or Password. Your account is given by the organization on a printed slip.");
+        const wrong: any = new Error(i18n.t("login_wrong"));
+        wrong.code = "wrong_credentials";
+        throw wrong;
       }
       throw error;
     }

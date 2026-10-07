@@ -5,6 +5,9 @@ slip has expired, every call except the set-up ones is refused with the code `ac
 from rest_framework.exceptions import PermissionDenied
 from rest_framework_simplejwt.authentication import JWTAuthentication
 
+from core.messages import tr
+from service.i18n import request_language
+
 from .account_setup import is_blocked
 
 OPEN_PREFIXES = ("/auth/users/me", "/auth/jwt/", "/api/account/", "/auth/users/reset_password")
@@ -18,7 +21,7 @@ class SetupAwareJWTAuthentication(JWTAuthentication):
         user, _ = result
         if not request.path.startswith(OPEN_PREFIXES) and is_blocked(user):
             raise PermissionDenied({
-                "detail": "Your first slip has expired. Add your own email and a new password to continue.",
+                "detail": tr("Your first slip has expired. Add your own email and a new password to continue.", request_language(request)),
                 "code": "account_setup_required",
             })
         return result

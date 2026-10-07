@@ -21,6 +21,8 @@ from django.core.exceptions import ValidationError as DjangoValidationError
 from django.core.validators import validate_email
 from django.utils import timezone
 
+from core.messages import tr
+
 from .account_import import SLIP_DOMAINS, new_password, quick_hash
 from .models import EmailVerification, StudentProfile
 
@@ -34,10 +36,26 @@ MAX_CODES_PER_HOUR = 5
 class SetupError(Exception):
     """A plain-language reason shown to the student (field -> message)."""
 
-    def __init__(self, message, field="detail"):
+    def __init__(self, message, field="detail", parts=None):
         super().__init__(message)
         self.field = field
         self.message = message
+        # several messages with their values, e.g. [("This password is too common.", {})]; translated by `text_for`
+        self.parts = parts
+
+    def text_for(self, lang):
+        """The reason in the student's language (English when there is no translation)."""
+        if self.parts:
+            return " ".join(tr(text, lang, **values) for text, values in self.parts)
+        return tr(self.message, lang)
+
+
+def remember_language(user, lang):
+    """Keep the student's site language so emails and reminders sent later (no request) use it."""
+    profile = _profile(user)
+    if profile is not None and lang in ("en", "am", "om") and profile.language != lang:
+        profile.language = lang
+        profile.save(update_fields=["language"])
 
 
 def is_slip_email(email):
@@ -97,7 +115,7 @@ def _digest(user, email, code):
     return hmac.new(settings.SECRET_KEY.encode(), f"{user.pk}:{email}:{code}".encode(), hashlib.sha256).hexdigest()
 
 
-def request_email_code(user, new_email, current_password):
+def request_email_code(user, new_email, current_password, lang="en"):
     """Send a 6-digit code to the new address. The login changes only when the code comes back."""
     from notifications.channels.email import _send_html_email
     from notifications.reminders import is_deliverable
@@ -120,9 +138,9 @@ def request_email_code(user, new_email, current_password):
         raise SetupError("Too many codes were requested. Try again in an hour.")
     code = f"{secrets.randbelow(10 ** 6):06d}"
     sent = _send_html_email(
-        "Your Finot confirmation code", [email],
-        message_body=(f"<p>Your confirmation code is</p><p style=\"font-size: 28px; font-weight: bold; letter-spacing: 6px;\">{code}</p>"
-                      f"<p>It works for {CODE_MINUTES} minutes. If you did not ask for it, ignore this message.</p>"),
+        tr("Your Finot confirmation code", lang), [email],
+        message_body=(f"<p>{tr('Your confirmation code is', lang)}</p><p style=\"font-size: 28px; font-weight: bold; letter-spacing: 6px;\">{code}</p>"
+                      f"<p>{tr('It works for {minutes} minutes. If you did not ask for it, ignore this message.', lang, minutes=CODE_MINUTES)}</p>"),
     )
     if not sent:
         raise SetupError("The email could not be sent. Check the address and try again.", "email")
@@ -192,7 +210,20 @@ def change_password(user, current_password, new_password_text):
     try:
         validate_password(new_password_text, user)
     except DjangoValidationError as exc:
-        raise SetupError(" ".join(exc.messages), "new_password")
+        parts = []
+        for error in exc.error_list:
+            code = getattr(error, "code", "")
+            if code == "password_too_short":
+                parts.append(("This password is too short. It must contain at least {n} characters.", {"n": (error.params or {}).get("min_length", 8)}))
+            elif code == "password_too_common":
+                parts.append(("This password is too common.", {}))
+            elif code == "password_entirely_numeric":
+                parts.append(("This password is entirely numeric.", {}))
+            elif code == "password_too_similar":
+                parts.append(("The password is too similar to your personal information.", {}))
+            else:
+                parts.append((" ".join(error.messages), {}))
+        raise SetupError(" ".join(exc.messages), "new_password", parts=parts)
     user.set_password(new_password_text)
     user.save(update_fields=["password"])
     profile = _profile(user)

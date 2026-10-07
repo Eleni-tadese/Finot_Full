@@ -146,6 +146,7 @@ CORS_ALLOW_CREDENTIALS = True
 CORS_ALLOW_HEADERS = [
     "accept",
     "accept-encoding",
+    "accept-language",
     "authorization",
     "content-type",
     "dnt",
