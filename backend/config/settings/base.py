@@ -271,6 +271,8 @@ EMAIL_USE_TLS = env_bool("EMAIL_USE_TLS", True)
 EMAIL_HOST_USER = os.environ.get("EMAIL_HOST_USER", "")
 EMAIL_HOST_PASSWORD = os.environ.get("EMAIL_HOST_PASSWORD", "")
 DEFAULT_FROM_EMAIL = os.environ.get("DEFAULT_FROM_EMAIL") or EMAIL_HOST_USER or "noreply@finot.local"
+# Free Render blocks the mail ports; the web API of Brevo works there (see notifications/brevo_backend.py).
+BREVO_API_KEY = os.environ.get("BREVO_API_KEY", "")
 # The weekly donation named in the Thursday reminder (birr), and how many reminder emails one run may send
 # (the free Brevo plan allows about 300 emails a day).
 WEEKLY_DONATION_AMOUNT = int(os.environ.get("WEEKLY_DONATION_AMOUNT") or 10)

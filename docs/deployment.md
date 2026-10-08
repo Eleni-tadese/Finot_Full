@@ -67,8 +67,10 @@ GitHub (you have it), Neon, Render, Cloudflare, Cloudinary, an SMTP provider, Ch
    | `CSRF_TRUSTED_ORIGINS` | same as `FRONTEND_URL` |
    | `CLOUDINARY_URL` | from Cloudinary |
    | `CHAPA_SECRET_KEY` | your Chapa **test** key at first |
-   | `EMAIL_BACKEND` | `django.core.mail.backends.smtp.EmailBackend` |
-   | `EMAIL_HOST`, `EMAIL_PORT`, `EMAIL_USE_TLS`, `EMAIL_HOST_USER`, `EMAIL_HOST_PASSWORD`, `DEFAULT_FROM_EMAIL` | from your mail provider |
+   | `EMAIL_BACKEND` | `notifications.brevo_backend.BrevoEmailBackend` (sends through Brevo's web API; **free Render blocks the normal mail ports 25, 465 and 587**, so SMTP does not work there) |
+   | `BREVO_API_KEY` | an API key from Brevo (SMTP & API → API keys) |
+   | `DEFAULT_FROM_EMAIL` | a sender address you verified in Brevo, for example `Finot <you@example.com>` |
+   | *(on a paid Render plan or another host)* | you may use plain SMTP instead: `EMAIL_BACKEND=django.core.mail.backends.smtp.EmailBackend` with `EMAIL_HOST`, `EMAIL_PORT`, `EMAIL_USE_TLS`, `EMAIL_HOST_USER`, `EMAIL_HOST_PASSWORD` |
    | `CRON_SECRET` | a new long random string (`python -c "import secrets; print(secrets.token_urlsafe(48))"`) |
    | `NUM_PROXIES` | `1` (Render sits in front of the app; sign-in limits then count each visitor's real address) |
    | `SECURE_HSTS_SECONDS` | optional; default one week. Raise to `31536000` (one year) once everything works over HTTPS |
