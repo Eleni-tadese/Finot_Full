@@ -15,3 +15,11 @@
 | [security.md](security.md) | review how secrets and access are handled |
 | [api.md](api.md) | call the API; [api-endpoints.md](api-endpoints.md) is the generated endpoint list |
 | [ux-design-brief.md](ux-design-brief.md) | read the product and design brief for the interface |
+
+## Specification documents
+
+| Page | Read it when you want to... |
+|---|---|
+| [product-requirements.md](product-requirements.md) | know the problem, the users, the goals, the features, the metrics and the risks (PRD) |
+| [software-requirements-specification.md](software-requirements-specification.md) | read the numbered, testable functional and non-functional requirements (SRS) |
+| [database-design.md](database-design.md) | see the tables, relations, constraints and ER diagrams |

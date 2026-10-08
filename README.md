@@ -1,41 +1,97 @@
 # Finot
 
-A web platform for the **Gibi Gubae** student fellowship: students, service groups, courses, events, mentorship families, donations and anonymous spiritual counseling, managed from one place.
+**A full-stack platform that runs a student fellowship: registration, roles, courses, attendance, mentorship families, private counseling, donations and notifications, in English, Amharic and Afaan Oromoo.**
+
+Built for the **Gibi Gubae** student fellowship, where about a thousand new students join every year and the leaders used to run everything from paper lists, chat groups and spreadsheets.
+
+| | |
+|---|---|
+| **Live website** | https://finot.pages.dev |
+| **Live API health check** | https://finot-api.onrender.com/health/ (the free host sleeps; the first call can take a minute) |
+| **Status** | In production since October 2026 |
+| **Stack** | React 19 · TypeScript · Vite · Tailwind · Django 5.2 · Django REST Framework · PostgreSQL · Docker |
 
 > This is a private repository. It holds no credentials: every secret is read from environment variables (see [docs/configuration.md](docs/configuration.md)).
 
-## What it does
+## The problem
+
+Student lists in many spreadsheets, attendance on paper, a thousand students to register by hand, mentorship families formed by guesswork, sensitive questions sent through personal chats, and leaders who change every year. Most students use a phone and many prefer Amharic or Afaan Oromoo.
+
+## What Finot does
 
 | Area | In short |
 |---|---|
-| **People and roles** | Students register themselves. A Super Admin gives roles (Service Admin, Event Manager, Course Coordinator, Family Admin, QA Counselor, QA Moderator). Role rules depend on the year of study. |
-| **Service groups** | Groups with their own admin, applicants, members and student-facing page. A student can belong to up to two groups. |
-| **Courses** | Curriculums are opened per semester; students of the matching year are enrolled automatically. Coordinators plan class days, take Present/Absent attendance, upload materials and start/complete the course. Students see their courses, attendance and materials. |
-| **Events** | Like a channel: an Event Manager announces general events to everyone (what, when, where, what to bring) and takes their attendance; a Service Admin does the same for events of their own group, which only that group sees. Notification and email for every event. Students see their events and their own attendance. |
-| **Families** | Mentorship families with a father and mother; smart distribution of first-year students (preview, confirm, undo). |
-| **Questions and answers** | Public questions (moderated) and private questions routed to counselors by category, with alerts and a one-week "unanswered" check. |
-| **Donations** | Chapa payments. Signed-in students give their weekly donation; visitors simply support the fellowship. Super Admin donations page and Excel export. |
-| **Notifications** | In-app, email and push; weekly donation reminder (Thursday), "class tomorrow" reminder, moderator and counselor alerts. SMS is built but off. |
-| **Year progress** | Departments with program length, one-click "start new year" rollover with undo, graduates keep their account. |
-| **Reports** | Excel export of students, families, events, attendance, private Q&A log, donations and course attendance reports. |
-| **Languages** | English, Amharic and Afaan Oromoo. |
+| **Bulk registration** | Print 1000 login slips in an afternoon (8 per page). A student signs in, writes their name, confirms a real email with a 6-digit code and chooses their own password before a deadline. Imports can be undone. |
+| **People and roles** | Eight roles with rules that depend on the year of study (for example counselors need year 3+). Every rule is enforced on the server. |
+| **Service groups** | Students apply with up to three choices; group admins accept applicants; a student can serve in at most two groups. |
+| **Courses and attendance** | Curriculums are opened per semester, students of the matching year are enrolled automatically, coordinators take Present/Absent attendance on a phone, with reports and Excel export. |
+| **Events** | General events for everyone and private events for one group, with email, in-app and push notices, and attendance. |
+| **Mentorship families** | One-click distribution of first-years into mixed families, with preview, confirm and undo. Parents see their children; children reply to the parents. |
+| **Questions and answers** | Moderated public questions, and private questions routed to the right counselor by category; sensitive ones wait for the Super Admin to assign. |
+| **Donations** | Chapa payments for students and visitors, signed webhooks, an hourly re-check of pending payments, and reports. |
+| **Notifications** | In-app, email and push through one dispatcher; Thursday donation reminder and "class tomorrow" reminder from scheduled jobs. SMS is built and switched off. |
+| **Year progress** | One-click "start new year": promote everyone, graduate the last year, undo if needed. |
+| **Reports** | Excel export of every table plus one file with everything. |
+| **Languages** | English, Amharic and Afaan Oromoo, including the server's emails for the sign-up flow. |
+
+## Architecture
+
+```
+ Browser ──HTTPS──▶ React single-page app (Cloudflare Pages)
+                          │ JSON
+                          ▼
+                    Django REST API (Docker on Render)
+                          │
+      ┌───────────────┬───┴──────────┬────────────────┬───────────────┐
+      ▼               ▼              ▼                ▼               ▼
+ PostgreSQL       Cloudinary       Chapa         SMTP email      Firebase push
+ (Neon)           (uploads)      (payments)       (Brevo)         (optional)
+
+ GitHub Actions ──secret-protected HTTPS calls──▶ API   (reminders, payment re-check)
+```
+
+More in [docs/architecture.md](docs/architecture.md).
+
+## Engineering highlights
+
+- **Permissions in small tested modules.** Role rules, group rules, course access and private-question visibility each live in one file with their own tests. A test walks every endpoint as an anonymous visitor to make sure nothing leaks.
+- **Signals and a dispatcher for notifications.** Business code fires an event; channels (in-app, email, push, SMS) subscribe. A broken channel never breaks the request.
+- **Safe bulk operations.** Account import, family distribution and the yearly rollover all keep a batch record so they can be previewed and undone.
+- **Built for a crowd on a weak server.** Slip sign-in uses a light password hash, sign-in limits are per account and per network address (a whole campus shares one address), and bulk emails go over one connection in a background thread.
+- **No server clock.** Scheduled work is started by GitHub Actions calling secret-protected endpoints, so the free host can sleep.
+- **Database integrity.** Uniqueness rules (one attendance row per student per class day, one family per student, one payment per donation) are database constraints, not only code checks. See [docs/database-design.md](docs/database-design.md).
+- **Security pass.** Django 5.2 LTS, webhook signature check, closed API docs in production, HSTS, keyed hash for email codes, upload validation by content, credential scan before every export.
+- **Responsive and translated.** An automated browser audit checks every page at six widths; a script proves every text exists in all three languages.
+- **Continuous integration.** Backend tests, TypeScript check and production build run on every push.
+
+## Specification documents
+
+| Document | What it answers |
+|---|---|
+| [Product Requirements (PRD)](docs/product-requirements.md) | Why Finot exists, for whom, what is in scope, how success is measured |
+| [Software Requirements Specification (SRS)](docs/software-requirements-specification.md) | What the system shall do: numbered, testable functional and non-functional requirements, with traceability to the code |
+| [Database design](docs/database-design.md) | Tables, relations, constraints and ER diagrams |
+| [Architecture](docs/architecture.md) | How the pieces fit together |
+| [Roles and permissions](docs/roles-and-permissions.md) | Who can do what |
+| [UX design brief](docs/ux-design-brief.md) | Interface principles and screens |
 
 ## Repository layout
 
 ```
 Finot_Full/
 ├── frontend/   React + TypeScript + Vite single-page app
-├── backend/    Django 5.1 + Django REST Framework API
-├── docs/       Architecture, setup, configuration, roles, deployment, security, API list
+├── backend/    Django 5.2 + Django REST Framework API
+├── docs/       Specifications, architecture, setup, configuration, roles, deployment, security, API
 ├── .github/    CI (tests, type check, build) and the scheduled reminder jobs
 └── README.md
 ```
 
 ## Tech stack
 
-- **Frontend:** React, TypeScript, Vite, Tailwind CSS, react-i18next, axios, framer-motion.
-- **Backend:** Python 3.13, Django 5.1, Django REST Framework, Djoser + JWT, drf-spectacular (OpenAPI), WhiteNoise, Gunicorn. Dependencies are managed with [uv](https://docs.astral.sh/uv/).
-- **Services:** PostgreSQL (SQLite fallback for local use), Cloudinary (media), Chapa (payments), SMTP email (for example Brevo), Firebase Cloud Messaging (push, optional), GitHub Actions (schedules).
+- **Frontend:** React 19, TypeScript, Vite 7, Tailwind CSS, React Router 7, react-i18next, axios, framer-motion.
+- **Backend:** Python 3.13, Django 5.2 LTS, Django REST Framework, Djoser + JWT, drf-spectacular (OpenAPI), WhiteNoise, Gunicorn, openpyxl (Excel). Dependencies are managed with [uv](https://docs.astral.sh/uv/).
+- **Services:** PostgreSQL (SQLite fallback for local use), Cloudinary (media), Chapa (payments), SMTP email (Brevo), Firebase Cloud Messaging (push, optional), GitHub Actions (schedules).
+- **Hosting:** Cloudflare Pages (website), Render (API, Docker), Neon (database), all on free tiers.
 
 ## Quick start (local)
 
@@ -62,19 +118,17 @@ Everything else (people, roles, groups, courses, families) is created from the w
 ## Tests and checks
 
 ```bash
-cd backend  && uv run pytest              # more than 330 tests
+cd backend  && uv run pytest              # 458 tests
 cd frontend && npx tsc -b && npm run build
 ```
 
 More in [docs/testing.md](docs/testing.md).
 
-## Documentation
+## All documentation
 
-Start at [docs/README.md](docs/README.md). The most useful pages:
+Start at [docs/README.md](docs/README.md). Also useful:
 
-- [Architecture](docs/architecture.md)
 - [Local setup](docs/local-setup.md) and [Configuration](docs/configuration.md)
-- [Roles and permissions](docs/roles-and-permissions.md)
 - [Admin guide](docs/admin-guide.md) (how the project owner runs the platform)
 - [Payments with Chapa](docs/payments-chapa.md)
 - [Notifications and scheduled jobs](docs/notifications-and-reminders.md)

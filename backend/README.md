@@ -1,6 +1,6 @@
 # Finot backend
 
-Django 5.1 + Django REST Framework API for the Finot platform. For the big picture see the [root README](../README.md) and [docs/architecture.md](../docs/architecture.md).
+Django 5.2 + Django REST Framework API for the Finot platform. For the big picture see the [root README](../README.md) and [docs/architecture.md](../docs/architecture.md).
 
 ## Run it
 

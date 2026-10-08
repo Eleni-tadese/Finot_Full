@@ -5,7 +5,7 @@
 ```bash
 cd backend
 uv sync --all-groups        # installs pytest, pytest-django, model-bakery, coverage
-uv run pytest               # the whole suite (more than 330 tests, about a minute)
+uv run pytest               # the whole suite (458 tests, about a minute)
 uv run pytest course        # one app
 uv run pytest -k donation   # tests whose name matches
 ```
