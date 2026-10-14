@@ -1,40 +1,19 @@
-import { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { API_URL, apiRequest } from '@/lib/api';
 import { useSession } from '@/lib/session';
-import type { HealthResponse } from '@/lib/types';
-
-// The three states every screen that loads data must handle: loading, failed, done.
-type ServerCheck =
-  | { state: 'loading' }
-  | { state: 'ok'; seconds: number }
-  | { state: 'error'; message: string };
 
 export default function HomeScreen() {
-  const { signOut } = useSession();
-  const [check, setCheck] = useState<ServerCheck>({ state: 'loading' });
-  const [attempt, setAttempt] = useState(0); // change it to ask again
+  const { user, signOut } = useSession();
 
-  // useEffect runs after the screen appears, and again whenever `attempt` changes.
-  useEffect(() => {
-    let cancelled = false; // do not touch the screen if it was closed meanwhile
-    const started = Date.now();
-    setCheck({ state: 'loading' });
+  // The router only shows this screen to signed-in people, but TypeScript does not know that.
+  if (!user) {
+    return null;
+  }
 
-    apiRequest<HealthResponse>('/health/')
-      .then(() => {
-        if (!cancelled) setCheck({ state: 'ok', seconds: (Date.now() - started) / 1000 });
-      })
-      .catch((error: Error) => {
-        if (!cancelled) setCheck({ state: 'error', message: error.message });
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [attempt]);
+  const fullName = [user.first_name, user.last_name].filter(Boolean).join(' ');
+  // A plain student has no role row, so the list can be empty.
+  const roles = user.roles.length > 0 ? user.roles.join(', ') : 'Student';
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -43,20 +22,12 @@ export default function HomeScreen() {
         <Text style={styles.subtitle}>Gibi Gubae fellowship</Text>
 
         <View style={styles.card}>
-          <Text style={styles.cardTitle}>Server check (temporary)</Text>
-          <Text style={styles.cardText}>{API_URL}</Text>
-          {check.state === 'loading' && <Text style={styles.cardText}>Asking the server... (it may be asleep)</Text>}
-          {check.state === 'ok' && (
-            <Text style={styles.ok}>Connected in {check.seconds.toFixed(1)} seconds</Text>
-          )}
-          {check.state === 'error' && <Text style={styles.error}>{check.message}</Text>}
+          <Text style={styles.cardLabel}>Signed in as</Text>
+          <Text style={styles.name}>{fullName || user.email}</Text>
+          <Text style={styles.cardText}>{user.email}</Text>
+          <Text style={styles.cardLabel}>Roles</Text>
+          <Text style={styles.cardText}>{roles}</Text>
         </View>
-
-        <Pressable
-          style={({ pressed }) => [styles.button, pressed && styles.buttonPressed]}
-          onPress={() => setAttempt(attempt + 1)}>
-          <Text style={styles.buttonText}>Check again</Text>
-        </Pressable>
 
         <Pressable onPress={signOut}>
           <Text style={styles.link}>Sign out</Text>
@@ -92,44 +63,26 @@ const styles = StyleSheet.create({
     backgroundColor: '#f1f5f9',
     borderRadius: 12,
     padding: 16,
-    gap: 6,
+    gap: 4,
     marginTop: 16,
   },
-  cardTitle: {
-    fontSize: 16,
+  cardLabel: {
+    fontSize: 12,
+    color: '#64748b',
+    marginTop: 8,
+    textTransform: 'uppercase',
+  },
+  name: {
+    fontSize: 20,
     fontWeight: '600',
     color: '#0f172a',
   },
   cardText: {
-    fontSize: 14,
-    color: '#475569',
-  },
-  ok: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#166534',
-  },
-  error: {
-    fontSize: 14,
-    color: '#b91c1c',
-  },
-  button: {
-    marginTop: 8,
-    backgroundColor: '#1e3a8a',
-    paddingVertical: 14,
-    paddingHorizontal: 28,
-    borderRadius: 12,
-  },
-  buttonPressed: {
-    opacity: 0.7,
-  },
-  buttonText: {
-    color: '#ffffff',
-    fontSize: 16,
-    fontWeight: '600',
+    fontSize: 15,
+    color: '#334155',
   },
   link: {
-    marginTop: 12,
+    marginTop: 16,
     fontSize: 16,
     color: '#1e3a8a',
   },
