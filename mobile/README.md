@@ -25,3 +25,4 @@ Work in progress, built step by step. See the commit history for each step.
 | 1 | Project created and running on a phone |
 | 2 | First screen: View, Text, Pressable, StyleSheet, useState |
 | 3 | Navigation: tabs, protected routes, sign-in screen (fake session) |
+| 4 | API client (`apiRequest`), server data types, live server check |
