@@ -31,3 +31,5 @@ Work in progress, built step by step. See the commit history for each step.
 | 7 | Home and Profile: reusable `Screen`, `useApi` hook, loading/error/refresh |
 | 8 | Events: paginated list, event detail, my attendance, Ethiopian time |
 | 8b | My attendance: totals, percentage and a record per event |
+| 9 | Notifications: list, mark as read (optimistic), unread count |
+| 9c | Design system: brand colours, Plus Jakarta Sans, cards, icons, dashboard Home |

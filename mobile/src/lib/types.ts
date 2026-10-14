@@ -82,3 +82,18 @@ export type EventAttendance = {
   remark: string | null;
   recorded_at: string;
 };
+
+// GET /api/notifications/  (step 9)
+export type AppNotification = {
+  id: number;
+  title: string;
+  message: string;
+  notification_type: 'EVENT' | 'DONATION' | 'REMINDER' | 'SYSTEM' | 'QA' | string;
+  is_read: boolean;
+  created_at: string;
+};
+
+// GET /api/notifications/unread-count/
+export type UnreadCount = {
+  count: number;
+};

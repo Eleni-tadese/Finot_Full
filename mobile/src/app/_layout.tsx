@@ -1,18 +1,34 @@
-import { DarkTheme, DefaultTheme, Stack, ThemeProvider } from 'expo-router';
+import {
+  PlusJakartaSans_400Regular,
+  PlusJakartaSans_500Medium,
+  PlusJakartaSans_600SemiBold,
+  PlusJakartaSans_700Bold,
+  PlusJakartaSans_800ExtraBold,
+  useFonts,
+} from '@expo-google-fonts/plus-jakarta-sans';
+import { DefaultTheme, Stack, ThemeProvider } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
+import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
-import { useColorScheme } from 'react-native';
 
+import { brand } from '@/constants/brand';
 import { SessionProvider, useSession } from '@/lib/session';
 
-// Keep the splash screen (the logo shown while the app starts) until we know if somebody is signed in.
+// Keep the splash screen (the logo shown while the app starts) until the fonts are loaded
+// and we know if somebody is signed in.
 SplashScreen.preventAutoHideAsync();
+
+// The app is light only for now: the Finot brand colours are drawn for a white background.
+const finotTheme = {
+  ...DefaultTheme,
+  colors: { ...DefaultTheme.colors, background: brand.background, primary: brand.primary, card: brand.card },
+};
 
 // The root layout wraps EVERY screen of the app.
 export default function RootLayout() {
-  const colorScheme = useColorScheme();
   return (
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+    <ThemeProvider value={finotTheme}>
+      <StatusBar style="dark" />
       <SessionProvider>
         <RootNavigator />
       </SessionProvider>
@@ -23,14 +39,24 @@ export default function RootLayout() {
 function RootNavigator() {
   const { isSignedIn, isLoading } = useSession();
 
-  // Once the saved session has been checked, show the right screen by hiding the splash.
+  const [fontsLoaded] = useFonts({
+    PlusJakartaSans_400Regular,
+    PlusJakartaSans_500Medium,
+    PlusJakartaSans_600SemiBold,
+    PlusJakartaSans_700Bold,
+    PlusJakartaSans_800ExtraBold,
+  });
+
+  const ready = fontsLoaded && !isLoading;
+
+  // Once the fonts and the saved session are ready, show the right screen by hiding the splash.
   useEffect(() => {
-    if (!isLoading) {
+    if (ready) {
       SplashScreen.hideAsync();
     }
-  }, [isLoading]);
+  }, [ready]);
 
-  if (isLoading) {
+  if (!ready) {
     return null; // the splash screen is still covering the app
   }
 

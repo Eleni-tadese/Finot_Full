@@ -30,3 +30,12 @@ export function etDate(iso: string): string {
 export function etDateTime(iso: string): string {
   return `${etDate(iso)}, ${etTime(iso)}`;
 }
+
+// "14" and "Oct": used for the little date badge on event cards
+export function etDay(iso: string): string {
+  return String(shifted(iso).getUTCDate());
+}
+
+export function etMonthShort(iso: string): string {
+  return MONTHS[shifted(iso).getUTCMonth()];
+}

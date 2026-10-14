@@ -76,15 +76,19 @@ export function usePaginated<T>(path: string) {
     }
   }
 
+  const reload = useCallback(() => loadFirst(true), [loadFirst]);
+  const retry = useCallback(() => loadFirst(false), [loadFirst]);
+
   return {
     items,
+    setItems, // lets a screen change one row at once (for example mark it as read)
     error,
     loading,
     refreshing,
     loadingMore,
     hasMore: nextPath !== null,
     loadMore,
-    reload: () => loadFirst(true),
-    retry: () => loadFirst(false),
+    reload,
+    retry,
   };
 }

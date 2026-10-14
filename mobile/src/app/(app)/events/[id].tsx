@@ -1,12 +1,33 @@
+import { MaterialIcons } from '@expo/vector-icons';
 import { useLocalSearchParams } from 'expo-router';
-import { Linking, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Linking, Pressable, StyleSheet, View } from 'react-native';
 
-import { attendanceChip, Chip, eventStatusChip } from '@/components/event-card';
+import { attendanceChip, eventStatusChip } from '@/components/event-card';
 import { Screen } from '@/components/screen';
 import { ErrorView, LoadingView } from '@/components/status-views';
+import { AppText } from '@/components/ui/app-text';
+import { Card } from '@/components/ui/card';
+import { Chip } from '@/components/ui/chip';
+import { IconBadge } from '@/components/ui/icon-badge';
+import { brand } from '@/constants/brand';
 import { useApi } from '@/hooks/use-api';
-import { etDateTime } from '@/lib/ethiopia-time';
+import { etDate, etTime } from '@/lib/ethiopia-time';
 import type { EventAttendance, Paginated, ServiceEvent } from '@/lib/types';
+
+// One line of the details card: an icon, a small label and the value.
+function InfoRow({ icon, label, value }: { icon: keyof typeof MaterialIcons.glyphMap; label: string; value: string }) {
+  return (
+    <View style={styles.infoRow}>
+      <IconBadge name={icon} size={40} />
+      <View style={styles.infoText}>
+        <AppText variant="label" color={brand.muted}>
+          {label}
+        </AppText>
+        <AppText variant="bodyStrong">{value}</AppText>
+      </View>
+    </View>
+  );
+}
 
 export default function EventDetailScreen() {
   // The file is named [id].tsx, so the address /events/12 gives us id = "12".
@@ -48,37 +69,60 @@ export default function EventDetailScreen() {
       refreshing={refreshing}>
       <View style={styles.chips}>
         <Chip text={status.text} tone={status.tone} />
-        {attended && <Chip text={attended.text} tone={attended.tone} />}
-        {event.service_group_name && <Chip text={event.service_group_name} tone="grey" />}
+        {event.service_group_name ? <Chip text={event.service_group_name} tone="amber" /> : null}
       </View>
 
-      <Text style={styles.title}>{event.title}</Text>
+      <AppText variant="display" color={brand.primary}>
+        {event.title}
+      </AppText>
 
-      <View style={styles.card}>
-        <Text style={styles.label}>Starts</Text>
-        <Text style={styles.value}>{etDateTime(event.start_date)}</Text>
-        <Text style={styles.label}>Ends</Text>
-        <Text style={styles.value}>{etDateTime(event.end_date)}</Text>
-        {event.place_name ? (
-          <>
-            <Text style={styles.label}>Place</Text>
-            <Text style={styles.value}>{event.place_name}</Text>
-          </>
-        ) : null}
-        {mine?.remark ? (
-          <>
-            <Text style={styles.label}>Remark</Text>
-            <Text style={styles.value}>{mine.remark}</Text>
-          </>
-        ) : null}
-      </View>
+      {attended && (
+        <Card style={[styles.attendance, { backgroundColor: attended.tone === 'green' ? brand.successSoft : brand.dangerSoft }]}>
+          <MaterialIcons
+            name={attended.tone === 'green' ? 'check-circle' : 'cancel'}
+            size={24}
+            color={attended.tone === 'green' ? brand.success : brand.danger}
+          />
+          <View style={styles.infoText}>
+            <AppText variant="bodyStrong" color={attended.tone === 'green' ? brand.success : brand.danger}>
+              {attended.text}
+            </AppText>
+            {mine?.remark ? (
+              <AppText variant="caption" color={brand.text}>
+                {mine.remark}
+              </AppText>
+            ) : null}
+          </View>
+        </Card>
+      )}
 
-      {event.description ? <Text style={styles.description}>{event.description}</Text> : null}
+      <Card style={styles.details}>
+        <InfoRow icon="event" label="Date" value={etDate(event.start_date)} />
+        <InfoRow
+          icon="schedule"
+          label="Time"
+          value={`${etTime(event.start_date)} - ${etTime(event.end_date)}`}
+        />
+        {event.place_name ? <InfoRow icon="place" label="Place" value={event.place_name} /> : null}
+        {event.created_by_name ? <InfoRow icon="person" label="Posted by" value={event.created_by_name} /> : null}
+      </Card>
+
+      {event.description ? (
+        <Card>
+          <AppText variant="label" color={brand.muted} style={styles.descriptionLabel}>
+            About this event
+          </AppText>
+          <AppText>{event.description}</AppText>
+        </Card>
+      ) : null}
 
       {event.place_url ? (
         // Linking.openURL hands the address to the phone: a Google Maps link opens the Maps app.
         <Pressable style={styles.button} onPress={() => Linking.openURL(event.place_url as string)}>
-          <Text style={styles.buttonText}>Open the map</Text>
+          <MaterialIcons name="map" size={20} color="#ffffff" />
+          <AppText variant="bodyStrong" color="#ffffff">
+            Open the map
+          </AppText>
         </Pressable>
       ) : null}
     </Screen>
@@ -87,11 +131,18 @@ export default function EventDetailScreen() {
 
 const styles = StyleSheet.create({
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
-  title: { fontSize: 26, fontWeight: '700', color: '#0f172a' },
-  card: { backgroundColor: '#f1f5f9', borderRadius: 12, padding: 16, gap: 4 },
-  label: { fontSize: 12, color: '#64748b', textTransform: 'uppercase', marginTop: 8 },
-  value: { fontSize: 16, color: '#0f172a' },
-  description: { fontSize: 16, color: '#334155', lineHeight: 24 },
-  button: { backgroundColor: '#1e3a8a', paddingVertical: 14, borderRadius: 12, alignItems: 'center' },
-  buttonText: { color: '#ffffff', fontSize: 16, fontWeight: '600' },
+  attendance: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  details: { gap: 14 },
+  infoRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  infoText: { flex: 1, gap: 1 },
+  descriptionLabel: { marginBottom: 6 },
+  button: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: brand.primary,
+    paddingVertical: 15,
+    borderRadius: 14,
+  },
 });

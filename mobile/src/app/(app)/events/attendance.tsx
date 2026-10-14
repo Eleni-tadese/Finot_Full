@@ -1,20 +1,27 @@
+import { MaterialIcons } from '@expo/vector-icons';
 import { useEffect } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 
-import { attendanceChip, Chip } from '@/components/event-card';
 import { Screen } from '@/components/screen';
 import { EmptyView, ErrorView, LoadingView } from '@/components/status-views';
+import { AppText } from '@/components/ui/app-text';
+import { Card } from '@/components/ui/card';
+import { brand } from '@/constants/brand';
 import { usePaginated } from '@/hooks/use-paginated';
-import { etDateTime } from '@/lib/ethiopia-time';
+import { etDate, etTime } from '@/lib/ethiopia-time';
 import type { EventAttendance } from '@/lib/types';
 
 // A small box with a big number, used for the summary at the top.
 function Stat({ label, value, color }: { label: string; value: string; color: string }) {
   return (
-    <View style={styles.stat}>
-      <Text style={[styles.statValue, { color }]}>{value}</Text>
-      <Text style={styles.statLabel}>{label}</Text>
-    </View>
+    <Card style={styles.stat}>
+      <AppText variant="display" color={color}>
+        {value}
+      </AppText>
+      <AppText variant="label" color={brand.muted}>
+        {label}
+      </AppText>
+    </Card>
   );
 }
 
@@ -52,25 +59,40 @@ export default function MyAttendanceScreen() {
   return (
     <Screen onRefresh={reload} refreshing={refreshing}>
       <View style={styles.summary}>
-        <Stat label="Present" value={String(present)} color="#166534" />
-        <Stat label="Absent" value={String(absent)} color="#b91c1c" />
-        <Stat label="Attendance" value={total > 0 ? `${rate}%` : '-'} color="#1e3a8a" />
+        <Stat label="Present" value={String(present)} color={brand.success} />
+        <Stat label="Absent" value={String(absent)} color={brand.danger} />
+        <Stat label="Rate" value={total > 0 ? `${rate}%` : '-'} color={brand.primary} />
       </View>
 
       {items.length === 0 ? (
-        <EmptyView message="No attendance has been recorded for you yet." />
+        <EmptyView icon="how-to-reg" message="No attendance has been recorded for you yet." />
       ) : (
         items.map((record) => {
-          const chip = attendanceChip(record.status);
+          const isPresent = record.status === 'PRESENT';
           return (
-            <View key={record.id} style={styles.row}>
-              <View style={styles.rowTop}>
-                <Text style={styles.rowTitle}>{record.event_title}</Text>
-                {chip && <Chip text={record.status === 'PRESENT' ? 'Present' : 'Absent'} tone={chip.tone} />}
+            <Card key={record.id} style={styles.row}>
+              <MaterialIcons
+                name={isPresent ? 'check-circle' : 'cancel'}
+                size={28}
+                color={isPresent ? brand.success : brand.danger}
+              />
+              <View style={styles.rowText}>
+                <AppText variant="heading" numberOfLines={2}>
+                  {record.event_title}
+                </AppText>
+                <AppText variant="caption" color={brand.muted}>
+                  {etDate(record.event_date)} · {etTime(record.event_date)}
+                </AppText>
+                {record.remark ? (
+                  <AppText variant="caption" color={brand.text} style={styles.remark}>
+                    {record.remark}
+                  </AppText>
+                ) : null}
               </View>
-              <Text style={styles.rowDate}>{etDateTime(record.event_date)}</Text>
-              {record.remark ? <Text style={styles.remark}>{record.remark}</Text> : null}
-            </View>
+              <AppText variant="bodyStrong" color={isPresent ? brand.success : brand.danger}>
+                {isPresent ? 'Present' : 'Absent'}
+              </AppText>
+            </Card>
           );
         })
       )}
@@ -80,12 +102,8 @@ export default function MyAttendanceScreen() {
 
 const styles = StyleSheet.create({
   summary: { flexDirection: 'row', gap: 10 },
-  stat: { flex: 1, backgroundColor: '#f1f5f9', borderRadius: 12, padding: 14, alignItems: 'center', gap: 2 },
-  statValue: { fontSize: 26, fontWeight: '700' },
-  statLabel: { fontSize: 12, color: '#64748b', textTransform: 'uppercase' },
-  row: { backgroundColor: '#f1f5f9', borderRadius: 12, padding: 14, gap: 4 },
-  rowTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 8 },
-  rowTitle: { flex: 1, fontSize: 16, fontWeight: '600', color: '#0f172a' },
-  rowDate: { fontSize: 14, color: '#475569' },
-  remark: { fontSize: 14, color: '#334155', fontStyle: 'italic' },
+  stat: { flex: 1, alignItems: 'center', gap: 2, paddingVertical: 14, paddingHorizontal: 8 },
+  row: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  rowText: { flex: 1, gap: 2 },
+  remark: { fontStyle: 'italic' },
 });

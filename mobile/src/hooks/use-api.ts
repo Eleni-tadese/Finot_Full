@@ -55,12 +55,9 @@ export function useApi<T>(path: string) {
     load(false);
   }, [load]);
 
-  return {
-    data,
-    error,
-    loading,
-    refreshing,
-    reload: () => load(true), // for pull to refresh
-    retry: () => load(false), // for the Try again button
-  };
+  // useCallback keeps the SAME function between renders, so a screen can safely put reload in an effect.
+  const reload = useCallback(() => load(true), [load]); // for pull to refresh
+  const retry = useCallback(() => load(false), [load]); // for the Try again button
+
+  return { data, error, loading, refreshing, reload, retry };
 }

@@ -1,23 +1,12 @@
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { MaterialIcons } from '@expo/vector-icons';
+import { StyleSheet, View } from 'react-native';
 
-import { etDateTime } from '@/lib/ethiopia-time';
+import { AppText } from '@/components/ui/app-text';
+import { Card } from '@/components/ui/card';
+import { Chip } from '@/components/ui/chip';
+import { brand } from '@/constants/brand';
+import { etDay, etMonthShort, etTime } from '@/lib/ethiopia-time';
 import type { ServiceEvent } from '@/lib/types';
-
-// A small coloured label. `tone` picks the colours; the text is what the person reads.
-export function Chip({ text, tone }: { text: string; tone: 'blue' | 'green' | 'red' | 'grey' }) {
-  return (
-    <View style={[styles.chip, chipTones[tone].box]}>
-      <Text style={[styles.chipText, chipTones[tone].text]}>{text}</Text>
-    </View>
-  );
-}
-
-const chipTones = {
-  blue: { box: { backgroundColor: '#dbeafe' }, text: { color: '#1e3a8a' } },
-  green: { box: { backgroundColor: '#dcfce7' }, text: { color: '#166534' } },
-  red: { box: { backgroundColor: '#fee2e2' }, text: { color: '#b91c1c' } },
-  grey: { box: { backgroundColor: '#e2e8f0' }, text: { color: '#334155' } },
-} as const;
 
 // Words and colours for the three event states the server can send.
 export function eventStatusChip(status: string): { text: string; tone: 'blue' | 'green' | 'grey' } {
@@ -33,6 +22,20 @@ export function attendanceChip(status: string | undefined): { text: string; tone
   return null;
 }
 
+// The little calendar tile: big day number over the month.
+export function DateBadge({ iso, muted = false }: { iso: string; muted?: boolean }) {
+  return (
+    <View style={[styles.badge, muted && styles.badgeMuted]}>
+      <AppText variant="title" color={muted ? brand.muted : brand.primary} style={styles.badgeDay}>
+        {etDay(iso)}
+      </AppText>
+      <AppText variant="label" color={muted ? brand.muted : brand.primary}>
+        {etMonthShort(iso)}
+      </AppText>
+    </View>
+  );
+}
+
 type EventCardProps = {
   event: ServiceEvent;
   attendanceStatus?: string;
@@ -42,27 +45,59 @@ type EventCardProps = {
 export function EventCard({ event, attendanceStatus, onPress }: EventCardProps) {
   const status = eventStatusChip(event.status);
   const attended = attendanceChip(attendanceStatus);
+  const finished = event.status === 'COMPLETED';
 
   return (
-    <Pressable style={({ pressed }) => [styles.card, pressed && styles.pressed]} onPress={onPress}>
-      <View style={styles.chips}>
-        <Chip text={status.text} tone={status.tone} />
-        {attended && <Chip text={attended.text} tone={attended.tone} />}
-        {event.service_group_name && <Chip text={event.service_group_name} tone="grey" />}
+    <Card onPress={onPress} style={styles.card}>
+      <DateBadge iso={event.start_date} muted={finished} />
+
+      <View style={styles.body}>
+        <AppText variant="heading" numberOfLines={2}>
+          {event.title}
+        </AppText>
+
+        <View style={styles.meta}>
+          <MaterialIcons name="schedule" size={15} color={brand.muted} />
+          <AppText variant="caption" color={brand.muted}>
+            {etTime(event.start_date)} - {etTime(event.end_date)}
+          </AppText>
+        </View>
+
+        {event.place_name ? (
+          <View style={styles.meta}>
+            <MaterialIcons name="place" size={15} color={brand.muted} />
+            <AppText variant="caption" color={brand.muted} numberOfLines={1} style={styles.metaText}>
+              {event.place_name}
+            </AppText>
+          </View>
+        ) : null}
+
+        <View style={styles.chips}>
+          <Chip text={status.text} tone={status.tone} />
+          {attended && <Chip text={attended.text} tone={attended.tone} />}
+          {event.service_group_name ? <Chip text={event.service_group_name} tone="amber" /> : null}
+        </View>
       </View>
-      <Text style={styles.title}>{event.title}</Text>
-      <Text style={styles.line}>{etDateTime(event.start_date)}</Text>
-      {event.place_name ? <Text style={styles.line}>{event.place_name}</Text> : null}
-    </Pressable>
+
+      <MaterialIcons name="chevron-right" size={22} color={brand.muted} />
+    </Card>
   );
 }
 
 const styles = StyleSheet.create({
-  card: { backgroundColor: '#f1f5f9', borderRadius: 12, padding: 16, gap: 6 },
-  pressed: { opacity: 0.7 },
-  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
-  chip: { paddingVertical: 4, paddingHorizontal: 10, borderRadius: 999 },
-  chipText: { fontSize: 12, fontWeight: '600' },
-  title: { fontSize: 18, fontWeight: '600', color: '#0f172a' },
-  line: { fontSize: 14, color: '#475569' },
+  card: { flexDirection: 'row', alignItems: 'center', gap: 14 },
+  body: { flex: 1, gap: 4 },
+  meta: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  metaText: { flex: 1 },
+  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 4 },
+  badge: {
+    width: 56,
+    height: 62,
+    borderRadius: 14,
+    backgroundColor: brand.primarySoft,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  badgeMuted: { backgroundColor: '#eef2f7' },
+  badgeDay: { lineHeight: 26 },
 });

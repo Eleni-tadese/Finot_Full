@@ -1,17 +1,34 @@
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { MaterialIcons } from '@expo/vector-icons';
+import { Pressable, StyleSheet, View } from 'react-native';
 
 import { Screen } from '@/components/screen';
 import { ErrorView, LoadingView } from '@/components/status-views';
+import { AppText } from '@/components/ui/app-text';
+import { Avatar } from '@/components/ui/avatar';
+import { Card } from '@/components/ui/card';
+import { Chip } from '@/components/ui/chip';
+import { IconBadge } from '@/components/ui/icon-badge';
+import { brand } from '@/constants/brand';
 import { useApi } from '@/hooks/use-api';
 import { useSession } from '@/lib/session';
 import type { StudentProfile } from '@/lib/types';
 
-// One row of the details card: a small label and its value ("-" when the student left it empty).
-function Row({ label, value }: { label: string; value: string | number | null | undefined }) {
+type Icon = keyof typeof MaterialIcons.glyphMap;
+
+// One row of a details card: an icon, a small label and the value ("Not set" when the student left it empty).
+function Row({ icon, label, value }: { icon: Icon; label: string; value: string | number | null | undefined }) {
+  const empty = value === null || value === undefined || value === '';
   return (
     <View style={styles.row}>
-      <Text style={styles.label}>{label}</Text>
-      <Text style={styles.value}>{value === null || value === undefined || value === '' ? '-' : value}</Text>
+      <IconBadge name={icon} size={40} />
+      <View style={styles.rowText}>
+        <AppText variant="label" color={brand.muted}>
+          {label}
+        </AppText>
+        <AppText variant="bodyStrong" color={empty ? brand.muted : brand.text}>
+          {empty ? 'Not set' : value}
+        </AppText>
+      </View>
     </View>
   );
 }
@@ -24,7 +41,7 @@ export default function ProfileScreen() {
   // The three states, in order: loading, error, then the real screen.
   if (loading && !profile) {
     return (
-      <Screen>
+      <Screen title="Profile">
         <LoadingView label="Loading your profile... (the server may be waking up)" />
       </Screen>
     );
@@ -32,11 +49,9 @@ export default function ProfileScreen() {
 
   if (error && !profile) {
     return (
-      <Screen>
+      <Screen title="Profile">
         <ErrorView message={friendlyMessage(error.status, error.body, error.message)} onRetry={retry} />
-        <Pressable onPress={signOut}>
-          <Text style={styles.signOut}>Sign out</Text>
-        </Pressable>
+        <SignOutButton onPress={signOut} />
       </Screen>
     );
   }
@@ -53,24 +68,52 @@ export default function ProfileScreen() {
 
   return (
     // Pull down on this screen to load the profile again.
-    <Screen onRefresh={reload} refreshing={refreshing}>
-      <Text style={styles.name}>{fullName || profile.user_email}</Text>
-      <Text style={styles.email}>{profile.user_email}</Text>
+    <Screen title="Profile" onRefresh={reload} refreshing={refreshing}>
+      <Card style={styles.identity}>
+        <Avatar name={fullName || profile.user_email} photo={profile.profile_image} size={84} />
+        <AppText variant="title" style={styles.centerText}>
+          {fullName || profile.user_email}
+        </AppText>
+        <AppText variant="caption" color={brand.muted}>
+          {profile.user_email}
+        </AppText>
+        <Chip
+          text={profile.status === 'GRADUATED' ? 'Graduate' : 'In campus'}
+          tone={profile.status === 'GRADUATED' ? 'amber' : 'green'}
+        />
+      </Card>
 
-      <View style={styles.card}>
-        <Row label="Year of study" value={profile.batch_year ? `Year ${profile.batch_year}` : null} />
-        <Row label="Department" value={profile.department} />
-        <Row label="Status" value={profile.status === 'GRADUATED' ? 'Graduate' : 'In campus'} />
-        <Row label="Phone" value={profile.personal_phone} />
-        <Row label="Telegram" value={profile.telegram_username} />
-        <Row label="Dorm" value={dorm} />
-        <Row label="Home address" value={profile.home_address} />
-      </View>
+      <AppText variant="heading" style={styles.section}>
+        Study
+      </AppText>
+      <Card style={styles.group}>
+        <Row icon="school" label="Year of study" value={profile.batch_year ? `Year ${profile.batch_year}` : null} />
+        <Row icon="account-balance" label="Department" value={profile.department} />
+      </Card>
 
-      <Pressable onPress={signOut}>
-        <Text style={styles.signOut}>Sign out</Text>
-      </Pressable>
+      <AppText variant="heading" style={styles.section}>
+        Contact
+      </AppText>
+      <Card style={styles.group}>
+        <Row icon="phone" label="Phone" value={profile.personal_phone} />
+        <Row icon="send" label="Telegram" value={profile.telegram_username} />
+        <Row icon="apartment" label="Dorm" value={dorm} />
+        <Row icon="home" label="Home address" value={profile.home_address} />
+      </Card>
+
+      <SignOutButton onPress={signOut} />
     </Screen>
+  );
+}
+
+function SignOutButton({ onPress }: { onPress: () => void }) {
+  return (
+    <Pressable style={({ pressed }) => [styles.signOut, pressed && styles.pressed]} onPress={onPress}>
+      <MaterialIcons name="logout" size={20} color={brand.danger} />
+      <AppText variant="bodyStrong" color={brand.danger}>
+        Sign out
+      </AppText>
+    </Pressable>
   );
 }
 
@@ -87,11 +130,23 @@ function friendlyMessage(status: number, body: unknown, fallback: string): strin
 }
 
 const styles = StyleSheet.create({
-  name: { fontSize: 26, fontWeight: '700', color: '#0f172a' },
-  email: { fontSize: 15, color: '#475569', marginBottom: 8 },
-  card: { backgroundColor: '#f1f5f9', borderRadius: 12, padding: 16, gap: 14 },
-  row: { gap: 2 },
-  label: { fontSize: 12, color: '#64748b', textTransform: 'uppercase' },
-  value: { fontSize: 16, color: '#0f172a' },
-  signOut: { marginTop: 16, fontSize: 16, color: '#1e3a8a', textAlign: 'center' },
+  identity: { alignItems: 'center', gap: 6, paddingVertical: 22 },
+  centerText: { textAlign: 'center', marginTop: 6 },
+  section: { marginTop: 8 },
+  group: { gap: 16 },
+  row: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  rowText: { flex: 1, gap: 1 },
+  signOut: {
+    marginTop: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 14,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: brand.dangerSoft,
+    backgroundColor: brand.card,
+  },
+  pressed: { opacity: 0.7 },
 });
