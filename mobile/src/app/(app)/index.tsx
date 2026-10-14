@@ -2,11 +2,14 @@ import { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { useSession } from '@/lib/session';
+
 // A screen is just a function that returns what to draw.
 // <View> is like a <div>, <Text> is like a <p>, <Pressable> is like a <button>.
 export default function HomeScreen() {
   // useState works exactly like on the website: the screen redraws when `taps` changes.
   const [taps, setTaps] = useState(0);
+  const { signOut } = useSession();
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -18,6 +21,10 @@ export default function HomeScreen() {
           style={({ pressed }) => [styles.button, pressed && styles.buttonPressed]}
           onPress={() => setTaps(taps + 1)}>
           <Text style={styles.buttonText}>Tapped {taps} times</Text>
+        </Pressable>
+
+        <Pressable onPress={signOut}>
+          <Text style={styles.link}>Sign out</Text>
         </Pressable>
       </View>
     </SafeAreaView>
@@ -60,5 +67,10 @@ const styles = StyleSheet.create({
     color: '#ffffff',
     fontSize: 16,
     fontWeight: '600',
+  },
+  link: {
+    marginTop: 12,
+    fontSize: 16,
+    color: '#1e3a8a',
   },
 });
