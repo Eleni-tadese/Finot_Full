@@ -1,6 +1,6 @@
 import { useRouter } from 'expo-router';
 import { useMemo } from 'react';
-import { ActivityIndicator, FlatList, RefreshControl, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, FlatList, Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { EventCard } from '@/components/event-card';
@@ -27,7 +27,12 @@ export default function EventsScreen() {
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
-      <Text style={styles.title}>Events</Text>
+      <View style={styles.header}>
+        <Text style={styles.title}>Events</Text>
+        <Pressable onPress={() => router.push('/events/attendance')}>
+          <Text style={styles.headerLink}>My attendance</Text>
+        </Pressable>
+      </View>
 
       {events.loading && events.items.length === 0 ? (
         <LoadingView label="Loading events..." />
@@ -62,7 +67,15 @@ export default function EventsScreen() {
 
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: '#ffffff' },
-  title: { fontSize: 28, fontWeight: '700', color: '#1e3a8a', paddingHorizontal: 20, paddingTop: 12 },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingTop: 12,
+  },
+  title: { fontSize: 28, fontWeight: '700', color: '#1e3a8a' },
+  headerLink: { fontSize: 16, color: '#1e3a8a', fontWeight: '600' },
   list: { padding: 20, flexGrow: 1 },
   gap: { height: 12 },
   footer: { marginVertical: 16 },

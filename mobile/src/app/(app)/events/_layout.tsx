@@ -6,6 +6,7 @@ export default function EventsLayout() {
   return (
     <Stack>
       <Stack.Screen name="index" options={{ headerShown: false }} />
+      <Stack.Screen name="attendance" options={{ title: 'My attendance' }} />
       <Stack.Screen name="[id]" options={{ title: 'Event' }} />
     </Stack>
   );
