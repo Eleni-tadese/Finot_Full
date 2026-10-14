@@ -27,3 +27,4 @@ Work in progress, built step by step. See the commit history for each step.
 | 3 | Navigation: tabs, protected routes, sign-in screen (fake session) |
 | 4 | API client (`apiRequest`), server data types, live server check |
 | 5 | Real sign-in with the server (JWT), loading and error states |
+| 6 | Stay signed in: secure token storage, restore at start, token refresh |
