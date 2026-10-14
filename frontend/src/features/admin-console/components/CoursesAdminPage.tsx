@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import toast from "react-hot-toast";
 import { firstApiError } from "../../resources/utils";
 import { adminApi } from "../api";
+import { api } from "../../../lib/api";
 import type { Curriculum, SemesterCourseRow } from "../types";
 import { Chip, Empty, Loading, Modal, PageHeader } from "./AdminUi";
 import UserPicker, { PickedUser } from "./UserPicker";
@@ -126,6 +127,20 @@ const CoursesAdminPage = () => {
     } finally { setSaving(false); }
   };
 
+  // Start (PLANNED -> OPEN), complete (OPEN -> COMPLETED) or reopen (COMPLETED -> OPEN) a semester course.
+  // Students only see a course once it is Open (or Completed).
+  const changeStatus = async (o: SemesterCourseRow, next: "PLANNED" | "OPEN" | "COMPLETED") => {
+    if (next === "OPEN" && o.status === "PLANNED"
+      && !(await confirm(t("crs_confirm_start", "Start this course? The students of this batch will see it in My courses.")))) return;
+    if (next === "COMPLETED"
+      && !(await confirm(t("crs_confirm_complete", "Mark this course as completed? Students keep the materials and their attendance. Class days and attendance can no longer be changed (you can reopen it).")))) return;
+    try {
+      await api.setSemesterCourseStatus(o.id, next);
+      toast.success(t("crs_status_saved", "Course updated."));
+      await load();
+    } catch (e) { fail(e); }
+  };
+
   const semesterLabel = (n: number) => (n === 1 ? t("crs_sem_1", "First semester") : t("crs_sem_2", "Second semester"));
 
   if (loading) return <Loading />;
@@ -204,6 +219,15 @@ const CoursesAdminPage = () => {
                   : o.coordinators_details.map(personName).join(", ")}
               </p>
               <div className="mt-3 flex flex-wrap gap-3 text-sm">
+                {o.status === "PLANNED" && (
+                  <button className="font-semibold text-primary hover:underline" onClick={() => changeStatus(o, "OPEN")}>{t("crs_start", "Start course")}</button>
+                )}
+                {o.status === "OPEN" && (
+                  <button className="text-primary hover:underline" onClick={() => changeStatus(o, "COMPLETED")}>{t("crs_complete", "Complete course")}</button>
+                )}
+                {o.status === "COMPLETED" && (
+                  <button className="text-primary hover:underline" onClick={() => changeStatus(o, "OPEN")}>{t("crs_reopen", "Reopen")}</button>
+                )}
                 <button className="text-primary hover:underline" onClick={() => openOffering(o)}>{t("edit", "Edit")}</button>
                 <button className="text-primary hover:underline" onClick={() => { setEnrollBatch(o.course_details.batch_year); setEnrolling(o); }}>{t("crs_enrol_batch", "Enrol a batch")}</button>
                 <button className="text-destructive hover:underline" onClick={() => removeOffering(o)}>{t("delete", "Delete")}</button>
