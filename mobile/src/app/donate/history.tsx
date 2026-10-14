@@ -1,4 +1,5 @@
 import { MaterialIcons } from '@expo/vector-icons';
+import type { TFunction } from 'i18next';
 import { ActivityIndicator, FlatList, RefreshControl, StyleSheet, View } from 'react-native';
 
 import { EmptyView, ErrorView, LoadingView } from '@/components/status-views';
@@ -9,19 +10,21 @@ import { brand } from '@/constants/brand';
 import { usePaginated } from '@/hooks/use-paginated';
 import { etDateTime } from '@/lib/ethiopia-time';
 import type { DonationHistoryItem } from '@/lib/types';
+import { useTranslation } from 'react-i18next';
 
-function statusChip(status: string): { text: string; tone: 'green' | 'amber' | 'red' } {
-  if (status === 'COMPLETED') return { text: 'Completed', tone: 'green' };
-  if (status === 'FAILED') return { text: 'Failed', tone: 'red' };
-  return { text: 'Pending', tone: 'amber' };
+function statusChip(status: string, t: TFunction): { text: string; tone: 'green' | 'amber' | 'red' } {
+  if (status === 'COMPLETED') return { text: t('event_completed'), tone: 'green' };
+  if (status === 'FAILED') return { text: t('status_failed'), tone: 'red' };
+  return { text: t('pending'), tone: 'amber' };
 }
 
 export default function DonationHistoryScreen() {
+  const { t } = useTranslation();
   const { items, error, loading, refreshing, loadingMore, loadMore, reload, retry } =
     usePaginated<DonationHistoryItem>('/api/donations/my-history/');
 
   if (loading && items.length === 0) {
-    return <LoadingView label="Loading your donations..." />;
+    return <LoadingView />;
   }
   if (error && items.length === 0) {
     return <ErrorView message={error.message} onRetry={retry} />;
@@ -47,18 +50,18 @@ export default function DonationHistoryScreen() {
       ListHeaderComponent={
         <Card style={styles.total}>
           <AppText variant="label" color={brand.muted}>
-            Total given
+            {t('total_given')}
           </AppText>
           <AppText variant="display" color={brand.primary}>
             {total.toFixed(2)} ETB
           </AppText>
           <AppText variant="caption" color={brand.muted}>
-            Completed donations only
+            {t('m_completed_only')}
           </AppText>
         </Card>
       }
       renderItem={({ item }) => {
-        const chip = statusChip(item.payment.status);
+        const chip = statusChip(item.payment.status, t);
         return (
           <Card style={styles.row}>
             <MaterialIcons name="volunteer-activism" size={26} color={brand.primary} />
@@ -70,14 +73,14 @@ export default function DonationHistoryScreen() {
                 {etDateTime(item.donated_at)}
               </AppText>
               <AppText variant="caption" color={brand.muted}>
-                {item.fund_category}
+                {item.fund_category === 'Weekly Donation' ? t('weekly_donation') : item.fund_category}
               </AppText>
             </View>
             <Chip text={chip.text} tone={chip.tone} />
           </Card>
         );
       }}
-      ListEmptyComponent={<EmptyView icon="volunteer-activism" message="You have not made a donation yet." />}
+      ListEmptyComponent={<EmptyView icon="volunteer-activism" message={t('m_no_donations')} />}
       ListFooterComponent={loadingMore ? <ActivityIndicator style={styles.footer} color={brand.primary} /> : null}
     />
   );

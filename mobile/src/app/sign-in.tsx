@@ -17,8 +17,10 @@ import { AppText } from '@/components/ui/app-text';
 import { brand, font } from '@/constants/brand';
 import { ApiError } from '@/lib/api';
 import { useSession } from '@/lib/session';
+import { useTranslation } from 'react-i18next';
 
 export default function SignInScreen() {
+  const { t } = useTranslation();
   const { signIn } = useSession();
 
   // One piece of state per input box, one for the error, one for "waiting for the server".
@@ -31,11 +33,11 @@ export default function SignInScreen() {
   async function handleSignIn() {
     // Same idea as the website: check the boxes first, show the message under the form.
     if (!email.includes('@')) {
-      setError('Enter a valid email.');
+      setError(t('m_valid_email'));
       return;
     }
     if (password.length === 0) {
-      setError('Enter your password.');
+      setError(t('login_password_required'));
       return;
     }
 
@@ -46,11 +48,11 @@ export default function SignInScreen() {
       // Nothing else to do: the session changed, so the router opens the app by itself.
     } catch (e) {
       if (e instanceof ApiError && e.status === 401) {
-        setError('Wrong email or password.');
+        setError(t('m_wrong_credentials'));
       } else if (e instanceof ApiError) {
         setError(e.message);
       } else {
-        setError('Something went wrong. Try again.');
+        setError(t('m_something_wrong'));
       }
     } finally {
       setSubmitting(false); // always runs, success or failure
@@ -65,22 +67,22 @@ export default function SignInScreen() {
         <AppText variant="display" color="#ffffff">
           Finot
         </AppText>
-        <AppText color={brand.accent}>Gibi Gubae fellowship</AppText>
+        <AppText color={brand.accent}>{t('m_gibi_gubae')}</AppText>
       </SafeAreaView>
       <View style={styles.amberLine} />
 
       <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <ScrollView contentContainerStyle={styles.form} keyboardShouldPersistTaps="handled">
-          <AppText variant="title">Welcome back</AppText>
+          <AppText variant="title">{t('welcome_back_simple')}</AppText>
           <AppText color={brand.muted} style={styles.lead}>
-            Sign in with the email and password you use on the Finot website.
+            {t('m_signin_lead')}
           </AppText>
 
           <View style={styles.inputWrap}>
             <MaterialIcons name="mail-outline" size={20} color={brand.muted} />
             <TextInput
               style={styles.input}
-              placeholder="Email"
+              placeholder={t('email')}
               placeholderTextColor={brand.muted}
               value={email}
               onChangeText={setEmail}
@@ -95,7 +97,7 @@ export default function SignInScreen() {
             <MaterialIcons name="lock-outline" size={20} color={brand.muted} />
             <TextInput
               style={styles.input}
-              placeholder="Password"
+              placeholder={t('password')}
               placeholderTextColor={brand.muted}
               value={password}
               onChangeText={setPassword}
@@ -125,14 +127,14 @@ export default function SignInScreen() {
               <ActivityIndicator color="#ffffff" />
             ) : (
               <AppText variant="heading" color="#ffffff">
-                Sign in
+                {t('sign_in')}
               </AppText>
             )}
           </Pressable>
 
           {submitting && (
             <AppText variant="caption" color={brand.muted} style={styles.hint}>
-              Signing in... the first time can take up to a minute.
+              {t('m_signing_in')}
             </AppText>
           )}
         </ScrollView>

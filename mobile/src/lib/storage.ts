@@ -26,3 +26,14 @@ export async function clearTokens(): Promise<void> {
   await SecureStore.deleteItemAsync(ACCESS_KEY);
   await SecureStore.deleteItemAsync(REFRESH_KEY);
 }
+
+// The language the person chose (en, am or om), so it is remembered after the app is closed.
+const LANGUAGE_KEY = 'finot_language';
+
+export async function saveLanguage(code: string): Promise<void> {
+  await SecureStore.setItemAsync(LANGUAGE_KEY, code);
+}
+
+export async function loadLanguage(): Promise<string | null> {
+  return SecureStore.getItemAsync(LANGUAGE_KEY);
+}

@@ -15,6 +15,7 @@ import { useApi } from '@/hooks/use-api';
 import { etDate, etTime } from '@/lib/ethiopia-time';
 import { useSession } from '@/lib/session';
 import type { Paginated, ServiceEvent, UnreadCount } from '@/lib/types';
+import { useTranslation } from 'react-i18next';
 
 type TileProps = {
   icon: keyof typeof MaterialIcons.glyphMap;
@@ -43,6 +44,7 @@ function Tile({ icon, label, badge = 0, onPress }: TileProps) {
 }
 
 export default function HomeScreen() {
+  const { t } = useTranslation();
   const { user } = useSession();
   const router = useRouter();
   const unread = useApi<UnreadCount>('/api/notifications/unread-count/');
@@ -73,7 +75,7 @@ export default function HomeScreen() {
   }
 
   const name = user.first_name || user.email;
-  const roles = user.roles.length > 0 ? user.roles : ['Student'];
+  const roles = user.roles.length > 0 ? user.roles : [t('m_roles_student')];
   const count = unread.data?.count ?? 0;
   const refreshing = unread.refreshing || events.refreshing;
 
@@ -89,10 +91,10 @@ export default function HomeScreen() {
         <Image source={require('@/assets/images/finot-logo.png')} style={styles.heroLogo} contentFit="contain" />
         <View style={styles.heroText}>
           <AppText variant="caption" color={brand.accent}>
-            Gibi Gubae fellowship
+            {t('m_gibi_gubae')}
           </AppText>
           <AppText variant="title" color="#ffffff" numberOfLines={1}>
-            Hello, {name}
+            {t('m_hello', { name })}
           </AppText>
           <AppText variant="caption" color="#c7d2ee" numberOfLines={1}>
             {roles.join(' · ')}
@@ -102,11 +104,11 @@ export default function HomeScreen() {
 
       {/* Next event */}
       <AppText variant="heading" style={styles.section}>
-        Next event
+        {t('m_next_event')}
       </AppText>
       {events.loading && !events.data ? (
         <Card>
-          <AppText color={brand.muted}>Loading...</AppText>
+          <AppText color={brand.muted}>{t('loading')}</AppText>
         </Card>
       ) : nextEvent ? (
         <Card
@@ -120,26 +122,26 @@ export default function HomeScreen() {
             <AppText variant="caption" color={brand.muted}>
               {etDate(nextEvent.start_date)} · {etTime(nextEvent.start_date)}
             </AppText>
-            <Chip text={eventStatusChip(nextEvent.status).text} tone={eventStatusChip(nextEvent.status).tone} />
+            <Chip text={eventStatusChip(nextEvent.status, t).text} tone={eventStatusChip(nextEvent.status, t).tone} />
           </View>
         </Card>
       ) : (
         <Card>
-          <AppText color={brand.muted}>No upcoming events right now.</AppText>
+          <AppText color={brand.muted}>{t('m_no_upcoming')}</AppText>
         </Card>
       )}
 
       {/* Quick actions */}
       <AppText variant="heading" style={styles.section}>
-        Quick actions
+        {t('quick_actions')}
       </AppText>
       <View style={styles.grid}>
-        <Tile icon="event" label="Events" onPress={() => router.push('/events')} />
-        <Tile icon="school" label="My courses" onPress={() => router.push('/courses')} />
-        <Tile icon="how-to-reg" label="My attendance" onPress={() => router.push('/events/attendance')} />
-        <Tile icon="notifications" label="Notifications" badge={count} onPress={() => router.push('/notifications')} />
-        <Tile icon="volunteer-activism" label="Give" onPress={() => router.push('/donate')} />
-        <Tile icon="person" label="My profile" onPress={() => router.push('/profile')} />
+        <Tile icon="event" label={t('tab_events')} onPress={() => router.push('/events')} />
+        <Tile icon="school" label={t('my_courses')} onPress={() => router.push('/courses')} />
+        <Tile icon="how-to-reg" label={t('my_attendance')} onPress={() => router.push('/events/attendance')} />
+        <Tile icon="notifications" label={t('notifications')} badge={count} onPress={() => router.push('/notifications')} />
+        <Tile icon="volunteer-activism" label={t('donate')} onPress={() => router.push('/donate')} />
+        <Tile icon="person" label={t('my_profile')} onPress={() => router.push('/profile')} />
       </View>
     </Screen>
   );

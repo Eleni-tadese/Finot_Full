@@ -10,6 +10,7 @@ import { brand } from '@/constants/brand';
 import { usePaginated } from '@/hooks/use-paginated';
 import { etDate, etTime } from '@/lib/ethiopia-time';
 import type { EventAttendance } from '@/lib/types';
+import { useTranslation } from 'react-i18next';
 
 // A small box with a big number, used for the summary at the top.
 function Stat({ label, value, color }: { label: string; value: string; color: string }) {
@@ -26,6 +27,7 @@ function Stat({ label, value, color }: { label: string; value: string; color: st
 }
 
 export default function MyAttendanceScreen() {
+  const { t } = useTranslation();
   const { items, error, loading, refreshing, loadingMore, hasMore, loadMore, reload, retry } =
     usePaginated<EventAttendance>('/api/service/attendance/');
 
@@ -39,7 +41,7 @@ export default function MyAttendanceScreen() {
   if (loading && items.length === 0) {
     return (
       <Screen>
-        <LoadingView label="Loading your attendance..." />
+        <LoadingView />
       </Screen>
     );
   }
@@ -59,13 +61,13 @@ export default function MyAttendanceScreen() {
   return (
     <Screen onRefresh={reload} refreshing={refreshing}>
       <View style={styles.summary}>
-        <Stat label="Present" value={String(present)} color={brand.success} />
-        <Stat label="Absent" value={String(absent)} color={brand.danger} />
-        <Stat label="Rate" value={total > 0 ? `${rate}%` : '-'} color={brand.primary} />
+        <Stat label={t('status_present')} value={String(present)} color={brand.success} />
+        <Stat label={t('status_absent')} value={String(absent)} color={brand.danger} />
+        <Stat label={t('m_rate')} value={total > 0 ? `${rate}%` : '-'} color={brand.primary} />
       </View>
 
       {items.length === 0 ? (
-        <EmptyView icon="how-to-reg" message="No attendance has been recorded for you yet." />
+        <EmptyView icon="how-to-reg" message={t('m_no_attendance')} />
       ) : (
         items.map((record) => {
           const isPresent = record.status === 'PRESENT';
@@ -90,7 +92,7 @@ export default function MyAttendanceScreen() {
                 ) : null}
               </View>
               <AppText variant="bodyStrong" color={isPresent ? brand.success : brand.danger}>
-                {isPresent ? 'Present' : 'Absent'}
+                {isPresent ? t('status_present') : t('status_absent')}
               </AppText>
             </Card>
           );

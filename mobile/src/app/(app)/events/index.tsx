@@ -10,16 +10,19 @@ import { AppText } from '@/components/ui/app-text';
 import { brand } from '@/constants/brand';
 import { usePaginated } from '@/hooks/use-paginated';
 import type { EventAttendance, ServiceEvent } from '@/lib/types';
+import { useTranslation } from 'react-i18next';
 
 type Filter = 'ALL' | 'UPCOMING' | 'PAST';
 
+// `label` is a translation key
 const FILTERS: { key: Filter; label: string }[] = [
-  { key: 'ALL', label: 'All' },
-  { key: 'UPCOMING', label: 'Upcoming' },
-  { key: 'PAST', label: 'Past' },
+  { key: 'ALL', label: 'all' },
+  { key: 'UPCOMING', label: 'event_upcoming' },
+  { key: 'PAST', label: 'past' },
 ];
 
 export default function EventsScreen() {
+  const { t } = useTranslation();
   const router = useRouter();
   const events = usePaginated<ServiceEvent>('/api/service/events/');
   const attendance = usePaginated<EventAttendance>('/api/service/attendance/');
@@ -47,7 +50,7 @@ export default function EventsScreen() {
   return (
     <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
       <View style={styles.top}>
-        <PageHeader title="Events" subtitle="What is happening in the fellowship" />
+        <PageHeader title={t('tab_events')} subtitle={t('m_events_subtitle')} />
 
         <View style={styles.filters}>
           {FILTERS.map((item) => {
@@ -58,7 +61,7 @@ export default function EventsScreen() {
                 onPress={() => setFilter(item.key)}
                 style={[styles.filter, active && styles.filterActive]}>
                 <AppText variant="bodyStrong" color={active ? '#ffffff' : brand.primary}>
-                  {item.label}
+                  {t(item.label)}
                 </AppText>
               </Pressable>
             );
@@ -67,7 +70,7 @@ export default function EventsScreen() {
       </View>
 
       {events.loading && events.items.length === 0 ? (
-        <LoadingView label="Loading events..." />
+        <LoadingView />
       ) : events.error && events.items.length === 0 ? (
         <ErrorView message={events.error.message} onRetry={events.retry} />
       ) : (
@@ -98,7 +101,7 @@ export default function EventsScreen() {
           ListEmptyComponent={
             <EmptyView
               icon="event-busy"
-              message={filter === 'ALL' ? 'No events yet.' : 'No events in this list.'}
+              message={filter === 'ALL' ? t('m_no_events') : t('m_no_events_list')}
             />
           }
           ListFooterComponent={

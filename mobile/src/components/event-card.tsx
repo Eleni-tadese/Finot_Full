@@ -1,5 +1,6 @@
 import { MaterialIcons } from '@expo/vector-icons';
 import { StyleSheet, View } from 'react-native';
+import type { TFunction } from 'i18next';
 
 import { AppText } from '@/components/ui/app-text';
 import { Card } from '@/components/ui/card';
@@ -7,18 +8,19 @@ import { Chip } from '@/components/ui/chip';
 import { brand } from '@/constants/brand';
 import { etDay, etMonthShort, etTime } from '@/lib/ethiopia-time';
 import type { ServiceEvent } from '@/lib/types';
+import { useTranslation } from 'react-i18next';
 
 // Words and colours for the three event states the server can send.
-export function eventStatusChip(status: string): { text: string; tone: 'blue' | 'green' | 'grey' } {
-  if (status === 'ONGOING') return { text: 'Happening now', tone: 'green' };
-  if (status === 'UPCOMING') return { text: 'Upcoming', tone: 'blue' };
-  return { text: 'Finished', tone: 'grey' };
+export function eventStatusChip(status: string, t: TFunction): { text: string; tone: 'blue' | 'green' | 'grey' } {
+  if (status === 'ONGOING') return { text: t('m_status_ongoing'), tone: 'green' };
+  if (status === 'UPCOMING') return { text: t('event_upcoming'), tone: 'blue' };
+  return { text: t('event_completed'), tone: 'grey' };
 }
 
 // My attendance for an event: undefined = nothing recorded.
-export function attendanceChip(status: string | undefined): { text: string; tone: 'green' | 'red' } | null {
-  if (status === 'PRESENT') return { text: 'You were present', tone: 'green' };
-  if (status === 'ABSENT') return { text: 'You were absent', tone: 'red' };
+export function attendanceChip(status: string | undefined, t: TFunction): { text: string; tone: 'green' | 'red' } | null {
+  if (status === 'PRESENT') return { text: t('m_you_present'), tone: 'green' };
+  if (status === 'ABSENT') return { text: t('m_you_absent'), tone: 'red' };
   return null;
 }
 
@@ -43,8 +45,9 @@ type EventCardProps = {
 };
 
 export function EventCard({ event, attendanceStatus, onPress }: EventCardProps) {
-  const status = eventStatusChip(event.status);
-  const attended = attendanceChip(attendanceStatus);
+  const { t } = useTranslation();
+  const status = eventStatusChip(event.status, t);
+  const attended = attendanceChip(attendanceStatus, t);
   const finished = event.status === 'COMPLETED';
 
   return (

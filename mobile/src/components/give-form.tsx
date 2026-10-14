@@ -11,6 +11,7 @@ import { brand, font } from '@/constants/brand';
 import { ApiError, apiRequest } from '@/lib/api';
 import { useSession } from '@/lib/session';
 import type { InitiateDonationResponse, VerifyDonationResponse } from '@/lib/types';
+import { useTranslation } from 'react-i18next';
 
 const QUICK_AMOUNTS = [10, 20, 50, 100, 200];
 
@@ -26,6 +27,7 @@ const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 // The giving form. A signed-in student gives their weekly donation; a visitor (no account) may add an optional name.
 export function GiveForm() {
+  const { t } = useTranslation();
   const { accessToken, isSignedIn } = useSession();
   const guest = !isSignedIn;
   const router = useRouter();
@@ -54,8 +56,8 @@ export function GiveForm() {
         }
         const message =
           e instanceof ApiError && e.status === 503
-            ? 'We could not reach the payment service. Please check again in a moment.'
-            : 'We have not received confirmation of this payment yet. If you paid, it can take a minute.';
+            ? t('m_payment_unreachable')
+            : t('m_not_confirmed_text');
         setPhase({ name: 'notPaid', txRef, message });
       }
     }
@@ -63,7 +65,7 @@ export function GiveForm() {
 
   async function handleGive() {
     if (!amountValid) {
-      setError('Enter an amount of 1 birr or more.');
+      setError(t('m_amount_min'));
       return;
     }
     setError('');
@@ -77,7 +79,7 @@ export function GiveForm() {
         token: accessToken,
       });
     } catch (e) {
-      setError(e instanceof ApiError ? e.message : 'Something went wrong. Try again.');
+      setError(e instanceof ApiError ? e.message : t('m_something_wrong'));
       setPhase({ name: 'form' });
       return;
     }
@@ -96,27 +98,27 @@ export function GiveForm() {
             <MaterialIcons name="check-circle" size={52} color={brand.success} />
           </View>
           <AppText variant="display" style={styles.center}>
-            Thank you!
+            {t('m_thank_you')}
           </AppText>
           <AppText color={brand.muted} style={styles.center}>
-            Your donation of {phase.receipt.amount} {phase.receipt.currency} was received.
+            {t('m_donation_received', { amount: phase.receipt.amount, currency: phase.receipt.currency })}
           </AppText>
           <Card style={styles.receipt}>
             <AppText variant="label" color={brand.muted}>
-              Reference
+              {t('reference')}
             </AppText>
             <AppText variant="bodyStrong">{phase.receipt.tx_ref}</AppText>
           </Card>
           {!guest && (
             <Pressable style={styles.primaryButton} onPress={() => router.replace('/donate/history')}>
               <AppText variant="heading" color="#ffffff">
-                See my donations
+                {t('m_see_my_donations')}
               </AppText>
             </Pressable>
           )}
           <Pressable onPress={() => router.back()}>
             <AppText variant="bodyStrong" color={brand.primary}>
-              Done
+              {t('event_done')}
             </AppText>
           </Pressable>
         </View>
@@ -132,19 +134,19 @@ export function GiveForm() {
             <MaterialIcons name="hourglass-top" size={48} color={brand.warning} />
           </View>
           <AppText variant="title" style={styles.center}>
-            Payment not confirmed yet
+            {t('m_not_confirmed')}
           </AppText>
           <AppText color={brand.muted} style={styles.center}>
             {phase.message}
           </AppText>
           <Pressable style={styles.primaryButton} onPress={() => verify(phase.txRef)}>
             <AppText variant="heading" color="#ffffff">
-              Check again
+              {t('m_check_again')}
             </AppText>
           </Pressable>
           <Pressable onPress={() => setPhase({ name: 'form' })}>
             <AppText variant="bodyStrong" color={brand.primary}>
-              Start a new donation
+              {t('m_new_donation')}
             </AppText>
           </Pressable>
         </View>
@@ -158,10 +160,10 @@ export function GiveForm() {
         <View style={styles.resultBox}>
           <ActivityIndicator size="large" color={brand.primary} />
           <AppText variant="heading" style={styles.center}>
-            {phase.name === 'starting' ? 'Opening the payment page...' : 'Checking your payment...'}
+            {phase.name === 'starting' ? t('m_opening_payment') : t('m_checking_payment')}
           </AppText>
           <AppText color={brand.muted} style={styles.center}>
-            Please wait. The first request can take up to a minute.
+            {t('m_please_wait')}
           </AppText>
         </View>
       </Screen>
@@ -174,17 +176,17 @@ export function GiveForm() {
       <Card style={styles.intro}>
         <MaterialIcons name="volunteer-activism" size={30} color={brand.primary} />
         <View style={styles.introText}>
-          <AppText variant="heading">{guest ? 'Support the fellowship' : 'Weekly donation'}</AppText>
+          <AppText variant="heading">{guest ? t('support_fellowship') : t('weekly_donation')}</AppText>
           <AppText variant="caption" color={brand.muted}>
             {guest
-              ? 'No account is needed. Adding your name is optional.'
-              : 'Your gift supports the fellowship. It is recorded on your account.'}
+              ? t('m_no_account_needed')
+              : t('m_gift_recorded')}
           </AppText>
         </View>
       </Card>
 
       <AppText variant="label" color={brand.muted}>
-        Choose an amount (birr)
+        {t('m_choose_amount')}
       </AppText>
       <View style={styles.chips}>
         {QUICK_AMOUNTS.map((value) => {
@@ -211,7 +213,7 @@ export function GiveForm() {
           value={amountText}
           onChangeText={(text) => setAmountText(text.replace(/[^0-9.]/g, ''))}
           keyboardType="decimal-pad"
-          placeholder="Other amount"
+          placeholder={t('m_other_amount')}
           placeholderTextColor={brand.muted}
         />
       </View>
@@ -223,7 +225,7 @@ export function GiveForm() {
             style={styles.nameInput}
             value={guestName}
             onChangeText={setGuestName}
-            placeholder="Your name (optional)"
+            placeholder={t('don_name_optional')}
             placeholderTextColor={brand.muted}
           />
         </View>
@@ -244,19 +246,19 @@ export function GiveForm() {
         disabled={!amountValid}>
         <MaterialIcons name="lock" size={18} color="#ffffff" />
         <AppText variant="heading" color="#ffffff">
-          Give {amountValid ? `${amount} birr` : ''}
+          {amountValid ? t('m_give_amount', { amount }) : t('m_give')}
         </AppText>
       </Pressable>
 
       <AppText variant="caption" color={brand.muted} style={styles.center}>
-        You will pay on Chapa&apos;s secure page. Finot never sees your card or mobile-money details.
+        {t('m_pay_on_chapa')}
       </AppText>
 
       {!guest && (
         <Pressable onPress={() => router.push('/donate/history')} style={styles.historyLink}>
           <MaterialIcons name="history" size={18} color={brand.primary} />
           <AppText variant="bodyStrong" color={brand.primary}>
-            My donations
+            {t('m_my_donations')}
           </AppText>
         </Pressable>
       )}

@@ -22,6 +22,7 @@ import type {
   Paginated,
   SemesterCourseDetail,
 } from '@/lib/types';
+import { useTranslation } from 'react-i18next';
 
 // Keep asking the server for the next page until the list is complete (class days are few).
 function useLoadAll(hasMore: boolean, loading: boolean, loadingMore: boolean, loadMore: () => void) {
@@ -46,6 +47,7 @@ function Stat({ label, value, color }: { label: string; value: string; color: st
 }
 
 export default function CourseDetailScreen() {
+  const { t } = useTranslation();
   // The file is [id].tsx, so /courses/<uuid> gives us the semester course id.
   const { id } = useLocalSearchParams<{ id: string }>();
 
@@ -81,7 +83,7 @@ export default function CourseDetailScreen() {
   if (course.loading && !course.data) {
     return (
       <Screen>
-        <LoadingView label="Loading course..." />
+        <LoadingView />
       </Screen>
     );
   }
@@ -111,7 +113,7 @@ export default function CourseDetailScreen() {
 
   return (
     <Screen onRefresh={reloadAll} refreshing={course.refreshing}>
-      <Chip text={`${course.data.academic_year} · Semester ${course.data.semester}`} tone="blue" />
+      <Chip text={t('m_semester', { year: course.data.academic_year, n: course.data.semester })} tone="blue" />
       <AppText variant="display" color={brand.primary}>
         {course.data.course_details.title}
       </AppText>
@@ -122,43 +124,43 @@ export default function CourseDetailScreen() {
       {/* My attendance in this course */}
       <Card style={styles.progressCard}>
         <View style={styles.progressTop}>
-          <AppText variant="heading">My attendance</AppText>
+          <AppText variant="heading">{t('my_attendance')}</AppText>
           <AppText variant="title" color={brand.primary}>
             {held > 0 ? `${percentage}%` : '-'}
           </AppText>
         </View>
         <ProgressBar percent={percentage} />
         <AppText variant="caption" color={brand.muted}>
-          {held > 0 ? `Present ${summary?.present ?? 0} of ${held} classes held` : 'No class has been held yet.'}
+          {held > 0 ? t('m_present_of', { present: summary?.present ?? 0, held }) : t('m_no_class_held')}
         </AppText>
       </Card>
 
       <View style={styles.stats}>
-        <Stat label="Present" value={String(summary?.present ?? 0)} color={brand.success} />
-        <Stat label="Absent" value={String(summary?.absent ?? 0)} color={brand.danger} />
-        <Stat label="Classes" value={String(classDays.length)} color={brand.primary} />
+        <Stat label={t('status_present')} value={String(summary?.present ?? 0)} color={brand.success} />
+        <Stat label={t('status_absent')} value={String(summary?.absent ?? 0)} color={brand.danger} />
+        <Stat label={t('m_classes')} value={String(classDays.length)} color={brand.primary} />
       </View>
 
       {/* Class days */}
       <AppText variant="heading" style={styles.section}>
-        Class days
+        {t('mc_class_days')}
       </AppText>
       {sessions.loading && classDays.length === 0 ? (
-        <LoadingView label="Loading class days..." />
+        <LoadingView />
       ) : classDays.length === 0 ? (
         <Card>
-          <AppText color={brand.muted}>No class days have been planned yet.</AppText>
+          <AppText color={brand.muted}>{t('m_no_class_days')}</AppText>
         </Card>
       ) : (
         classDays.map((day) => {
           const mine = statusBySession.get(day.id);
           const isFuture = day.date > today;
           let chip: { text: string; tone: 'green' | 'red' | 'grey' | 'blue' };
-          if (mine === 'PRESENT') chip = { text: 'Present', tone: 'green' };
-          else if (mine === 'ABSENT') chip = { text: 'Absent', tone: 'red' };
-          else if (isFuture) chip = { text: 'Upcoming', tone: 'blue' };
-          else if (day.date === today) chip = { text: 'Today', tone: 'blue' };
-          else chip = { text: 'Not marked', tone: 'grey' };
+          if (mine === 'PRESENT') chip = { text: t('status_present'), tone: 'green' };
+          else if (mine === 'ABSENT') chip = { text: t('status_absent'), tone: 'red' };
+          else if (isFuture) chip = { text: t('event_upcoming'), tone: 'blue' };
+          else if (day.date === today) chip = { text: t('sch_today'), tone: 'blue' };
+          else chip = { text: t('unmarked'), tone: 'grey' };
 
           return (
             <Card key={day.id} style={styles.dayRow}>
@@ -184,11 +186,11 @@ export default function CourseDetailScreen() {
 
       {/* Materials */}
       <AppText variant="heading" style={styles.section}>
-        Materials
+        {t('materials')}
       </AppText>
       {materialList.length === 0 ? (
         <Card>
-          <AppText color={brand.muted}>No materials have been shared for this course.</AppText>
+          <AppText color={brand.muted}>{t('m_no_materials')}</AppText>
         </Card>
       ) : (
         materialList.map((material) => {

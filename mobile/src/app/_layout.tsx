@@ -9,10 +9,13 @@ import {
 import { DefaultTheme, Stack, ThemeProvider } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 
 import { brand } from '@/constants/brand';
+import i18n, { LANGUAGES } from '@/i18n';
 import { SessionProvider, useSession } from '@/lib/session';
+import { loadLanguage } from '@/lib/storage';
 
 // Keep the splash screen (the logo shown while the app starts) until the fonts are loaded
 // and we know if somebody is signed in.
@@ -37,7 +40,21 @@ export default function RootLayout() {
 }
 
 function RootNavigator() {
+  const { t } = useTranslation();
   const { isSignedIn, isLoading } = useSession();
+
+  // Apply the language the person chose last time, before the first screen is drawn.
+  const [languageReady, setLanguageReady] = useState(false);
+  useEffect(() => {
+    loadLanguage()
+      .then((code) => {
+        if (code && LANGUAGES.some((language) => language.code === code)) {
+          return i18n.changeLanguage(code);
+        }
+      })
+      .catch(() => {})
+      .finally(() => setLanguageReady(true));
+  }, []);
 
   const [fontsLoaded] = useFonts({
     PlusJakartaSans_400Regular,
@@ -47,7 +64,7 @@ function RootNavigator() {
     PlusJakartaSans_800ExtraBold,
   });
 
-  const ready = fontsLoaded && !isLoading;
+  const ready = fontsLoaded && !isLoading && languageReady;
 
   // Once the fonts and the saved session are ready, show the right screen by hiding the splash.
   useEffect(() => {
@@ -86,7 +103,7 @@ function RootNavigator() {
           name="give"
           options={{
             headerShown: true,
-            title: 'Give',
+            title: t('m_give'),
             headerStyle: { backgroundColor: brand.card },
             headerTintColor: brand.primary,
             headerShadowVisible: false,

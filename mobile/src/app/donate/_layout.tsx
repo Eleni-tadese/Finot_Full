@@ -3,9 +3,11 @@ import { Stack, useRouter } from 'expo-router';
 import { Pressable } from 'react-native';
 
 import { brand, font } from '@/constants/brand';
+import { useTranslation } from 'react-i18next';
 
 // The donation screens sit OUTSIDE the tabs: they open on top of the app and have a back arrow.
 export default function DonateLayout() {
+  const { t } = useTranslation();
   const router = useRouter();
 
   return (
@@ -20,7 +22,7 @@ export default function DonateLayout() {
       <Stack.Screen
         name="index"
         options={{
-          title: 'Give',
+          title: t('m_give'),
           // A history button at the top right of the Give screen
           headerRight: () => (
             <Pressable onPress={() => router.push('/donate/history')} hitSlop={12}>
@@ -29,7 +31,7 @@ export default function DonateLayout() {
           ),
         }}
       />
-      <Stack.Screen name="history" options={{ title: 'My donations' }} />
+      <Stack.Screen name="history" options={{ title: t('m_my_donations') }} />
     </Stack>
   );
 }

@@ -16,9 +16,11 @@ import Animated, {
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { AppText } from '@/components/ui/app-text';
+import { LanguagePicker } from '@/components/ui/language-picker';
 import { brand } from '@/constants/brand';
 import { useApi } from '@/hooks/use-api';
 import type { PublicOverview } from '@/lib/types';
+import { useTranslation } from 'react-i18next';
 
 const WEBSITE = 'https://finot.pages.dev';
 
@@ -31,11 +33,12 @@ const PHOTOS = [
 ];
 
 // What is inside the app: an icon and one word each, no sentences.
+// `label` is a translation key
 const INSIDE: { icon: keyof typeof MaterialIcons.glyphMap; label: string }[] = [
-  { icon: 'event', label: 'Events' },
-  { icon: 'school', label: 'Courses' },
-  { icon: 'notifications', label: 'Alerts' },
-  { icon: 'volunteer-activism', label: 'Giving' },
+  { icon: 'event', label: 'tab_events' },
+  { icon: 'school', label: 'adm_nav_courses' },
+  { icon: 'notifications', label: 'm_alerts' },
+  { icon: 'volunteer-activism', label: 'm_giving' },
 ];
 
 // A number that counts up from 0 when it appears, so the live numbers feel alive.
@@ -70,6 +73,7 @@ function Stat({ icon, value, label }: { icon: keyof typeof MaterialIcons.glyphMa
 }
 
 export default function WelcomeScreen() {
+  const { t } = useTranslation();
   const router = useRouter();
   const { width, height } = useWindowDimensions();
   const overview = useApi<PublicOverview>('/api/public/overview/');
@@ -131,10 +135,14 @@ export default function WelcomeScreen() {
             <View style={styles.tagPill}>
               <View style={styles.tagDot} />
               <AppText variant="bodyStrong" color={brand.accent}>
-                Gibi Gubae fellowship
+                {t('m_gibi_gubae')}
               </AppText>
             </View>
           </Animated.View>
+
+          <View style={styles.languageCorner}>
+            <LanguagePicker onDark />
+          </View>
 
           <View style={styles.dots}>
             {PHOTOS.map((_, i) => (
@@ -148,11 +156,11 @@ export default function WelcomeScreen() {
       <View style={styles.sheet}>
         {/* Live numbers */}
         <Animated.View entering={FadeInUp.delay(150).duration(500)} style={styles.statsCard}>
-          <Stat icon="school" value={stats?.active_students} label="Students" />
+          <Stat icon="school" value={stats?.active_students} label={t('students')} />
           <View style={styles.divider} />
-          <Stat icon="groups" value={stats?.service_groups} label="Groups" />
+          <Stat icon="groups" value={stats?.service_groups} label={t('m_groups')} />
           <View style={styles.divider} />
-          <Stat icon="event" value={stats?.events} label="Events" />
+          <Stat icon="event" value={stats?.events} label={t('tab_events')} />
         </Animated.View>
 
         {/* What is inside */}
@@ -163,7 +171,7 @@ export default function WelcomeScreen() {
                 <MaterialIcons name={item.icon} size={22} color={brand.primary} />
               </View>
               <AppText variant="caption" color={brand.text}>
-                {item.label}
+                {t(item.label)}
               </AppText>
             </View>
           ))}
@@ -175,7 +183,7 @@ export default function WelcomeScreen() {
             style={({ pressed }) => [styles.signIn, pressed && styles.pressed]}
             onPress={() => router.push('/sign-in')}>
             <AppText variant="heading" color="#ffffff">
-              Sign in
+              {t('sign_in')}
             </AppText>
             <View style={styles.arrowCircle}>
               <MaterialIcons name="arrow-forward" size={18} color={brand.primary} />
@@ -187,14 +195,14 @@ export default function WelcomeScreen() {
             onPress={() => router.push('/give')}>
             <MaterialIcons name="volunteer-activism" size={20} color={brand.primary} />
             <AppText variant="bodyStrong" color={brand.primary}>
-              Give without an account
+              {t('m_give_no_account')}
             </AppText>
           </Pressable>
 
           <View style={styles.links}>
             <Pressable onPress={() => Linking.openURL(`${WEBSITE}/anonymous`)} hitSlop={8}>
               <AppText variant="caption" color={brand.muted}>
-                Anonymous Q&amp;A
+                {t('anonymous_qa')}
               </AppText>
             </Pressable>
             <AppText variant="caption" color={brand.border}>
@@ -202,7 +210,7 @@ export default function WelcomeScreen() {
             </AppText>
             <Pressable onPress={() => Linking.openURL(WEBSITE)} hitSlop={8}>
               <AppText variant="caption" color={brand.muted}>
-                Website
+                {t('m_website')}
               </AppText>
             </Pressable>
           </View>
@@ -231,6 +239,7 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   tagDot: { width: 7, height: 7, borderRadius: 4, backgroundColor: brand.accent },
+  languageCorner: { position: 'absolute', top: 12, right: 14 },
   dots: { position: 'absolute', bottom: 44, flexDirection: 'row', gap: 6 },
   dot: { width: 7, height: 7, borderRadius: 4, backgroundColor: 'rgba(255,255,255,0.45)' },
   dotActive: { width: 22, backgroundColor: brand.accent },

@@ -35,3 +35,4 @@ Work in progress, built step by step. See the commit history for each step.
 | 9c | Design system: brand colours, Plus Jakarta Sans, cards, icons, dashboard Home |
 | 10 | Courses: my courses with attendance bar, class days, materials |
 | 11 | Giving with Chapa (students and visitors), donation history, welcome screen |
+| 12 | Languages: English, Amharic, Afaan Oromoo (texts shared with the website) |

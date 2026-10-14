@@ -3,34 +3,37 @@ import { ActivityIndicator, Pressable, StyleSheet, View } from 'react-native';
 
 import { AppText } from '@/components/ui/app-text';
 import { brand } from '@/constants/brand';
+import { useTranslation } from 'react-i18next';
 
 // The small pieces every data screen needs: a spinner, an error with Try again, and "nothing here".
 
-export function LoadingView({ label = 'Loading...' }: { label?: string }) {
+export function LoadingView({ label }: { label?: string }) {
+  const { t } = useTranslation();
   return (
     <View style={styles.center}>
       <ActivityIndicator size="large" color={brand.primary} />
       <AppText color={brand.muted} style={styles.text}>
-        {label}
+        {label ?? t('loading')}
       </AppText>
     </View>
   );
 }
 
 export function ErrorView({ message, onRetry }: { message: string; onRetry?: () => void }) {
+  const { t } = useTranslation();
   return (
     <View style={styles.center}>
       <View style={[styles.iconCircle, { backgroundColor: brand.dangerSoft }]}>
         <MaterialIcons name="cloud-off" size={30} color={brand.danger} />
       </View>
-      <AppText variant="heading">Could not load</AppText>
+      <AppText variant="heading">{t('m_could_not_load')}</AppText>
       <AppText color={brand.muted} style={styles.text}>
         {message}
       </AppText>
       {onRetry && (
         <Pressable style={styles.button} onPress={onRetry}>
           <AppText variant="bodyStrong" color="#ffffff">
-            Try again
+            {t('m_try_again')}
           </AppText>
         </Pressable>
       )}

@@ -1,3 +1,5 @@
+import i18n from '@/i18n';
+
 // The ONE place that talks to the server. Screens never call fetch() directly: they call apiRequest().
 
 // Public address of the backend. Not a secret (the website uses the same one).
@@ -32,6 +34,8 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
 
   const headers: Record<string, string> = {
     Accept: 'application/json',
+    // The server answers some messages (sign-up emails, account errors) in the user's language.
+    'Accept-Language': i18n.language,
   };
   if (body !== undefined) {
     headers['Content-Type'] = 'application/json';
@@ -53,7 +57,7 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
       signal: controller.signal,
     });
   } catch {
-    throw new ApiError(0, 'Cannot reach the server. Check your internet connection and try again.');
+    throw new ApiError(0, i18n.t('m_err_network'));
   } finally {
     clearTimeout(timer);
   }
@@ -83,10 +87,10 @@ function errorMessage(status: number, data: unknown): string {
       return detail;
     }
   }
-  if (status === 401) return 'Wrong email or password.';
-  if (status === 403) return 'You are not allowed to do this.';
-  if (status === 404) return 'Not found.';
-  if (status === 429) return 'Too many tries. Wait a minute and try again.';
-  if (status >= 500) return 'The server had a problem. Try again in a moment.';
-  return `Request failed (${status}).`;
+  if (status === 401) return i18n.t('m_err_401');
+  if (status === 403) return i18n.t('m_err_403');
+  if (status === 404) return i18n.t('m_err_404');
+  if (status === 429) return i18n.t('m_err_429');
+  if (status >= 500) return i18n.t('m_err_500');
+  return i18n.t('m_err_generic', { status });
 }

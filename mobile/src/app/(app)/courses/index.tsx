@@ -1,3 +1,4 @@
+import type { TFunction } from 'i18next';
 import { useRouter } from 'expo-router';
 import { View } from 'react-native';
 import { StyleSheet } from 'react-native';
@@ -12,14 +13,16 @@ import { ProgressBar } from '@/components/ui/progress-bar';
 import { brand } from '@/constants/brand';
 import { useApi } from '@/hooks/use-api';
 import type { CourseSummary } from '@/lib/types';
+import { useTranslation } from 'react-i18next';
 
-function statusChip(status: string): { text: string; tone: 'green' | 'grey' | 'blue' } {
-  if (status === 'OPEN') return { text: 'In progress', tone: 'green' };
-  if (status === 'COMPLETED') return { text: 'Completed', tone: 'grey' };
-  return { text: 'Not started', tone: 'blue' };
+function statusChip(status: string, t: TFunction): { text: string; tone: 'green' | 'grey' | 'blue' } {
+  if (status === 'OPEN') return { text: t('m_in_progress'), tone: 'green' };
+  if (status === 'COMPLETED') return { text: t('event_completed'), tone: 'grey' };
+  return { text: t('crs_status_planned'), tone: 'blue' };
 }
 
 export default function CoursesScreen() {
+  const { t } = useTranslation();
   const router = useRouter();
   const { data, error, loading, refreshing, reload, retry } = useApi<CourseSummary[]>(
     '/api/course/semester-courses/my-attendance-summary/',
@@ -27,14 +30,14 @@ export default function CoursesScreen() {
 
   if (loading && !data) {
     return (
-      <Screen title="Courses">
-        <LoadingView label="Loading your courses..." />
+      <Screen title={t('adm_nav_courses')}>
+        <LoadingView />
       </Screen>
     );
   }
   if (error && !data) {
     return (
-      <Screen title="Courses">
+      <Screen title={t('adm_nav_courses')}>
         <ErrorView message={error.message} onRetry={retry} />
       </Screen>
     );
@@ -43,12 +46,12 @@ export default function CoursesScreen() {
   const courses = data ?? [];
 
   return (
-    <Screen title="Courses" subtitle="Your classes and attendance" onRefresh={reload} refreshing={refreshing}>
+    <Screen title={t('adm_nav_courses')} subtitle={t('m_courses_subtitle')} onRefresh={reload} refreshing={refreshing}>
       {courses.length === 0 ? (
-        <EmptyView icon="school" message="You are not enrolled in a course yet. Courses appear here when they open." />
+        <EmptyView icon="school" message={t('m_no_courses')} />
       ) : (
         courses.map((course) => {
-          const chip = statusChip(course.status);
+          const chip = statusChip(course.status, t);
           return (
             <Card
               key={course.semester_course}
@@ -63,7 +66,7 @@ export default function CoursesScreen() {
                     {course.course_title}
                   </AppText>
                   <AppText variant="caption" color={brand.muted}>
-                    {course.academic_year} · Semester {course.semester}
+                    {t('m_semester', { year: course.academic_year, n: course.semester })}
                   </AppText>
                 </View>
                 <Chip text={chip.text} tone={chip.tone} />
@@ -75,8 +78,8 @@ export default function CoursesScreen() {
                 <AppText variant="bodyStrong">{course.sessions_held > 0 ? `${course.percentage}%` : '-'}</AppText>
                 <AppText variant="caption" color={brand.muted}>
                   {course.sessions_held > 0
-                    ? `Present ${course.present} of ${course.sessions_held} classes`
-                    : 'No class held yet'}
+                    ? t('m_present_of', { present: course.present, held: course.sessions_held })
+                    : t('m_no_class_held')}
                 </AppText>
               </View>
             </Card>

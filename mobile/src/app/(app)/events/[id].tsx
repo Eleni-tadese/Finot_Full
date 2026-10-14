@@ -13,6 +13,7 @@ import { brand } from '@/constants/brand';
 import { useApi } from '@/hooks/use-api';
 import { etDate, etTime } from '@/lib/ethiopia-time';
 import type { EventAttendance, Paginated, ServiceEvent } from '@/lib/types';
+import { useTranslation } from 'react-i18next';
 
 // One line of the details card: an icon, a small label and the value.
 function InfoRow({ icon, label, value }: { icon: keyof typeof MaterialIcons.glyphMap; label: string; value: string }) {
@@ -30,6 +31,7 @@ function InfoRow({ icon, label, value }: { icon: keyof typeof MaterialIcons.glyp
 }
 
 export default function EventDetailScreen() {
+  const { t } = useTranslation();
   // The file is named [id].tsx, so the address /events/12 gives us id = "12".
   const { id } = useLocalSearchParams<{ id: string }>();
 
@@ -41,7 +43,7 @@ export default function EventDetailScreen() {
   if (loading && !event) {
     return (
       <Screen>
-        <LoadingView label="Loading event..." />
+        <LoadingView />
       </Screen>
     );
   }
@@ -56,9 +58,9 @@ export default function EventDetailScreen() {
     return null;
   }
 
-  const status = eventStatusChip(event.status);
+  const status = eventStatusChip(event.status, t);
   const mine = attendance.data?.results.find((record) => record.event === event.id);
-  const attended = attendanceChip(mine?.status);
+  const attended = attendanceChip(mine?.status, t);
 
   return (
     <Screen
@@ -97,20 +99,20 @@ export default function EventDetailScreen() {
       )}
 
       <Card style={styles.details}>
-        <InfoRow icon="event" label="Date" value={etDate(event.start_date)} />
+        <InfoRow icon="event" label={t('date')} value={etDate(event.start_date)} />
         <InfoRow
           icon="schedule"
-          label="Time"
+          label={t('time')}
           value={`${etTime(event.start_date)} - ${etTime(event.end_date)}`}
         />
-        {event.place_name ? <InfoRow icon="place" label="Place" value={event.place_name} /> : null}
-        {event.created_by_name ? <InfoRow icon="person" label="Posted by" value={event.created_by_name} /> : null}
+        {event.place_name ? <InfoRow icon="place" label={t('m_place')} value={event.place_name} /> : null}
+        {event.created_by_name ? <InfoRow icon="person" label={t('m_posted_by')} value={event.created_by_name} /> : null}
       </Card>
 
       {event.description ? (
         <Card>
           <AppText variant="label" color={brand.muted} style={styles.descriptionLabel}>
-            About this event
+            {t('m_about_event')}
           </AppText>
           <AppText>{event.description}</AppText>
         </Card>
@@ -121,7 +123,7 @@ export default function EventDetailScreen() {
         <Pressable style={styles.button} onPress={() => Linking.openURL(event.place_url as string)}>
           <MaterialIcons name="map" size={20} color="#ffffff" />
           <AppText variant="bodyStrong" color="#ffffff">
-            Open the map
+            {t('m_open_map')}
           </AppText>
         </Pressable>
       ) : null}

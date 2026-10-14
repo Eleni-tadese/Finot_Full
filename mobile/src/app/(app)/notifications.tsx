@@ -13,6 +13,7 @@ import { apiRequest } from '@/lib/api';
 import { useSession } from '@/lib/session';
 import { timeAgo } from '@/lib/time-ago';
 import type { AppNotification } from '@/lib/types';
+import { useTranslation } from 'react-i18next';
 
 // Each kind of notification gets its own icon, so the list can be scanned at a glance.
 const ICONS: Record<string, keyof typeof MaterialIcons.glyphMap> = {
@@ -24,6 +25,7 @@ const ICONS: Record<string, keyof typeof MaterialIcons.glyphMap> = {
 };
 
 export default function NotificationsScreen() {
+  const { t } = useTranslation();
   const { accessToken } = useSession();
   const { items, setItems, error, loading, refreshing, loadingMore, loadMore, reload, retry } =
     usePaginated<AppNotification>('/api/notifications/');
@@ -59,14 +61,14 @@ export default function NotificationsScreen() {
     <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
       <View style={styles.top}>
         <PageHeader
-          title="Alerts"
-          subtitle={unread > 0 ? `${unread} unread` : 'You are all caught up'}
+          title={t('m_alerts')}
+          subtitle={unread > 0 ? t('m_n_unread', { n: unread }) : t('m_all_caught_up')}
           right={
             unread > 0 ? (
               <Pressable onPress={markAllRead} style={styles.markAll}>
                 <MaterialIcons name="done-all" size={18} color={brand.primary} />
                 <AppText variant="bodyStrong" color={brand.primary}>
-                  Read all
+                  {t('m_read_all')}
                 </AppText>
               </Pressable>
             ) : undefined
@@ -75,7 +77,7 @@ export default function NotificationsScreen() {
       </View>
 
       {loading && items.length === 0 ? (
-        <LoadingView label="Loading notifications..." />
+        <LoadingView />
       ) : error && items.length === 0 ? (
         <ErrorView message={error.message} onRetry={retry} />
       ) : (
@@ -113,7 +115,7 @@ export default function NotificationsScreen() {
           }
           onEndReached={loadMore}
           onEndReachedThreshold={0.5}
-          ListEmptyComponent={<EmptyView icon="notifications-none" message="You have no notifications." />}
+          ListEmptyComponent={<EmptyView icon="notifications-none" message={t('m_no_notifications')} />}
           ListFooterComponent={loadingMore ? <ActivityIndicator style={styles.footer} color={brand.primary} /> : null}
         />
       )}
