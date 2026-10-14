@@ -47,3 +47,38 @@ export type StudentProfile = {
   dorm_room: number | null;
   status: 'IN_CAMPUS' | 'GRADUATED' | string;
 };
+
+// Lists from the server come in pages of 20: { count, next, previous, results }
+export type Paginated<T> = {
+  count: number;
+  next: string | null; // full address of the next page, or null on the last one
+  previous: string | null;
+  results: T[];
+};
+
+// GET /api/service/events/  (step 8)
+export type ServiceEvent = {
+  id: number;
+  title: string;
+  description: string;
+  start_date: string; // ISO text such as "2026-10-20T11:00:00+03:00"
+  end_date: string;
+  photo: string | null;
+  status: 'UPCOMING' | 'ONGOING' | 'COMPLETED' | string; // worked out by the server from the dates
+  created_by_name: string | null;
+  place_name: string | null;
+  place_url: string | null;
+  service_group: number | null; // null = an event for everyone
+  service_group_name: string | null;
+};
+
+// GET /api/service/attendance/  (my own records only)
+export type EventAttendance = {
+  id: number;
+  event: number; // the event id
+  event_title: string;
+  event_date: string;
+  status: 'PRESENT' | 'ABSENT' | string;
+  remark: string | null;
+  recorded_at: string;
+};
