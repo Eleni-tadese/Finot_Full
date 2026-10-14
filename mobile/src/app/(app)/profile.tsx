@@ -1,4 +1,5 @@
 import { MaterialIcons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
 import { Pressable, StyleSheet, View } from 'react-native';
 
 import { Screen } from '@/components/screen';
@@ -35,6 +36,7 @@ function Row({ icon, label, value }: { icon: Icon; label: string; value: string 
 
 export default function ProfileScreen() {
   const { signOut } = useSession();
+  const router = useRouter();
   const { data: profile, error, loading, refreshing, reload, retry } =
     useApi<StudentProfile>('/api/student/profiles/me/');
 
@@ -101,6 +103,20 @@ export default function ProfileScreen() {
         <Row icon="home" label="Home address" value={profile.home_address} />
       </Card>
 
+      <AppText variant="heading" style={styles.section}>
+        Giving
+      </AppText>
+      <Card style={styles.linkRow} onPress={() => router.push('/donate/history')}>
+        <IconBadge name="volunteer-activism" size={40} />
+        <View style={styles.rowText}>
+          <AppText variant="bodyStrong">My donations</AppText>
+          <AppText variant="caption" color={brand.muted}>
+            See what you have given
+          </AppText>
+        </View>
+        <MaterialIcons name="chevron-right" size={22} color={brand.muted} />
+      </Card>
+
       <SignOutButton onPress={signOut} />
     </Screen>
   );
@@ -134,6 +150,7 @@ const styles = StyleSheet.create({
   centerText: { textAlign: 'center', marginTop: 6 },
   section: { marginTop: 8 },
   group: { gap: 16 },
+  linkRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   row: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   rowText: { flex: 1, gap: 1 },
   signOut: {

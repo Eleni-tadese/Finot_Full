@@ -65,10 +65,33 @@ function RootNavigator() {
       {/* Signed in: the (app) group (the tabs). Signed out: only the sign-in screen exists. */}
       <Stack.Protected guard={isSignedIn}>
         <Stack.Screen name="(app)" />
+        {/* The donation screens open on top of the tabs */}
+        <Stack.Screen name="donate" />
       </Stack.Protected>
 
       <Stack.Protected guard={!isSignedIn}>
-        <Stack.Screen name="sign-in" />
+        {/* The first screen of a signed-out visitor is the first one listed here: welcome */}
+        <Stack.Screen name="welcome" />
+        <Stack.Screen
+          name="sign-in"
+          options={{
+            headerShown: true,
+            headerTransparent: true, // the back arrow floats over the blue panel
+            headerTitle: '',
+            headerTintColor: '#ffffff',
+            headerShadowVisible: false,
+          }}
+        />
+        <Stack.Screen
+          name="give"
+          options={{
+            headerShown: true,
+            title: 'Give',
+            headerStyle: { backgroundColor: brand.card },
+            headerTintColor: brand.primary,
+            headerShadowVisible: false,
+          }}
+        />
       </Stack.Protected>
     </Stack>
   );

@@ -135,8 +135,10 @@ export default function HomeScreen() {
       </AppText>
       <View style={styles.grid}>
         <Tile icon="event" label="Events" onPress={() => router.push('/events')} />
+        <Tile icon="school" label="My courses" onPress={() => router.push('/courses')} />
         <Tile icon="how-to-reg" label="My attendance" onPress={() => router.push('/events/attendance')} />
         <Tile icon="notifications" label="Notifications" badge={count} onPress={() => router.push('/notifications')} />
+        <Tile icon="volunteer-activism" label="Give" onPress={() => router.push('/donate')} />
         <Tile icon="person" label="My profile" onPress={() => router.push('/profile')} />
       </View>
     </Screen>

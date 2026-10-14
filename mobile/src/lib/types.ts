@@ -147,3 +147,46 @@ export type Material = {
   material_type: 'COURSE' | 'SERVICE' | 'GENERAL' | string;
   created_at: string;
 };
+
+// POST /api/donations/initiate/  (step 11)
+export type InitiateDonationResponse = {
+  checkout_url: string; // Chapa's payment page
+  tx_ref: string; // our reference for this payment
+};
+
+// GET /api/donations/verify/{tx_ref}/  (answers 200 when paid, 400 when not paid yet)
+export type VerifyDonationResponse = {
+  status: string;
+  amount: string;
+  currency: string;
+  tx_ref: string;
+  date: string;
+  donor_name: string;
+};
+
+// GET /api/donations/my-history/
+export type DonationHistoryItem = {
+  id: number;
+  fund_category: string;
+  donated_at: string;
+  payment: {
+    amount: string; // a decimal as text, for example "10.00"
+    currency: string;
+    status: 'PENDING' | 'COMPLETED' | 'FAILED' | string;
+    transaction_reference: string;
+    created_at: string;
+  };
+};
+
+// GET /api/public/overview/  (public: no sign-in needed)
+export type PublicOverview = {
+  stats: {
+    active_students: number;
+    graduates: number;
+    service_groups: number;
+    families: number;
+    events: number;
+    public_questions: number;
+  };
+  groups: { id: number; name: string; summary: string; photo: string | null }[];
+};
