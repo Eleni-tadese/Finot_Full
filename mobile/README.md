@@ -23,3 +23,4 @@ Work in progress, built step by step. See the commit history for each step.
 | Step | What |
 |---|---|
 | 1 | Project created and running on a phone |
+| 2 | First screen: View, Text, Pressable, StyleSheet, useState |
