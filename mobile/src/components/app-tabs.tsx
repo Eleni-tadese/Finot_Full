@@ -21,6 +21,11 @@ export default function AppTabs() {
         <NativeTabs.Trigger.Icon sf="calendar" md="calendar_month" />
       </NativeTabs.Trigger>
 
+      <NativeTabs.Trigger name="courses">
+        <NativeTabs.Trigger.Label>Courses</NativeTabs.Trigger.Label>
+        <NativeTabs.Trigger.Icon sf="book.fill" md="school" />
+      </NativeTabs.Trigger>
+
       <NativeTabs.Trigger name="notifications">
         <NativeTabs.Trigger.Label>Alerts</NativeTabs.Trigger.Label>
         <NativeTabs.Trigger.Icon sf="bell.fill" md="notifications" />

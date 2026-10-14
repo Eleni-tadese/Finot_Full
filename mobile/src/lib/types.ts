@@ -97,3 +97,53 @@ export type AppNotification = {
 export type UnreadCount = {
   count: number;
 };
+
+// GET /api/course/semester-courses/my-attendance-summary/  (step 10): one entry per course I study
+export type CourseSummary = {
+  semester_course: string; // the id of the semester course (a UUID)
+  course_title: string;
+  academic_year: number;
+  semester: number; // 1 or 2
+  status: 'PLANNED' | 'OPEN' | 'COMPLETED' | string;
+  sessions_held: number; // class days that already have attendance marked
+  present: number;
+  absent: number;
+  percentage: number; // 0 to 100
+};
+
+// GET /api/course/semester-courses/{id}/
+export type SemesterCourseDetail = {
+  id: string;
+  course: string; // the curriculum id, used to find the materials
+  course_details: { id: string; title: string; description: string | null; batch_year: number };
+  academic_year: number;
+  semester: number;
+  status: string;
+};
+
+// GET /api/course/sessions/?semester_course={id}  (one class day)
+export type CourseSession = {
+  id: string;
+  semester_course: string;
+  date: string; // "2026-10-14" (a date, no time)
+  topic: string | null;
+  teacher_name: string | null;
+};
+
+// GET /api/course/attendance/?mine=1  (my record for one class day)
+export type CourseAttendanceRecord = {
+  id: string;
+  session: string; // the class day id
+  status: 'PRESENT' | 'ABSENT' | string;
+};
+
+// GET /api/resources/materials/?course={id}
+export type Material = {
+  id: string;
+  title: string;
+  description: string | null;
+  file: string | null; // full web address of the uploaded file
+  url: string | null; // or an outside link
+  material_type: 'COURSE' | 'SERVICE' | 'GENERAL' | string;
+  created_at: string;
+};

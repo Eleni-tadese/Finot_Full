@@ -33,3 +33,4 @@ Work in progress, built step by step. See the commit history for each step.
 | 8b | My attendance: totals, percentage and a record per event |
 | 9 | Notifications: list, mark as read (optimistic), unread count |
 | 9c | Design system: brand colours, Plus Jakarta Sans, cards, icons, dashboard Home |
+| 10 | Courses: my courses with attendance bar, class days, materials |

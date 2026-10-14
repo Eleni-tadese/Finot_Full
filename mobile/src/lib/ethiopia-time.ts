@@ -39,3 +39,16 @@ export function etDay(iso: string): string {
 export function etMonthShort(iso: string): string {
   return MONTHS[shifted(iso).getUTCMonth()];
 }
+
+// For plain dates such as "2026-10-14" (a class day has a date but no time).
+// We read the three numbers ourselves, so no time zone can move the day.
+export function plainDate(dateText: string): string {
+  const [year, month, day] = dateText.split('-').map(Number);
+  const d = new Date(Date.UTC(year, month - 1, day));
+  return `${DAYS[d.getUTCDay()]} ${day} ${MONTHS[month - 1]} ${year}`;
+}
+
+// Today's date in Ethiopia as "2026-10-14", to compare with class-day dates.
+export function etToday(): string {
+  return new Date(Date.now() + OFFSET_MS).toISOString().slice(0, 10);
+}
