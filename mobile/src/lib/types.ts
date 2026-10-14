@@ -28,3 +28,22 @@ export type User = {
   roles: string[]; // for example ["Student", "EventManager"]
   setup: SetupStatus | null;
 };
+
+// GET /api/student/profiles/me/  (step 7)
+export type StudentProfile = {
+  id: string;
+  user_email: string;
+  first_name: string;
+  middle_name: string;
+  last_name: string;
+  gender: string | null;
+  profile_image: string | null; // a full web address, or null
+  batch_year: number | null; // year of study, 1 to 5
+  department: string | null;
+  telegram_username: string | null;
+  personal_phone: string | null;
+  home_address: string | null;
+  dorm_block: number | null;
+  dorm_room: number | null;
+  status: 'IN_CAMPUS' | 'GRADUATED' | string;
+};

@@ -1,89 +1,51 @@
-import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { StyleSheet, Text, View } from 'react-native';
 
+import { Screen } from '@/components/screen';
 import { useSession } from '@/lib/session';
 
 export default function HomeScreen() {
-  const { user, signOut } = useSession();
+  const { user } = useSession();
 
   // The router only shows this screen to signed-in people, but TypeScript does not know that.
   if (!user) {
     return null;
   }
 
-  const fullName = [user.first_name, user.last_name].filter(Boolean).join(' ');
+  const name = user.first_name || user.email;
   // A plain student has no role row, so the list can be empty.
-  const roles = user.roles.length > 0 ? user.roles.join(', ') : 'Student';
+  const roles = user.roles.length > 0 ? user.roles : ['Student'];
 
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <View style={styles.content}>
-        <Text style={styles.title}>Finot</Text>
-        <Text style={styles.subtitle}>Gibi Gubae fellowship</Text>
+    <Screen>
+      <Text style={styles.hello}>Hello, {name}</Text>
+      <Text style={styles.subtitle}>Gibi Gubae fellowship</Text>
 
-        <View style={styles.card}>
-          <Text style={styles.cardLabel}>Signed in as</Text>
-          <Text style={styles.name}>{fullName || user.email}</Text>
-          <Text style={styles.cardText}>{user.email}</Text>
-          <Text style={styles.cardLabel}>Roles</Text>
-          <Text style={styles.cardText}>{roles}</Text>
+      <View style={styles.card}>
+        <Text style={styles.cardLabel}>Your roles</Text>
+        <View style={styles.chips}>
+          {roles.map((role) => (
+            <View key={role} style={styles.chip}>
+              <Text style={styles.chipText}>{role}</Text>
+            </View>
+          ))}
         </View>
-
-        <Pressable onPress={signOut}>
-          <Text style={styles.link}>Sign out</Text>
-        </Pressable>
       </View>
-    </SafeAreaView>
+
+      <View style={styles.card}>
+        <Text style={styles.cardLabel}>Coming next</Text>
+        <Text style={styles.cardText}>Events and attendance, notifications, my courses and donations.</Text>
+      </View>
+    </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: '#ffffff',
-  },
-  content: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 12,
-    padding: 24,
-  },
-  title: {
-    fontSize: 40,
-    fontWeight: '700',
-    color: '#1e3a8a',
-  },
-  subtitle: {
-    fontSize: 18,
-    color: '#475569',
-  },
-  card: {
-    alignSelf: 'stretch',
-    backgroundColor: '#f1f5f9',
-    borderRadius: 12,
-    padding: 16,
-    gap: 4,
-    marginTop: 16,
-  },
-  cardLabel: {
-    fontSize: 12,
-    color: '#64748b',
-    marginTop: 8,
-    textTransform: 'uppercase',
-  },
-  name: {
-    fontSize: 20,
-    fontWeight: '600',
-    color: '#0f172a',
-  },
-  cardText: {
-    fontSize: 15,
-    color: '#334155',
-  },
-  link: {
-    marginTop: 16,
-    fontSize: 16,
-    color: '#1e3a8a',
-  },
+  hello: { fontSize: 28, fontWeight: '700', color: '#1e3a8a' },
+  subtitle: { fontSize: 16, color: '#475569', marginBottom: 8 },
+  card: { backgroundColor: '#f1f5f9', borderRadius: 12, padding: 16, gap: 8 },
+  cardLabel: { fontSize: 12, color: '#64748b', textTransform: 'uppercase' },
+  cardText: { fontSize: 15, color: '#334155' },
+  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  chip: { backgroundColor: '#dbeafe', paddingVertical: 6, paddingHorizontal: 12, borderRadius: 999 },
+  chipText: { color: '#1e3a8a', fontWeight: '600', fontSize: 14 },
 });
