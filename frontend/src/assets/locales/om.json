@@ -1726,5 +1726,9 @@
   "slip_empty": "Sadarkaa kanarratti barataan hin jiru.",
   "slip_login": "Imeelii seensaa",
   "slip_deadline": "Guyyaa dhumaa",
-  "slip_no_name_yet": "(maqaan hin jiru)"
+  "slip_no_name_yet": "(maqaan hin jiru)",
+  "flt_account": "Herregoota",
+  "flt_acc_real": "Herregoota dhugaa",
+  "flt_acc_slip": "Ammallee waraqaa irra jiran",
+  "acc_replace_pw": "Imeelii kee mirkanaa'eera. Nageenyaaf jechi darbii waraqaa irra jiru amma bakka bu'uu qaba: itti fufuuf jecha darbii haaraa kee filadhu."
 }

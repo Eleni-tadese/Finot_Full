@@ -24,7 +24,8 @@ const UsersPage = () => {
   const [search, setSearch] = useState("");
   const [debounced, setDebounced] = useState("");
   const [role, setRole] = useState("");
-  const [filters, setFilters] = useState<Record<string, string>>({});
+  // the list opens on real accounts: students still on a slip email are followed in "Register students > Slip progress"
+  const [filters, setFilters] = useState<Record<string, string>>({ account: "real" });
   const [options, setOptions] = useState<UserFilterOptions | null>(null);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState<AdminUser | null>(null);
@@ -71,9 +72,10 @@ const UsersPage = () => {
     });
     setPage(1);
   };
-  const clearFilters = () => { setFilters({}); setRole(""); setPage(1); };
+  const clearFilters = () => { setFilters({ account: "real" }); setRole(""); setPage(1); };
 
   const filterFields: FilterField[] = [
+    { key: "account", label: t("flt_account", "Accounts"), options: [{ value: "real", label: t("flt_acc_real", "Real accounts") }, { value: "slip", label: t("flt_acc_slip", "Still on a slip") }] },
     { key: "gender", label: t("flt_gender", "Gender"), options: [{ value: "M", label: t("flt_male", "Male") }, { value: "F", label: t("flt_female", "Female") }] },
     { key: "batch", label: t("flt_batch", "Batch"), options: (options?.batches ?? []).map((b) => ({ value: String(b), label: t("flt_batch_n", "Batch {{n}}", { n: b }) })) },
     { key: "department", label: t("flt_department", "Department"), options: (options?.departments ?? []).map((d) => ({ value: d, label: d })) },

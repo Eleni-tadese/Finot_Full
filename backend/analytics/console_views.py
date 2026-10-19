@@ -208,6 +208,14 @@ def filter_users(request, qs):
         )
     if p.get("role"):
         qs = qs.filter(roles__name=p["role"])
+    if p.get("account") in ("real", "slip"):
+        # "slip" = still signs in with the made-up slip email; "real" = everyone else (own email, or never had a slip)
+        from student.account_import import SLIP_DOMAINS
+
+        on_slip = Q()
+        for domain in SLIP_DOMAINS:
+            on_slip |= Q(email__iendswith="@" + domain)
+        qs = qs.filter(on_slip) if p["account"] == "slip" else qs.exclude(on_slip)
     if p.get("status") == "active":
         qs = qs.filter(is_active=True)
     elif p.get("status") == "inactive":

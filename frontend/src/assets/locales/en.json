@@ -1726,5 +1726,9 @@
   "slip_empty": "No students in this step.",
   "slip_login": "Login email",
   "slip_deadline": "Deadline",
-  "slip_no_name_yet": "(no name yet)"
+  "slip_no_name_yet": "(no name yet)",
+  "flt_account": "Accounts",
+  "flt_acc_real": "Real accounts",
+  "flt_acc_slip": "Still on a slip",
+  "acc_replace_pw": "Your email is confirmed. For your safety the password on the slip must go now: choose your own new password to continue."
 }

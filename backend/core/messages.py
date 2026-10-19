@@ -94,6 +94,10 @@ MESSAGES = {
         "om": "Daqiiqaa {minutes} tajaajila. Yoo ati hin gaafanne ergaa kana dhiisi.",
     },
     # --- sign-in blocked after the slip expired (student/authentication.py) ---
+    "Your email is confirmed. Choose your new password to continue.": {
+        "am": "ኢሜይልዎ ተረጋግጧል። ለመቀጠል አዲስ የይለፍ ቃልዎን ይምረጡ።",
+        "om": "Imeelii kee mirkanaa'eera. Itti fufuuf jecha darbii haaraa kee filadhu.",
+    },
     "Your first slip has expired. Add your own email and a new password to continue.": {
         "am": "የመጀመሪያው ወረቀትዎ ጊዜው አልፎበታል። ለመቀጠል የራስዎን ኢሜይልና አዲስ የይለፍ ቃል ያክሉ።",
         "om": "Waraqaan kee isa jalqabaa yeroon darbeera. Itti fufuuf imeelii mataa keetii fi jecha darbii haaraa dabali.",

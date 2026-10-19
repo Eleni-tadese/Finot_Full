@@ -9,7 +9,7 @@ import { Card, SectionHeader } from "../../components/ui/Card";
 import { firstApiError } from "../../features/resources/utils";
 import PasswordField from "../../components/ui/PasswordField";
 
-type Setup = { pending: boolean; required: boolean; expired: boolean; needs_name: boolean; days_left: number; needs_email: boolean; needs_password: boolean } | null;
+type Setup = { pending: boolean; required: boolean; expired: boolean; needs_name: boolean; must_replace_password?: boolean; days_left: number; needs_email: boolean; needs_password: boolean } | null;
 
 /** Change the login email (confirmed with a code) and the password. Also the "finish your account" page for slip holders. */
 const AccountPage = () => {
@@ -129,8 +129,10 @@ const AccountPage = () => {
       <SectionHeader
         title={needsName ? t("acc_welcome", "Welcome to Finot") : pending ? t("acc_finish_title", "Finish your account") : t("acc_title", "Email and password")}
         description={needsName ? t("acc_welcome_desc", "First tell us who you are. After that you can complete your profile.") : pending
-          ? (setup?.expired
-            ? t("acc_required", "Your login slip has expired. Add your own email and choose a new password to continue.")
+          ? (setup?.must_replace_password && !setup?.expired
+            ? t("acc_replace_pw", "Your email is confirmed. For your safety the password on the slip must go now: choose your own new password to continue.")
+            : setup?.expired
+            ? t("acc_required","Your login slip has expired. Add your own email and choose a new password to continue.")
             : t("acc_pending", "Your login slip works for {{n}} more day(s). Add your own email and choose a new password before it ends.", { n: setup?.days_left ?? 0 }))
           : t("acc_desc", "Change the email you sign in with, or your password.")}
         icon={<FiShield className="h-6 w-6" />}

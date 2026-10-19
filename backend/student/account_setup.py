@@ -75,10 +75,17 @@ def needs_name(user):
     return not (user.first_name and user.middle_name and user.last_name and user.gender)
 
 
+def must_replace_password(profile):
+    """The real email was confirmed but the printed slip password is still in use: choose a new one before anything else."""
+    return bool(is_pending(profile) and profile.email_confirmed_at and profile.password_changed_at is None)
+
+
 def is_blocked(user):
-    """True when every other page must stay closed: the slip expired, or the name is still missing."""
+    """True when every other page must stay closed: the slip expired, the name is missing, or the slip password must go."""
     profile = _profile(user)
-    return is_pending(profile) and (timezone.now() >= profile.setup_deadline or needs_name(user))
+    return is_pending(profile) and (
+        timezone.now() >= profile.setup_deadline or needs_name(user) or must_replace_password(profile)
+    )
 
 
 def status_for(user):
@@ -93,8 +100,9 @@ def status_for(user):
         "pending": pending,
         "expired": pending and remaining <= 0,
         # the Account page is the only open page while the slip is expired or the student has not written their name
-        "required": pending and (remaining <= 0 or no_name),
+        "required": pending and (remaining <= 0 or no_name or must_replace_password(profile)),
         "needs_name": no_name,
+        "must_replace_password": must_replace_password(profile),
         "deadline": profile.setup_deadline,
         "days_left": max(0, math.ceil(remaining / 86400)) if pending else 0,
         "needs_email": pending and is_slip_email(user.email),
@@ -171,6 +179,10 @@ def confirm_email_code(user, code):
     user.save(update_fields=["email", "username"])
     verification.expires_at = timezone.now()
     verification.save(update_fields=["expires_at"])
+    profile = _profile(user)
+    if is_pending(profile):
+        profile.email_confirmed_at = timezone.now()
+        profile.save(update_fields=["email_confirmed_at"])
     refresh_completion(user)
     return user.email
 

@@ -77,6 +77,9 @@ class StudentProfile(models.Model):
     setup_deadline = models.DateTimeField(blank=True, null=True)
     setup_completed_at = models.DateTimeField(blank=True, null=True)
     password_changed_at = models.DateTimeField(blank=True, null=True)
+    # set when a slip student confirms a real email with the code; from then on the slip password must be replaced at once
+    # (accounts that confirmed their email before this existed have no value and may change the password any time)
+    email_confirmed_at = models.DateTimeField(blank=True, null=True)
     # how far the "finish your account" reminders have gone (0 = none yet)
     setup_reminder_stage = models.PositiveSmallIntegerField(default=0)
     # the language the student last used on the site (en, am, om); server emails and reminders use it
