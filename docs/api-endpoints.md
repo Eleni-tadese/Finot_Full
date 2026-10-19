@@ -24,6 +24,8 @@ Generated from the code (`manage.py spectacular`). For request and response shap
 | POST | `/api/admin-console/accounts/import/blank/` | Slips for students whose names the organization does not know: each student writes their own name at first sign-in. |
 | POST | `/api/admin-console/accounts/import/commit/` | api_admin_console_accounts_import_commit_create |
 | POST | `/api/admin-console/accounts/import/preview/` | api_admin_console_accounts_import_preview_create |
+| GET | `/api/admin-console/accounts/import/progress/` | GET accounts/import/progress/?batch=&state=&q=&page=  one number per step plus the matching students. |
+| GET | `/api/admin-console/accounts/import/progress/export/` | GET accounts/import/progress/export/  the same list (same filters) as an Excel file. |
 | GET | `/api/admin-console/accounts/import/template/` | api_admin_console_accounts_import_template_retrieve |
 | GET | `/api/admin-console/departments/` | api_admin_console_departments_retrieve |
 | POST | `/api/admin-console/departments/` | api_admin_console_departments_create |

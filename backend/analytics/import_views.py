@@ -6,21 +6,28 @@ Super Admin API for registering many students at once from an Excel / CSV list.
   POST  accounts/import/commit/               {batch_id?, grace_days?, rows:[...]}  at most 150 rows per call
   POST  accounts/import/blank/                {count, batch_id?, grace_days?}  slips without names (at most 150 per call)
   GET   accounts/import/batches/              earlier imports with counts
+  GET   accounts/import/progress/             where every slip stands (?batch= ?state= ?q= ?page=)
+  GET   accounts/import/progress/export/      the same list as Excel
   POST  accounts/import/batches/<id>/undo/    remove the accounts of an import that nobody has used yet
 
 The browser sends the rows in chunks of 100 so each request stays short (the host cuts long requests) and shows a
 progress bar. Every row is checked again on the server; the passwords come back only in the commit answer.
 """
+from django.db.models import Q
 from django.http import HttpResponse
+from django.utils import timezone
 from rest_framework import status
 from rest_framework.exceptions import ValidationError
 from rest_framework.parsers import JSONParser, MultiPartParser
 from rest_framework.response import Response
 
 from student import account_import as ai
+from student import slip_progress as sp
 from student.models import AccountImportBatch
 
-from .console_views import ConsoleView, full_name
+from . import exports
+from .console_views import ConsolePagination, ConsoleView, full_name
+from .utils.xlsx import xlsx_response
 
 MAX_FILE_BYTES = 2 * 1024 * 1024
 
@@ -151,6 +158,48 @@ class ImportBatchesView(ConsoleView):
                 "completed": students.filter(student_profile__setup_completed_at__isnull=False).count(),
             })
         return Response({"results": out})
+
+
+def _progress_queryset(request):
+    """Slip accounts for the report, narrowed by ?batch=, ?state= and ?q= (name or login email)."""
+    batch = request.query_params.get("batch")
+    qs = sp.slip_profiles(int(batch) if batch and batch.isdigit() else None)
+    state = request.query_params.get("state", "")
+    if state and state not in sp.FILTERS:
+        raise ValidationError({"state": "Unknown step."})
+    q = (request.query_params.get("q") or "").strip()
+    base = qs
+    if q:
+        for word in q.split()[:4]:
+            qs = qs.filter(
+                Q(user__first_name__icontains=word) | Q(user__middle_name__icontains=word)
+                | Q(user__last_name__icontains=word) | Q(user__email__icontains=word)
+            )
+    return base, sp.filter_profiles(qs, state).order_by("setup_deadline", "user__email")
+
+
+class SlipProgressView(ConsoleView):
+    """GET accounts/import/progress/?batch=&state=&q=&page=  one number per step plus the matching students."""
+
+    def get(self, request):
+        base, qs = _progress_queryset(request)
+        paginator = ConsolePagination()
+        page = paginator.paginate_queryset(qs, request)
+        return Response({
+            "summary": sp.summary(base),
+            "count": paginator.page.paginator.count,
+            "next": paginator.get_next_link(),
+            "previous": paginator.get_previous_link(),
+            "results": [sp.row_for(p) for p in page],
+        })
+
+
+class SlipProgressExportView(ConsoleView):
+    """GET accounts/import/progress/export/  the same list (same filters) as an Excel file."""
+
+    def get(self, request):
+        _, qs = _progress_queryset(request)
+        return xlsx_response(f"slip-progress-{timezone.localdate():%Y-%m-%d}.xlsx", exports.slip_progress_sheets(qs))
 
 
 class ImportUndoView(ConsoleView):

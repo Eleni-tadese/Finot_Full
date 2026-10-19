@@ -289,6 +289,39 @@ export interface ImportPreview {
   grace_days: number;
 }
 
+export type SlipStep = "never" | "no_name" | "on_slip" | "needs_password" | "done";
+export type SlipFilter = SlipStep | "expired" | "not_done" | "";
+
+export interface SlipSummary {
+  total: number;
+  never: number;
+  no_name: number;
+  on_slip: number;
+  needs_password: number;
+  done: number;
+  expired: number;
+}
+
+export interface SlipRow {
+  id: number;
+  name: string;
+  email: string;
+  step: SlipStep;
+  expired: boolean;
+  deadline: string;
+  days_left: number;
+  last_login: string | null;
+  batch: number | null;
+}
+
+export interface SlipProgress {
+  summary: SlipSummary;
+  count: number;
+  next: string | null;
+  previous: string | null;
+  results: SlipRow[];
+}
+
 export interface ImportBatchRow {
   id: number;
   created_at: string;

@@ -290,6 +290,28 @@ def setup_sheets():
     ]
 
 
+SLIP_STEP_LABELS = {
+    "never": "Has not signed in",
+    "no_name": "Signed in, name not written",
+    "on_slip": "Named, still on the slip email",
+    "needs_password": "Real email set, password not changed",
+    "done": "Finished",
+}
+
+
+def slip_progress_sheets(profiles):
+    from student.slip_progress import row_for
+
+    rows = []
+    for p in profiles:
+        r = row_for(p)
+        rows.append([
+            r["name"], r["email"], SLIP_STEP_LABELS[r["step"]], "Yes" if r["expired"] else "",
+            r["deadline"], r["days_left"], r["last_login"] or "", r["batch"] or "",
+        ])
+    return [Sheet("Slip progress", ["Name", "Login email", "Step", "Expired", "Deadline", "Days left", "Last sign-in", "Batch"], rows)]
+
+
 def sms_log_sheets():
     from notifications.models import SMSLog
 

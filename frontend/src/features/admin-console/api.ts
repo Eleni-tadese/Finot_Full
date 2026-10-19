@@ -2,7 +2,7 @@ import axiosInstance from "../../lib/axios";
 import type { PersonCard } from "../../components/people/StudentCard";
 import type { Credential } from "./slips";
 import type {
-  AdminGroup, AdminUser, FamilyRow, ImportBatchRow, ImportPreview, ImportRow, Counselor, SubAdminRole, DistributionBatch, DistributionOverview, DistributionPreview, Overview,
+  AdminGroup, AdminUser, FamilyRow, ImportBatchRow, ImportPreview, ImportRow, SlipProgress, Counselor, SubAdminRole, DistributionBatch, DistributionOverview, DistributionPreview, Overview,
   Curriculum, SemesterCourseRow, DonationsPage, UserFilterOptions, Department, AcademicYearData, Paginated, PrivateQuestion, RoleOption, SmsLogRow, SmsSettings, Specialization,
 } from "./types";
 
@@ -51,6 +51,10 @@ export const adminApi = {
       .post<{ batch_id: number; created: Credential[]; rejected: { row: number; errors: string[] }[] }>(`${C}/accounts/import/blank/`, body)
       .then((r) => r.data),
   importBatches: () => axiosInstance.get<{ results: ImportBatchRow[] }>(`${C}/accounts/import/batches/`).then((r) => r.data.results),
+  slipProgress: (params: { state?: string; q?: string; batch?: number | null; page?: number }) =>
+    axiosInstance.get<SlipProgress>(`${C}/accounts/import/progress/`, { params }).then((r) => r.data),
+  slipProgressExport: (params: { state?: string; q?: string; batch?: number | null }) =>
+    axiosInstance.get(`${C}/accounts/import/progress/export/`, { params, responseType: "blob" }).then((r) => r.data as Blob),
   undoImport: (id: number) =>
     axiosInstance.post<{ deleted: number; kept: number }>(`${C}/accounts/import/batches/${id}/undo/`).then((r) => r.data),
   reissueSlip: (id: number) =>
