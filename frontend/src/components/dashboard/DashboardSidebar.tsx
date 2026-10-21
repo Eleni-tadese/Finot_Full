@@ -101,7 +101,7 @@ const DashboardSidebar = ({
       { to: "/dashboard/admin/year", label: t("adm_nav_year", "Academic year"), icon: FiTrendingUp, heading: t("adm_nav_h_setup", "Yearly setup") },
       { to: "/dashboard/admin/departments", label: t("adm_nav_departments", "Departments"), icon: FiLayers },
       { to: "/dashboard/admin/donations", label: t("adm_nav_donations", "Donations"), icon: FiHeart, heading: t("adm_nav_h_reports", "Reports and messages") },
-      { to: "/dashboard/admin/sms", label: t("adm_nav_sms", "SMS"), icon: FiSmartphone },
+      { to: "/dashboard/admin/sms", label: t("adm_nav_messages", "Messages"), icon: FiSmartphone },
       { to: "/dashboard/admin/exports", label: t("adm_nav_exports", "Export to Excel"), icon: FiDownload },
     );
   }

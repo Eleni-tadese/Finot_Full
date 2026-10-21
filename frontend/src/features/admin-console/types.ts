@@ -54,6 +54,7 @@ export interface Overview {
   families: { total: number; unassigned_freshers: number };
   qa: { public_pending: number; private_total: number; private_unanswered: number; needs_assignment: number };
   sms: { enabled: boolean; monthly_limit: number; sent_this_month: number };
+  email: { waiting: number; failed: number; sent_today: number; daily_limit: number };
   donations?: { collected: number | string; completed: number; pending: number; failed: number };
 }
 
@@ -168,6 +169,32 @@ export interface SmsSettings {
   monthly_limit: number;
   sent_this_month: number;
   remaining_this_month: number;
+}
+
+/** Super Admin > Messages > Email (backend notifications/outbox.py). */
+export interface EmailSettings {
+  daily_limit: number;
+  sent_today: number;
+  remaining_today: number;
+  waiting: number;
+  sent: number;
+  failed: number;
+  skipped: number;
+}
+
+export interface EmailOutboxRow {
+  id: number;
+  created_at: string;
+  sent_at: string | null;
+  not_after: string | null;
+  user: string | null;
+  email: string;
+  kind: "NEW_EVENT" | "EVENT_TOMORROW";
+  event: string | null;
+  subject: string;
+  status: "WAITING" | "SENT" | "FAILED" | "SKIPPED";
+  attempts: number;
+  error: string;
 }
 
 export interface SmsLogRow {

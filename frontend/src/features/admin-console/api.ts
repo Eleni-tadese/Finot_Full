@@ -3,7 +3,7 @@ import type { PersonCard } from "../../components/people/StudentCard";
 import type { Credential } from "./slips";
 import type {
   AdminGroup, AdminUser, FamilyRow, ImportBatchRow, ImportPreview, ImportRow, SlipProgress, Counselor, SubAdminRole, DistributionBatch, DistributionOverview, DistributionPreview, Overview,
-  Curriculum, SemesterCourseRow, DonationsPage, UserFilterOptions, Department, AcademicYearData, Paginated, PrivateQuestion, RoleOption, SmsLogRow, SmsSettings, Specialization,
+  Curriculum, SemesterCourseRow, DonationsPage, UserFilterOptions, Department, AcademicYearData, Paginated, PrivateQuestion, RoleOption, SmsLogRow, SmsSettings, Specialization, EmailSettings, EmailOutboxRow,
 } from "./types";
 
 const C = "/api/admin-console";
@@ -115,6 +115,14 @@ export const adminApi = {
     axiosInstance.patch<SmsSettings>(`${C}/sms/settings/`, body).then((r) => r.data),
   smsLogs: (params: { status?: string; page?: number }) =>
     axiosInstance.get<Paginated<SmsLogRow>>(`${C}/sms/logs/`, { params }).then((r) => r.data),
+  // Email outbox
+  emailSettings: () => axiosInstance.get<EmailSettings>(`${C}/email/settings/`).then((r) => r.data),
+  updateEmailSettings: (body: { daily_limit: number }) =>
+    axiosInstance.patch<EmailSettings>(`${C}/email/settings/`, body).then((r) => r.data),
+  emailOutbox: (params: { status?: string; page?: number }) =>
+    axiosInstance.get<Paginated<EmailOutboxRow>>(`${C}/email/outbox/`, { params }).then((r) => r.data),
+  retryFailedEmails: () => axiosInstance.post<{ retried: number }>(`${C}/email/outbox/retry/`).then((r) => r.data),
+  sendEmailsNow: () => axiosInstance.post<{ started: boolean }>(`${C}/email/outbox/send/`).then((r) => r.data),
   // Departments and the yearly rollover
   departments: () => axiosInstance.get<Department[]>(`${C}/departments/`).then((r) => r.data),
   createDepartment: (name: string, years: number) =>

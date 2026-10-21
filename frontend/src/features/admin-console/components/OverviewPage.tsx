@@ -44,6 +44,8 @@ const OverviewPage = () => {
     todo.push({ to: "/dashboard/admin/qa", text: t("adm_todo_pending", "{{n}} public question(s) are waiting for a moderator.", { n: data.qa.public_pending }) });
   if (data.donations && data.donations.pending > 0)
     todo.push({ to: "/dashboard/admin/donations", text: t("adm_todo_donations", "{{n}} donation(s) are pending: the donor started paying but it is not confirmed yet.", { n: data.donations.pending }) });
+  if (data.email && data.email.failed > 0)
+    todo.push({ to: "/dashboard/admin/sms", text: t("adm_todo_emails", "{{n}} email(s) could not be sent. Open Messages to retry.", { n: data.email.failed }) });
   if (data.families.unassigned_freshers > 0)
     todo.push({ to: "/dashboard/admin/families", text: t("adm_todo_freshers", "{{n}} first-year student(s) are not in a family yet.", { n: data.families.unassigned_freshers }) });
 

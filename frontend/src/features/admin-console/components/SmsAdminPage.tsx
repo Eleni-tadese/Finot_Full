@@ -7,6 +7,7 @@ import { firstApiError } from "../../resources/utils";
 import { adminApi, PAGE_SIZE } from "../api";
 import type { SmsLogRow, SmsSettings } from "../types";
 import { Chip, Empty, Loading, PageHeader, Toggle } from "./AdminUi";
+import EmailOutboxPanel from "./EmailOutboxPanel";
 
 const TONES: Record<SmsLogRow["status"], "green" | "red" | "amber"> = {
   SENT: "green", FAILED: "red", LIMIT_REACHED: "amber", INVALID_PHONE: "amber",
@@ -64,6 +65,16 @@ const SmsAdminPage = () => {
 
   return (
     <div className="mx-auto max-w-5xl space-y-8">
+      <PageHeader
+        title={t("adm_messages_title", "Messages")}
+        description={t("adm_messages_desc", "Emails and text messages the system sends to the community.")}
+      />
+
+      <section className="space-y-4">
+        <h2 className="text-lg font-semibold text-foreground">{t("adm_email_title", "Email")}</h2>
+        <EmailOutboxPanel />
+      </section>
+
       <PageHeader
         title={t("adm_sms_title", "SMS")}
         description={t("adm_sms_desc", "Text messages go only to students who opted in: when their private question is answered, when a new event is published, and the weekly donation reminder. Until a real SMS provider is connected, messages are only written to the server log and nothing is sent or charged.")}
