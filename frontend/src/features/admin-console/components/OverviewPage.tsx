@@ -6,6 +6,7 @@ import { Card } from "../../../components/ui/Card";
 import { adminApi } from "../api";
 import type { Overview } from "../types";
 import { Loading, PageHeader } from "./AdminUi";
+import { EventInsightsPanel } from "../../attendance/components/AttendanceInsights";
 
 const Stat = ({ label, value, hint }: { label: string; value: string | number; hint?: string }) => (
   <Card padding="md">
@@ -89,6 +90,8 @@ const OverviewPage = () => {
           hint={data.sms.enabled ? t("adm_sms_on", "Switched on") : t("adm_sms_off", "Switched off")}
         />
       </div>
+
+      <div className="mt-8"><EventInsightsPanel scope="all" /></div>
 
       <h2 className="mb-3 mt-8 text-sm font-semibold text-foreground">{t("adm_users_by_role", "Users by role")}</h2>
       <Card>

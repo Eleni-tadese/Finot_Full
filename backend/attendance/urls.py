@@ -15,4 +15,7 @@ urlpatterns = [
     path("sessions/<int:pk>/scan/", views.ScanView.as_view(), name="attendance-scan"),
     path("sessions/<int:pk>/sync/", views.SyncView.as_view(), name="attendance-sync"),
     path("sessions/<int:pk>/self-check-in/", views.SelfCheckInView.as_view(), name="attendance-self-check-in"),
+    path("insights/events/", views.EventInsightsView.as_view(), name="attendance-insights-events"),
+    path("insights/courses/<uuid:pk>/", views.CourseInsightsView.as_view(), name="attendance-insights-course"),
+    path("insights/me/", views.MyInsightsView.as_view(), name="attendance-insights-me"),
 ]

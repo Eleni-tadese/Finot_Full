@@ -160,6 +160,7 @@ One mechanism for general events, group events and course class days. Present/Ab
 | FR-ATT-5 | The organizer's screen shall show a 6-digit **room code** (and a QR holding it) that changes every 30 seconds, computed from the session and the time (nothing stored); a student on the roster shall mark themselves Present by sending the current or the previous code, at most 10 attempts a minute. |
 | FR-ATT-6 | **Closing** a session shall mark Absent every roster member without a record; reopening shall allow late scans. A forgotten session shall be closed by the server after the event end + 2 h, or at 21:00 Ethiopia time on the class day. |
 | FR-ATT-7 | Every check-in shall be logged with method (badge, code, manual), who scanned and when. Manual marking stays available as the fallback. |
+| FR-ATT-8 | Organizers and coordinators shall see **charts** of present/absent counts and the attendance rate per event or class day, a list of people who missed the last three counted sessions, and an **estimate** for the next session (average rate of the last three counted sessions applied to the roster). Students shall see their own months and streak. No personal data leaves the organizer's scope. |
 
 ### 3.7 Courses and class attendance (FR-CRS)
 

@@ -7,6 +7,7 @@ import { api } from "../../../lib/api";
 import axiosInstance from "../../../lib/axios";
 import { useAuth } from "../../../context/AuthContext";
 import ExportButton from "../../../features/export/components/ExportButton";
+import { EventInsightsPanel } from "../../../features/attendance/components/AttendanceInsights";
 
 type Scope = "mine" | "group" | "all";
 
@@ -154,6 +155,8 @@ export default function EventAttendanceManager({ scope, groupId }: { scope: Scop
           </p>
         )}
       </div>
+
+      <EventInsightsPanel scope={scope} groupId={groupId} compact />
 
       <div className="rounded-xl border border-border bg-card p-4 shadow-soft sm:p-5">
         <div className="mb-3 flex flex-wrap items-center gap-2">

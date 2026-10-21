@@ -47,6 +47,35 @@ export interface RoomCode {
 
 export type Target = { event_id: number } | { course_session_id: string };
 
+// Charts and simple predictions (backend attendance/insights.py)
+export interface InsightRow {
+  id: number | string;
+  title: string;
+  date: string; // event start (ISO) or class day (YYYY-MM-DD)
+  group?: string | null;
+  topic?: string;
+  roster: number;
+  present: number;
+  absent: number;
+  unmarked: number;
+  rate: number; // present / roster, in %
+  counted: boolean; // at least one Present/Absent row exists
+}
+
+export interface Insights {
+  events: InsightRow[];
+  at_risk: { id: number; name: string; batch_year: number | null; department: string | null }[];
+  at_risk_total: number;
+  next: { id: number | string; title: string; date: string; roster: number; expected_rate: number | null; expected_present: number | null; based_on: number } | null;
+  average_rate: number | null;
+  last_n: number;
+}
+
+export interface MyInsights {
+  months: { month: string; events_present: number; events_absent: number; classes_present: number; classes_absent: number }[];
+  streak: number;
+}
+
 const base = "/api/attendance/";
 
 export const attendanceApi = {
@@ -71,6 +100,10 @@ export const attendanceApi = {
       .then((r) => r.data),
   myBadge: () => axiosInstance.get<{ badge: string; name: string; version: number }>(base + "badge/me/").then((r) => r.data),
   openForMe: () => axiosInstance.get<AttendanceSession[]>(base + "sessions/open-for-me/").then((r) => r.data),
+  eventInsights: (scope: "all" | "mine" | "group", groupId?: number) =>
+    axiosInstance.get<Insights>(base + "insights/events/", { params: { scope, group_id: groupId } }).then((r) => r.data),
+  courseInsights: (semesterCourseId: string) => axiosInstance.get<Insights>(`${base}insights/courses/${semesterCourseId}/`).then((r) => r.data),
+  myInsights: () => axiosInstance.get<MyInsights>(base + "insights/me/").then((r) => r.data),
   selfCheckIn: (id: number, code: string) =>
     axiosInstance
       .post<{ ok?: boolean; already?: boolean; code?: string; detail?: string; session?: AttendanceSession }>(

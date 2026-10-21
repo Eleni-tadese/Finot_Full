@@ -95,6 +95,9 @@ Generated from the code (`manage.py spectacular`). For request and response shap
 | Method | Path | Summary |
 |---|---|---|
 | GET | `/api/attendance/badge/me/` | api_attendance_badge_me_retrieve |
+| GET | `/api/attendance/insights/courses/{id}/` | api_attendance_insights_courses_retrieve |
+| GET | `/api/attendance/insights/events/` | Rows for the last events the caller may take attendance for; the server decides which (event_rules). |
+| GET | `/api/attendance/insights/me/` | api_attendance_insights_me_retrieve |
 | GET | `/api/attendance/sessions/current/` | api_attendance_sessions_current_retrieve |
 | GET | `/api/attendance/sessions/open-for-me/` | Open sessions this student belongs to, so the app can offer 'Check in' without the student typing an id. |
 | POST | `/api/attendance/sessions/open/` | api_attendance_sessions_open_create |

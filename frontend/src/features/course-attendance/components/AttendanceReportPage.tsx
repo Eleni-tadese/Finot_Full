@@ -7,6 +7,7 @@ import { useAttendanceReport } from "../hooks/useAttendanceReport";
 import { percentageColor } from "../utils";
 import { formatDay } from "../../../lib/dates";
 import ExportButton from "../../export/components/ExportButton";
+import { CourseInsightsPanel } from "../../attendance/components/AttendanceInsights";
 
 type View = "summary" | "days";
 
@@ -90,6 +91,8 @@ const AttendanceReportPage = () => {
           <p className="text-xs text-muted-foreground">{t("average_attendance")}</p>
         </div>
       </div>
+
+      <CourseInsightsPanel semesterCourseId={report.semester_course} />
 
       {report.students.length === 0 ? (
         <p className="text-center py-12 text-muted-foreground">{t("no_report_data")}</p>

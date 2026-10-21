@@ -9,6 +9,7 @@ import { AttendanceRecord } from "../../types";
 import { FiCheckCircle, FiCalendar, FiTrendingUp, FiAward } from "react-icons/fi";
 import { etDate } from "../../lib/ethiopiaTime";
 import CourseAttendanceTab from "@/components/attendance/CourseAttendanceTab";
+import { MyAttendanceChart } from "@/features/attendance/components/AttendanceInsights";
 
 const DashboardAttendance = () => {
   const { t } = useTranslation();
@@ -97,6 +98,8 @@ const DashboardAttendance = () => {
         <StatsCard title={t("absent")} value={absentCount} icon={<FiCalendar className="h-6 w-6" />} />
         <StatsCard title={t("total_events")} value={attendance.length} icon={<FiAward className="h-6 w-6" />} />
       </div>
+
+      <MyAttendanceChart />
 
       {/* Conditional Content based on Tab */}
       {attendanceTab === "event" ? (

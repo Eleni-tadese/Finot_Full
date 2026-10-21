@@ -16,6 +16,10 @@ Student:
     GET  badge/me/                 {"badge": "FB1...", "name": ..., "version": 1}
     POST sessions/<id>/self-check-in/  {"code": "123456"}
     GET  sessions/open-for-me/     open sessions where the student is on the roster (to find the session id)
+Charts and simple predictions (insights.py):
+    GET  insights/events/?scope=all|mine|group&group_id=   organizer: last events, at-risk list, next event estimate
+    GET  insights/courses/<uuid>/                            coordinator or Super Admin: class days of one course
+    GET  insights/me/                                        student: own months and streak
 """
 from django.contrib.auth import get_user_model
 from django.shortcuts import get_object_or_404
@@ -283,3 +287,44 @@ class OpenForMeView(APIView):
                 data["checked_in"] = session.check_ins.filter(student=request.user).exists()
                 mine.append(data)
         return Response(mine)
+
+
+# ── Charts and simple predictions ───────────────────────────────────────────
+
+class EventInsightsView(APIView):
+    """Rows for the last events the caller may take attendance for; the server decides which (event_rules)."""
+
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        from .insights import event_insights
+
+        scope = request.query_params.get("scope", "all")
+        if scope not in ("all", "mine", "group"):
+            return Response({"detail": "scope must be all, mine or group."}, status=status.HTTP_400_BAD_REQUEST)
+        group_id = request.query_params.get("group_id")
+        return Response(event_insights(request.user, scope=scope, group_id=int(group_id) if group_id else None))
+
+
+class CourseInsightsView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, pk):
+        from course.access import can_manage_semester_course
+        from course.models import SemesterCourse
+
+        from .insights import course_insights
+
+        course = get_object_or_404(SemesterCourse, pk=pk)
+        if not can_manage_semester_course(request.user, course):
+            return Response({"detail": "Only the course's coordinators may see this."}, status=status.HTTP_403_FORBIDDEN)
+        return Response(course_insights(course))
+
+
+class MyInsightsView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        from .insights import my_insights
+
+        return Response(my_insights(request.user))
