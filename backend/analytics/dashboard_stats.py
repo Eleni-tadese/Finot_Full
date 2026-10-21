@@ -88,8 +88,8 @@ def get_analytics_stats(request=None) -> dict:
     try:
         start_date, trunc_func = parse_time_range(att_range)
         attendance_qs = (
-            AttendanceRecord.objects.filter(date__gte=start_date.date())
-            .annotate(period=trunc_func("date"))
+            AttendanceRecord.objects.filter(session__date__gte=start_date.date())
+            .annotate(period=trunc_func("session__date"))
             .values("period")
             .annotate(
                 present_count=Count('id', filter=Q(status='PRESENT')),

@@ -31,13 +31,6 @@ def assert_not_completed(semester_course):
         raise ValidationError({"error": "This course is completed. Reopen it to change class days or attendance."})
 
 
-def assert_not_completed(semester_course):
-    """A completed course is a record: class days and attendance are frozen until it is reopened."""
-    from rest_framework.exceptions import ValidationError
-    if semester_course.status == semester_course.COMPLETED:
-        raise ValidationError({"error": "This course is completed. Reopen it to change class days or attendance."})
-
-
 def can_manage_curriculum(user, course):
     """Materials belong to a curriculum: allowed if named on any semester course of it."""
     if course is None:

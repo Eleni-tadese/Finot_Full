@@ -59,7 +59,7 @@ def events_sheets(events=None):
     headers = ["Title", "Status", "Start", "End", "Place", "Service group", "Created by"]
     rows = (
         [
-            e.title, e.status, e.start_date, e.end_date, e.place_name,
+            e.title, e.current_status, e.start_date, e.end_date, e.place_name,
             e.service_group.name if e.service_group else "Global",
             full_name(e.created_by) if e.created_by else "",
         ]

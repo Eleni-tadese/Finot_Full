@@ -7,6 +7,7 @@ import EmptyState from "../../components/ui/EmptyState";
 import { useTranslation } from "react-i18next";
 import { AttendanceRecord } from "../../types";
 import { FiCheckCircle, FiCalendar, FiTrendingUp, FiAward } from "react-icons/fi";
+import { etDate } from "../../lib/ethiopiaTime";
 import CourseAttendanceTab from "@/components/attendance/CourseAttendanceTab";
 
 const DashboardAttendance = () => {
@@ -110,7 +111,7 @@ const DashboardAttendance = () => {
                   <div className="min-w-0 flex-1">
                     <p className="font-medium text-foreground">{record.event_title || "Event"}</p>
                     <p className="mt-1 text-sm text-muted-foreground">
-                      {record.event_date ? new Date(record.event_date).toLocaleDateString() : "—"}
+                      {record.event_date ? etDate(record.event_date) : "—"}
                       {record.remark && ` • ${record.remark}`}
                     </p>
                     <Badge variant={statusStyles[record.status] as any} size="sm">

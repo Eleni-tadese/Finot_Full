@@ -64,10 +64,10 @@ def handle_payment_failed(sender, payment, **kwargs):
 @receiver(post_save, sender='service.Event')
 def handle_event_published(sender, instance, created, **kwargs):
     """
-    Listens to Event post_save. When a new UPCOMING event is created,
-    dispatches notifications via all channels in a background thread.
+    Listens to Event post_save. When a new event is created and has not
+    already ended, dispatches notifications via all channels in a background thread.
     """
-    if created and instance.status == instance.UPCOMING:
+    if created:
         event_id = instance.id
 
         def _dispatch_in_thread():
@@ -75,6 +75,8 @@ def handle_event_published(sender, instance, created, **kwargs):
             from django.db import close_old_connections
             try:
                 event = Event.objects.get(id=event_id)
+                if event.current_status == Event.COMPLETED:
+                    return  # created with a date in the past: nothing to announce
                 NotificationDispatcher.event_published(event)
             except Event.DoesNotExist:
                 logger.warning("handle_event_published: Event id=%s not found.", event_id)

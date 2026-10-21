@@ -1,7 +1,5 @@
 import logging
 
-from django.contrib.auth import get_user_model
-
 from notifications.sms import send_sms, send_sms_bulk
 from .base import NotificationChannel
 
@@ -12,7 +10,7 @@ class SMSChannel(NotificationChannel):
     """
     SMS delivery for the three agreed triggers only:
       * a private question was answered   (to the asker)
-      * a new event was published         (to every opted-in student)
+      * a new event was published         (to the opted-in students of its audience)
       * the weekly donation reminder      (see the send_weekly_reminders command)
 
     All the safety rules (admin switch, opt-in, valid number, monthly limit) are enforced
@@ -30,9 +28,10 @@ class SMSChannel(NotificationChannel):
 
         if not SMSConfiguration.get().enabled:
             return
-        User = get_user_model()
-        recipients = User.objects.filter(
-            is_active=True, student_profile__sms_opt_in=True
+        from service.event_rules import notification_audience
+
+        recipients = notification_audience(event).filter(
+            student_profile__sms_opt_in=True
         ).select_related("student_profile")
         text = f"New event: {event.title}. Open Finot for the date and place."
         send_sms_bulk(recipients.iterator(chunk_size=200), text, SMSLog.TRIGGER_NEW_EVENT)
