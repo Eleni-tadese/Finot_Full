@@ -1798,5 +1798,9 @@
   "checkin_sending": "እየተላከ ነው...",
   "checkin_done": "እንደተገኙ ተመዝግበዋል። እንኳን ደህና መጡ!",
   "checkin_too_many": "ብዙ ሙከራዎች። አንድ ደቂቃ ይጠብቁ።",
-  "checkin_helper_hint": "በበሩ ላይ እየረዱ ነው? የአዘጋጁን ስካነር ይክፈቱ፦"
+  "checkin_helper_hint": "በበሩ ላይ እየረዱ ነው? የአዘጋጁን ስካነር ይክፈቱ፦",
+  "adm_users_real": "እውነተኛ መለያዎች",
+  "adm_slips": "የመግቢያ ወረቀቶች",
+  "adm_slips_hint": "{{u}} ገብተዋል፣ {{n}} አልተጠቀሙም",
+  "adm_on_slip_n": "{{n}} አሁንም በወረቀት ላይ"
 }

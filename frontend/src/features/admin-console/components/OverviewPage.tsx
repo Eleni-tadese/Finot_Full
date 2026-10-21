@@ -59,8 +59,17 @@ const OverviewPage = () => {
       )}
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <Stat label={t("adm_users", "Users")} value={data.users.total} hint={t("adm_active_n", "{{n}} active", { n: data.users.active })} />
-        <Stat label={t("adm_students", "Student profiles")} value={data.users.students} />
+        <Stat label={t("adm_users_real", "Real accounts")} value={data.users.real} hint={t("adm_active_n", "{{n}} active", { n: data.users.real_active })} />
+        <Stat
+          label={t("adm_slips", "Login slips")}
+          value={data.users.slips_used + data.users.slips_unused}
+          hint={t("adm_slips_hint", "{{u}} signed in, {{n}} never used", { u: data.users.slips_used, n: data.users.slips_unused })}
+        />
+        <Stat
+          label={t("adm_students", "Student profiles")}
+          value={data.users.students_real}
+          hint={t("adm_on_slip_n", "{{n}} still on a slip", { n: data.users.students - data.users.students_real })}
+        />
         <Stat label={t("adm_families", "Families")} value={data.families.total} />
         <Stat label={t("adm_upcoming_events", "Upcoming events")} value={data.events.upcoming} hint={t("adm_of_total", "of {{n}} total", { n: data.events.total })} />
         <Stat label={t("adm_private_q", "Private questions")} value={data.qa.private_total} hint={t("adm_unanswered_n", "{{n}} unanswered", { n: data.qa.private_unanswered })} />

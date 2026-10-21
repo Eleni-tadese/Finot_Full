@@ -59,6 +59,19 @@ class TestOverview:
         assert data["users"]["by_role"][Role.SUPER_ADMIN] == 1
         assert data["sms"]["enabled"] is False
 
+    def test_real_accounts_and_slips_are_counted_apart(self, boss):
+        used = make_user("f00001@temp.finot")
+        User.objects.filter(pk=used.pk).update(last_login=timezone.now())
+        make_user("f00002@temp.finot")
+        make_user("old@finot.invalid")  # legacy slip domain, never signed in
+        disabled = make_user("gone@finot.test")
+        User.objects.filter(pk=disabled.pk).update(is_active=False)
+        users = client_for(boss).get(BASE + "overview/").json()["users"]
+        assert users["total"] == 5 and users["active"] == 4
+        assert users["real"] == 2 and users["real_active"] == 1
+        assert users["slips_used"] == 1 and users["slips_unused"] == 2
+        assert users["students"] == 5 and users["students_real"] == 2
+
 
 @pytest.mark.django_db
 class TestUsers:

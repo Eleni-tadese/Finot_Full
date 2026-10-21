@@ -77,6 +77,17 @@ def full_name(user):
     return " ".join(p for p in (user.first_name, user.middle_name, user.last_name) if p) or user.username
 
 
+def slip_email_q(prefix=""):
+    """Q that matches a user whose email is still a made-up slip address (f00001@temp.finot ...).
+    `prefix` walks to the user from another model, e.g. "user__" from StudentProfile."""
+    from student.account_import import SLIP_DOMAINS
+
+    q = Q()
+    for domain in SLIP_DOMAINS:
+        q |= Q(**{prefix + "email__iendswith": "@" + domain})
+    return q
+
+
 # ── Overview ────────────────────────────────────────────────────────────────
 
 class OverviewView(ConsoleView):
@@ -97,11 +108,20 @@ class OverviewView(ConsoleView):
         by_role = dict(
             UserRole.objects.values_list("role__name").annotate(n=Count("id")).order_by("role__name")
         )
+        # "real" = everyone whose email is not a slip address (same rule as Users & roles > Real accounts);
+        # the slips are counted apart so the 1000 printed logins do not hide the real community.
+        slips = User.objects.filter(slip_email_q())
+        real = User.objects.exclude(slip_email_q())
         return Response({
             "users": {
                 "total": User.objects.count(),
                 "active": User.objects.filter(is_active=True).count(),
+                "real": real.count(),
+                "real_active": real.filter(is_active=True).count(),
+                "slips_used": slips.filter(last_login__isnull=False).count(),
+                "slips_unused": slips.filter(last_login__isnull=True).count(),
                 "students": StudentProfile.objects.count(),
+                "students_real": StudentProfile.objects.exclude(slip_email_q("user__")).count(),
                 "by_role": by_role,
             },
             "events": {
@@ -210,12 +230,7 @@ def filter_users(request, qs):
         qs = qs.filter(roles__name=p["role"])
     if p.get("account") in ("real", "slip"):
         # "slip" = still signs in with the made-up slip email; "real" = everyone else (own email, or never had a slip)
-        from student.account_import import SLIP_DOMAINS
-
-        on_slip = Q()
-        for domain in SLIP_DOMAINS:
-            on_slip |= Q(email__iendswith="@" + domain)
-        qs = qs.filter(on_slip) if p["account"] == "slip" else qs.exclude(on_slip)
+        qs = qs.filter(slip_email_q()) if p["account"] == "slip" else qs.exclude(slip_email_q())
     if p.get("status") == "active":
         qs = qs.filter(is_active=True)
     elif p.get("status") == "inactive":

@@ -1798,5 +1798,9 @@
   "checkin_sending": "Sending...",
   "checkin_done": "You are marked present. Welcome!",
   "checkin_too_many": "Too many tries. Wait a minute.",
-  "checkin_helper_hint": "Helping at the door? Open the organizer's scanner:"
+  "checkin_helper_hint": "Helping at the door? Open the organizer's scanner:",
+  "adm_users_real": "Real accounts",
+  "adm_slips": "Login slips",
+  "adm_slips_hint": "{{u}} signed in, {{n}} never used",
+  "adm_on_slip_n": "{{n}} still on a slip"
 }

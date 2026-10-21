@@ -39,7 +39,17 @@ export interface UserFilterOptions {
 }
 
 export interface Overview {
-  users: { total: number; active: number; students: number; by_role: Record<string, number> };
+  users: {
+    total: number;
+    active: number;
+    real: number; // email is not a slip address (same rule as Users & roles > Real accounts)
+    real_active: number;
+    slips_used: number; // slip accounts that signed in at least once
+    slips_unused: number;
+    students: number;
+    students_real: number;
+    by_role: Record<string, number>;
+  };
   events: { upcoming: number; total: number };
   families: { total: number; unassigned_freshers: number };
   qa: { public_pending: number; private_total: number; private_unanswered: number; needs_assignment: number };

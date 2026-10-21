@@ -1798,5 +1798,9 @@
   "checkin_sending": "Ergamaa jira...",
   "checkin_done": "Akka argamtetti galmeeffamteetta. Baga nagaan dhufte!",
   "checkin_too_many": "Yaalii baay'ee. Daqiiqaa tokko eegi.",
-  "checkin_helper_hint": "Balbala irratti gargaaraa jirtaa? Skaanarii qopheessaa bani:"
+  "checkin_helper_hint": "Balbala irratti gargaaraa jirtaa? Skaanarii qopheessaa bani:",
+  "adm_users_real": "Herregoota dhugaa",
+  "adm_slips": "Waraqaalee seensaa",
+  "adm_slips_hint": "{{u}} seenaniiru, {{n}} hin fayyadamne",
+  "adm_on_slip_n": "{{n}} ammallee waraqaa irra"
 }

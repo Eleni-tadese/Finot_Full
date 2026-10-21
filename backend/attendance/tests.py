@@ -285,6 +285,8 @@ class TestClosing:
         sid = open_event(w)
         AttendanceSession.objects.filter(pk=sid).update(auto_close_at=tz.now() - timedelta(minutes=1))
         fresh = client_for(w.coord).post(A + "sessions/open/", {"course_session_id": str(w.day.id)}, format="json").json()["id"]
+        # a class day auto-closes at 21:00 Ethiopia; pin the time so the test also passes when run later in the evening
+        AttendanceSession.objects.filter(pk=fresh).update(auto_close_at=tz.now() + timedelta(hours=1))
         call_command("close_stale_attendance_sessions")
         assert AttendanceSession.objects.get(pk=sid).closed_at is not None
         assert AttendanceSession.objects.get(pk=fresh).closed_at is None
