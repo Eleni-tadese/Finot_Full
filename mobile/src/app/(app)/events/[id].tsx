@@ -1,5 +1,5 @@
 import { MaterialIcons } from '@expo/vector-icons';
-import { useLocalSearchParams } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Linking, Pressable, StyleSheet, View } from 'react-native';
 
 import { attendanceChip, eventStatusChip } from '@/components/event-card';
@@ -34,6 +34,7 @@ export default function EventDetailScreen() {
   const { t } = useTranslation();
   // The file is named [id].tsx, so the address /events/12 gives us id = "12".
   const { id } = useLocalSearchParams<{ id: string }>();
+  const router = useRouter();
 
   const { data: event, error, loading, refreshing, reload, retry } = useApi<ServiceEvent>(
     `/api/service/events/${id}/`,
@@ -116,6 +117,17 @@ export default function EventDetailScreen() {
           </AppText>
           <AppText>{event.description}</AppText>
         </Card>
+      ) : null}
+
+      {event.status === 'ONGOING' && mine?.status !== 'PRESENT' ? (
+        <Pressable
+          style={styles.button}
+          onPress={() => router.push({ pathname: '/events/check-in', params: { event: String(event.id) } })}>
+          <MaterialIcons name="qr-code-scanner" size={20} color="#ffffff" />
+          <AppText variant="bodyStrong" color="#ffffff">
+            {t('checkin_title')}
+          </AppText>
+        </Pressable>
       ) : null}
 
       {event.place_url ? (

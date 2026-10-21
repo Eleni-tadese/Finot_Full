@@ -190,3 +190,28 @@ export type PublicOverview = {
   };
   groups: { id: number; name: string; summary: string; photo: string | null }[];
 };
+
+// GET /api/attendance/badge/me/  (smart attendance): my personal QR text, signed by the server
+export type MyBadge = {
+  badge: string; // "FB1.<id>.<version>.<signature>"
+  name: string;
+  version: number;
+};
+
+// GET /api/attendance/sessions/open-for-me/  (one open attendance session I belong to)
+export type AttendanceSession = {
+  id: number;
+  kind: 'event' | 'class_day';
+  status: 'OPEN' | 'CLOSED';
+  present: number;
+  roster: number;
+  checked_in?: boolean; // true when I am already marked present
+  event?: { id: number; title: string; start_date: string; end_date: string };
+  class_day?: { id: string; date: string; topic: string | null; course: string };
+};
+
+// POST /api/attendance/sessions/{id}/self-check-in/  (200 = marked; 400/409 carry {code, detail} instead)
+export type SelfCheckInResponse = {
+  ok?: boolean;
+  already?: boolean;
+};

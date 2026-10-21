@@ -1,6 +1,6 @@
 import * as SecureStore from 'expo-secure-store';
 
-import type { TokenPair } from '@/lib/types';
+import type { MyBadge, TokenPair } from '@/lib/types';
 
 // SecureStore keeps small texts encrypted on the phone (Android Keystore). It survives closing the app.
 // It is NOT the same as the website's localStorage: nobody can read it without the phone being unlocked.
@@ -36,4 +36,25 @@ export async function saveLanguage(code: string): Promise<void> {
 
 export async function loadLanguage(): Promise<string | null> {
   return SecureStore.getItemAsync(LANGUAGE_KEY);
+}
+
+// The attendance badge (a short signed text), kept so My badge works without network.
+const BADGE_KEY = 'finot_badge';
+
+export async function saveBadge(badge: MyBadge): Promise<void> {
+  await SecureStore.setItemAsync(BADGE_KEY, JSON.stringify(badge));
+}
+
+export async function loadBadge(): Promise<MyBadge | null> {
+  const raw = await SecureStore.getItemAsync(BADGE_KEY);
+  if (!raw) return null;
+  try {
+    return JSON.parse(raw) as MyBadge;
+  } catch {
+    return null;
+  }
+}
+
+export async function clearBadge(): Promise<void> {
+  await SecureStore.deleteItemAsync(BADGE_KEY);
 }

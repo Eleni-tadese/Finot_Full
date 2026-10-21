@@ -1,5 +1,5 @@
 import { MaterialIcons } from '@expo/vector-icons';
-import { StyleSheet, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 import type { TFunction } from 'i18next';
 
 import { AppText } from '@/components/ui/app-text';
@@ -42,9 +42,10 @@ type EventCardProps = {
   event: ServiceEvent;
   attendanceStatus?: string;
   onPress: () => void;
+  onCheckIn?: () => void; // given only while the event is happening now
 };
 
-export function EventCard({ event, attendanceStatus, onPress }: EventCardProps) {
+export function EventCard({ event, attendanceStatus, onPress, onCheckIn }: EventCardProps) {
   const { t } = useTranslation();
   const status = eventStatusChip(event.status, t);
   const attended = attendanceChip(attendanceStatus, t);
@@ -80,6 +81,15 @@ export function EventCard({ event, attendanceStatus, onPress }: EventCardProps) 
           {attended && <Chip text={attended.text} tone={attended.tone} />}
           {event.service_group_name ? <Chip text={event.service_group_name} tone="amber" /> : null}
         </View>
+
+        {onCheckIn ? (
+          <Pressable style={styles.checkIn} onPress={onCheckIn}>
+            <MaterialIcons name="qr-code-scanner" size={16} color="#ffffff" />
+            <AppText variant="caption" color="#ffffff" style={styles.checkInText}>
+              {t('checkin_title')}
+            </AppText>
+          </Pressable>
+        ) : null}
       </View>
 
       <MaterialIcons name="chevron-right" size={22} color={brand.muted} />
@@ -102,5 +112,17 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   badgeMuted: { backgroundColor: '#eef2f7' },
+  checkIn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    alignSelf: 'flex-start',
+    marginTop: 8,
+    backgroundColor: brand.primary,
+    paddingVertical: 7,
+    paddingHorizontal: 12,
+    borderRadius: 10,
+  },
+  checkInText: { fontWeight: '600' },
   badgeDay: { lineHeight: 26 },
 });

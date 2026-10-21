@@ -139,6 +139,8 @@ export default function HomeScreen() {
         <Tile icon="event" label={t('tab_events')} onPress={() => router.push('/events')} />
         <Tile icon="school" label={t('my_courses')} onPress={() => router.push('/courses')} />
         <Tile icon="how-to-reg" label={t('my_attendance')} onPress={() => router.push('/events/attendance')} />
+        <Tile icon="qr-code-2" label={t('badge_title')} onPress={() => router.push('/events/badge')} />
+        <Tile icon="qr-code-scanner" label={t('checkin_title')} onPress={() => router.push('/events/check-in')} />
         <Tile icon="notifications" label={t('notifications')} badge={count} onPress={() => router.push('/notifications')} />
         <Tile icon="volunteer-activism" label={t('donate')} onPress={() => router.push('/donate')} />
         <Tile icon="person" label={t('my_profile')} onPress={() => router.push('/profile')} />

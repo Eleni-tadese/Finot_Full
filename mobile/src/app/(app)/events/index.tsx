@@ -1,3 +1,4 @@
+import { MaterialIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useMemo, useState } from 'react';
 import { ActivityIndicator, FlatList, Pressable, RefreshControl, StyleSheet, View } from 'react-native';
@@ -12,13 +13,13 @@ import { usePaginated } from '@/hooks/use-paginated';
 import type { EventAttendance, ServiceEvent } from '@/lib/types';
 import { useTranslation } from 'react-i18next';
 
-type Filter = 'ALL' | 'UPCOMING' | 'PAST';
+type Filter = 'ALL' | 'UPCOMING' | 'ONGOING';
 
-// `label` is a translation key
+// `label` is a translation key. Finished events are not shown here (My attendance keeps the record).
 const FILTERS: { key: Filter; label: string }[] = [
   { key: 'ALL', label: 'all' },
+  { key: 'ONGOING', label: 'event_ongoing' },
   { key: 'UPCOMING', label: 'event_upcoming' },
-  { key: 'PAST', label: 'past' },
 ];
 
 export default function EventsScreen() {
@@ -35,11 +36,12 @@ export default function EventsScreen() {
     return map;
   }, [attendance.items]);
 
-  // Filtering happens on the phone, on the events that are already loaded.
+  // Filtering happens on the phone, on the events that are already loaded. Ongoing events come first.
   const visible = useMemo(() => {
-    if (filter === 'UPCOMING') return events.items.filter((e) => e.status !== 'COMPLETED');
-    if (filter === 'PAST') return events.items.filter((e) => e.status === 'COMPLETED');
-    return events.items;
+    const open = events.items.filter((e) => e.status !== 'COMPLETED');
+    if (filter === 'UPCOMING') return open.filter((e) => e.status === 'UPCOMING');
+    if (filter === 'ONGOING') return open.filter((e) => e.status === 'ONGOING');
+    return [...open.filter((e) => e.status === 'ONGOING'), ...open.filter((e) => e.status !== 'ONGOING')];
   }, [events.items, filter]);
 
   function reloadAll() {
@@ -50,7 +52,18 @@ export default function EventsScreen() {
   return (
     <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
       <View style={styles.top}>
-        <PageHeader title={t('tab_events')} subtitle={t('m_events_subtitle')} />
+        <PageHeader
+          title={t('tab_events')}
+          subtitle={t('m_events_subtitle')}
+          right={
+            <Pressable style={styles.badgeLink} onPress={() => router.push('/events/badge')}>
+              <MaterialIcons name="qr-code-2" size={22} color={brand.primary} />
+              <AppText variant="caption" color={brand.primary}>
+                {t('badge_title')}
+              </AppText>
+            </Pressable>
+          }
+        />
 
         <View style={styles.filters}>
           {FILTERS.map((item) => {
@@ -83,6 +96,11 @@ export default function EventsScreen() {
               event={item}
               attendanceStatus={attendanceByEvent.get(item.id)}
               onPress={() => router.push({ pathname: '/events/[id]', params: { id: String(item.id) } })}
+              onCheckIn={
+                item.status === 'ONGOING' && attendanceByEvent.get(item.id) !== 'PRESENT'
+                  ? () => router.push({ pathname: '/events/check-in', params: { event: String(item.id) } })
+                  : undefined
+              }
             />
           )}
           contentContainerStyle={styles.list}
@@ -126,6 +144,7 @@ const styles = StyleSheet.create({
     borderColor: brand.border,
   },
   filterActive: { backgroundColor: brand.primary, borderColor: brand.primary },
+  badgeLink: { alignItems: 'center', gap: 2, paddingHorizontal: 6 },
   list: { padding: 20, flexGrow: 1 },
   gap: { height: 12 },
   footer: { marginVertical: 16 },

@@ -19,6 +19,8 @@ export default function EventsLayout() {
       <Stack.Screen name="index" options={{ headerShown: false }} />
       <Stack.Screen name="attendance" options={{ title: t('my_attendance') }} />
       <Stack.Screen name="[id]" options={{ title: t('event') }} />
+      <Stack.Screen name="badge" options={{ title: t('badge_title') }} />
+      <Stack.Screen name="check-in" options={{ title: t('checkin_title') }} />
     </Stack>
   );
 }
