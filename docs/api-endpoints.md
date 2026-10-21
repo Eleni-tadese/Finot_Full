@@ -84,6 +84,23 @@ Generated from the code (`manage.py spectacular`). For request and response shap
 | GET | `/api/analytics/export/students/` | api_analytics_export_students_retrieve |
 | GET | `/api/analytics/export/users/` | api_analytics_export_users_retrieve |
 
+## `/api/attendance/`
+
+| Method | Path | Summary |
+|---|---|---|
+| GET | `/api/attendance/badge/me/` | api_attendance_badge_me_retrieve |
+| GET | `/api/attendance/sessions/current/` | api_attendance_sessions_current_retrieve |
+| GET | `/api/attendance/sessions/open-for-me/` | Open sessions this student belongs to, so the app can offer 'Check in' without the student typing an id. |
+| POST | `/api/attendance/sessions/open/` | api_attendance_sessions_open_create |
+| GET | `/api/attendance/sessions/{id}/` | api_attendance_sessions_retrieve |
+| POST | `/api/attendance/sessions/{id}/close/` | api_attendance_sessions_close_create |
+| GET | `/api/attendance/sessions/{id}/code/` | api_attendance_sessions_code_retrieve |
+| POST | `/api/attendance/sessions/{id}/helpers/` | api_attendance_sessions_helpers_create |
+| POST | `/api/attendance/sessions/{id}/reopen/` | api_attendance_sessions_reopen_create |
+| POST | `/api/attendance/sessions/{id}/scan/` | api_attendance_sessions_scan_create |
+| POST | `/api/attendance/sessions/{id}/self-check-in/` | api_attendance_sessions_self_check_in_create |
+| POST | `/api/attendance/sessions/{id}/sync/` | The offline queue: a list of scans made without network. Repeating the same list is harmless. |
+
 ## `/api/auth/`
 
 | Method | Path | Summary |

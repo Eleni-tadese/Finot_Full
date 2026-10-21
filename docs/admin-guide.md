@@ -36,6 +36,7 @@ If enrolments ever look wrong, a developer can run `sync_course_enrolments` (it 
 - **Group events**: the group's Service Admin creates them in **Manage Ageglot → Events**. Only that group's active members see them and are told by notification and email.
 - **Attendance**: open the **Attendance** tab, choose the event, tick the people who came (everyone unticked is saved as absent) and save. The Event Manager does this for their own general events, the Service Admin for their group's events, you for any event. Students see their own history under **Attendance**.
 - Times are entered and shown in Ethiopian local time.
+- **Scan attendance** (events, group events and class days alike): the organizer opens a session, scans each student's Finot badge (the QR on their phone or printed), or shows the 6-digit room code on a screen so students with data mark themselves. Helpers named on the session may scan too, from their own phones, and scans made without network are sent later. Closing the session marks everyone else absent; a forgotten session closes itself. Manual ticking still works.
 
 ## 4. Questions and answers
 
@@ -63,6 +64,7 @@ If enrolments ever look wrong, a developer can run `sync_course_enrolments` (it 
 | Donation reminder (in-app, email, push) | every Thursday, 09:00 Ethiopia time |
 | "Class tomorrow" reminder | every day, 18:00 Ethiopia time |
 | Re-check of pending payments | every hour |
+| Close forgotten attendance sessions (`close_stale_attendance_sessions`) | daily (to be scheduled with the other jobs) |
 
 Details and how to switch them on are in [notifications-and-reminders.md](notifications-and-reminders.md).
 

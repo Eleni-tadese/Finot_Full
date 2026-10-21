@@ -47,6 +47,7 @@ urlpatterns = [
     path("api/course/", include("course.urls")),
     path("api/resources/", include("resources.urls")),
     path("api/analytics/", include("analytics.urls")),
+    path("api/attendance/", include("attendance.urls")),
     path("api/admin-console/", include("analytics.console_urls")),
     path("api/public/overview/", PublicOverviewView.as_view()),
     path("api/public/registration/", PublicRegistrationView.as_view()),

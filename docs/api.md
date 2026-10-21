@@ -32,6 +32,7 @@ The backend is a JSON API. The authoritative, always-current reference is genera
 | `/api/qa/` | public and private questions, answers, moderation, counselor queue, "my work" | by role |
 | `/api/donations/` | start a donation, verify, history, webhook, scheduled re-check | visitors and students; webhook and cron are secret-protected |
 | `/api/notifications/` | the signed-in user's notifications, device tokens, scheduled triggers | signed-in; triggers need `X-Cron-Token` |
+| `/api/attendance/` | smart attendance: open/close a scan session, badge scan and offline sync, rotating room code, student self check-in, my badge | organizers and their helpers; students for their badge and self check-in |
 | `/api/analytics/` | Excel exports | Super Admin (some for coordinators, managers, service admins on their own data) |
 | `/api/admin-console/` | the Super Admin console | **Super Admin only** |
 

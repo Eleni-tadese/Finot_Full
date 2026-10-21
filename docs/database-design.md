@@ -412,6 +412,15 @@ erDiagram
 | `notifications_smsconfiguration` | One row: SMS master switch and monthly limit | Off by default |
 | `notifications_smslog` | One row per SMS attempt | Indexed on `status` and `created_at`; `user` is `SET NULL` so the log survives account deletion |
 
+### 3.8b Smart attendance (`attendance`)
+
+| Table | Purpose | Notes |
+|---|---|---|
+| `attendance_attendancesession` | One scan session for an event **or** a class day | Check constraint: exactly one of `event`, `course_session` is set. Partial unique indexes: one open session (`closed_at` null) per event and per class day. `opened_by`, `closed_by` are `SET NULL`; `auto_close_at` is when the server closes a forgotten session; `helpers` M2M to users |
+| `attendance_checkin` | Audit row per student checked in during a session | Unique (`session`, `student`); `method` BADGE, CODE or MANUAL; `scanned_at` is the phone time, `received_at` the server time. The Present row itself lives in `service_serviceattendance` or `course_attendancerecord` |
+
+`student_studentprofile.badge_version` (default 1) is the number inside the student's QR badge; raising it cancels a leaked badge.
+
 ### 3.9 Framework tables
 Django adds its own tables (sessions, content types, permissions, auth token, admin log, and the social-login tables). They hold no fellowship data.
 
