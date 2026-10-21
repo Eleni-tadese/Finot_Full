@@ -3,7 +3,7 @@ import { useTranslation } from "react-i18next";
 import { NavLink, useLocation } from "react-router-dom";
 import { AuthUser } from "../../types";
 import { hasRole } from "../../features/auth/roles";
-import { FiGrid, FiUser, FiCalendar, FiCheckCircle, FiUsers, FiBriefcase, FiHeart, FiMessageCircle, FiLogOut, FiChevronLeft, FiChevronRight, FiChevronDown, FiSettings, FiFile, FiShield, FiSmartphone, FiDownload, FiUpload, FiExternalLink, FiBookOpen, FiTrendingUp, FiLayers } from "react-icons/fi";
+import { FiGrid, FiUser, FiCalendar, FiCamera, FiCheckCircle, FiUsers, FiBriefcase, FiHeart, FiMessageCircle, FiLogOut, FiChevronLeft, FiChevronRight, FiChevronDown, FiSettings, FiFile, FiShield, FiSmartphone, FiDownload, FiUpload, FiExternalLink, FiBookOpen, FiTrendingUp, FiLayers } from "react-icons/fi";
 import { ChatBubbleLeftRightIcon, RectangleGroupIcon, ShieldCheckIcon, UserGroupIcon } from "@heroicons/react/24/outline";
 
 type NavItem = {
@@ -53,6 +53,8 @@ const DashboardSidebar = ({
     { to: "/dashboard/profile", label: t("profile"), icon: FiUser },
     { to: "/dashboard/events", label: t("tab_events"), icon: FiCalendar },
     { to: "/dashboard/attendance", label: t("tab_attendance"), icon: FiCheckCircle },
+    { to: "/dashboard/check-in", label: t("checkin_title", "Check in"), icon: FiCamera },
+    { to: "/dashboard/my-badge", label: t("badge_title", "My badge"), icon: FiShield },
     { to: "/dashboard/my-courses", label: t("mc_title", "My courses"), icon: FiBookOpen },
     { to: "/dashboard/family", label: t("tab_family"), icon: FiUsers },
     { to: "/dashboard/questions", label: t("qa"), icon: FiMessageCircle },
@@ -85,7 +87,7 @@ const DashboardSidebar = ({
   const isSuperAdmin = hasRole(user, "Super_admin");
   let studentPages: NavItem[] = [];
   if (isSuperAdmin) {
-    studentPages = navItems.slice(1, 10);
+    studentPages = navItems.slice(1, 12);
     navItems.splice(0, navItems.length,
       { to: "/dashboard/admin", label: t("adm_nav_overview", "Overview"), icon: FiGrid, end: true },
       { to: "/dashboard/admin/users", label: t("adm_nav_users", "Users & roles"), icon: FiUsers, heading: t("adm_nav_h_people", "People") },

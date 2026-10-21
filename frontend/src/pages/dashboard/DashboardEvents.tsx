@@ -277,6 +277,9 @@ const DashboardEvents = () => {
                         )}
                       </div>
 
+                      {event.status === "ONGOING" && (
+                        <Link to={`/dashboard/check-in?event=${event.id}`} className="btn-primary mb-3 inline-block px-3 py-1.5 text-xs">{t("checkin_title", "Check in")}</Link>
+                      )}
                       {/* Description */}
                       {event.description && (
                         <div className="mt-3 flex gap-2 rounded-lg bg-muted/30 p-3">

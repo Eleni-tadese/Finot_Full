@@ -28,6 +28,9 @@ import AccountPage from "../pages/dashboard/AccountPage";
 import DashboardProfile from "../pages/dashboard/DashboardProfile";
 import DashboardEvents from "../pages/dashboard/DashboardEvents";
 import DashboardAttendance from "../pages/dashboard/DashboardAttendance";
+import ScanAttendancePage from "../features/attendance/components/ScanAttendancePage";
+import MyBadgePage from "../features/attendance/components/MyBadgePage";
+import CheckInPage from "../features/attendance/components/CheckInPage";
 import DashboardFamily from "../pages/dashboard/DashboardFamily";
 import DashboardService from "../pages/dashboard/DashboardService";
 import DashboardDonations from "../pages/dashboard/DashboardDonations";
@@ -99,6 +102,9 @@ export default function AppRoutes() {
               <Route path="account" element={<AccountPage />} />
               <Route path="events" element={<DashboardEvents />} />
               <Route path="attendance" element={<DashboardAttendance />} />
+              <Route path="attendance-scan" element={<ScanAttendancePage />} />
+              <Route path="my-badge" element={<MyBadgePage />} />
+              <Route path="check-in" element={<CheckInPage />} />
               <Route path="my-courses" element={<MyCoursesPage />} />
               <Route path="family" element={<DashboardFamily />} />
               <Route path="service" element={<DashboardService />} />

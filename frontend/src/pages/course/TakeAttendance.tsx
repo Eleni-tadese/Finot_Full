@@ -276,6 +276,7 @@ const TakeAttendance = () => {
               <p className="text-sm">
                 <span className="font-medium">{t("date")}:</span> {formatDay(selectedSessionDetails.date, i18n.language)}
               </p>
+              <Link to={`/dashboard/attendance-scan?class_day=${selectedSessionDetails.id}`} className="btn-primary mt-2 inline-block px-3 py-1.5 text-xs">{t("att_scan_title", "Scan attendance")}</Link>
               {selectedSessionDetails.topic && (
                 <p className="text-sm mt-1">
                   <span className="font-medium">{t("topic")}:</span> {selectedSessionDetails.topic}

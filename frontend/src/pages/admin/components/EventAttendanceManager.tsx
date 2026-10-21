@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 
+import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import toast from "react-hot-toast";
 import { api } from "../../../lib/api";
@@ -168,6 +169,7 @@ export default function EventAttendanceManager({ scope, groupId }: { scope: Scop
             <button type="button" onClick={() => setAll(true)} className="btn-outline px-3 py-1.5 text-xs">{t("evatt_all_came", "Everyone came")}</button>
             <button type="button" onClick={() => setAll(false)} className="btn-outline px-3 py-1.5 text-xs">{t("evatt_nobody", "Nobody came")}</button>
             <ExportButton path={`event-attendance/?event=${eventId}`} className="btn-outline flex items-center gap-1.5 px-3 py-1.5 text-xs" />
+            <Link to={`/dashboard/attendance-scan?event=${eventId}`} className="btn-primary px-3 py-1.5 text-xs">{t("att_scan_title", "Scan attendance")}</Link>
           </div>
         </div>
         <p className="mb-3 text-xs text-muted-foreground">{t("evatt_hint", "Tick the people who came. Everyone you leave unticked is saved as absent.")}</p>
