@@ -202,7 +202,18 @@ class TestTellingPeopleAboutAnEvent:
         assert {n.user_id for n in got} == {world.a.id, world.grad.id}
         assert "2:00 PM" in got.first().message
 
+    @staticmethod
+    def _soon(event):
+        """The world's events are on fixed past dates; the outbox skips an event that already started."""
+        from datetime import timedelta
+        from django.utils import timezone as tz
+
+        event.start_date = tz.now().replace(hour=11, minute=0, second=0, microsecond=0) + timedelta(days=2)  # 2:00 PM Ethiopia
+        event.end_date = event.start_date + timedelta(hours=1)
+        event.save()
+
     def test_email_goes_to_the_group_only_with_place_time_and_a_safe_description(self, world, mailoutbox):
+        self._soon(world.group_event)
         world.group_event.place_name = "Main hall"
         world.group_event.place_url = "https://maps.example.org/hall"
         world.group_event.description = "Bring your <script>alert(1)</script> notebook\nand water"
@@ -214,18 +225,25 @@ class TestTellingPeopleAboutAnEvent:
         assert "Choir" in html and "<script>" not in html and "&lt;script&gt;" in html and "<br>" in html
 
     def test_a_general_event_is_emailed_to_everyone_once(self, world, mailoutbox):
+        self._soon(world.general)
         EmailChannel().on_event_published(world.general)
         recipients = [m.to[0] for m in mailoutbox]
         assert len(recipients) == len(set(recipients)) and "c@x.test" in recipients and "gone@x.test" not in recipients
 
-    def test_undeliverable_addresses_are_skipped_and_the_limit_applies(self, world, mailoutbox, settings):
+    def test_undeliverable_addresses_are_skipped_and_the_daily_limit_applies(self, world, mailoutbox, settings):
+        from notifications.models import EmailConfiguration, EmailOutbox
+
+        self._soon(world.general)
         settings.REMINDER_EMAIL_SKIP_UNDELIVERABLE = True
         EmailChannel().on_event_published(world.general)
-        assert mailoutbox == []  # every test address ends in .test
+        assert mailoutbox == [] and EmailOutbox.objects.count() == 0  # every test address ends in .test
         settings.REMINDER_EMAIL_SKIP_UNDELIVERABLE = False
-        settings.EVENT_EMAIL_LIMIT = 2
+        config = EmailConfiguration.get()
+        config.daily_limit = 2
+        config.save()
         EmailChannel().on_event_published(world.general)
-        assert len(mailoutbox) == 2
+        assert len(mailoutbox) == 2  # the rest waits in the outbox for tomorrow's allowance
+        assert EmailOutbox.objects.filter(status=EmailOutbox.WAITING).count() == EmailOutbox.objects.count() - 2 > 0
 
 
 @pytest.mark.django_db

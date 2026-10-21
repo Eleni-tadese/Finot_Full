@@ -498,3 +498,10 @@ from django.apps import apps
 for m in apps.get_models():
     print(m._meta.label, [f.name for f in m._meta.get_fields()])
 ```
+
+## Email outbox (`notifications`)
+
+- `EmailConfiguration` (one row): `daily_limit` (default 300).
+- `EmailOutbox`: `user`, `email`, `kind` (NEW_EVENT, EVENT_TOMORROW), `event`, `subject`, `body`, `not_after` (skip after the
+  event start), `status` (WAITING, SENDING, SENT, FAILED, SKIPPED), `attempts`, `error`, `created_at`, `claimed_at`, `sent_at`.
+- `Event.reminder_sent_at`: when the "event tomorrow" reminder was queued (once per event).

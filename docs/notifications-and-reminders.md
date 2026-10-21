@@ -26,6 +26,19 @@ The bell refreshes every minute and when the browser tab is shown again. Q&A ale
 - All emails go over one SMTP connection. From the web trigger they are sent in a background thread so the request returns quickly. A mail problem never stops the in-app reminder.
 - A second run within 6 days is skipped (add `--force` to the command to override).
 
+## Email outbox (new event, event tomorrow)
+
+Bulk emails are not sent inside the web request any more. When an event is published, one row per person is written to
+the **email outbox** (`notifications/outbox.py`, table `notifications_emailoutbox`), and the rows are sent in portions:
+
+- **Daily limit**: Super Admin > Messages > Email (default 300, the free Brevo allowance; counted per UTC day).
+- **Order**: the nearest event first. A row whose event has already started is marked *skipped* instead of sent.
+- **Failures**: a row is retried on the next run, three times, then stays *failed* with the error text; the Super Admin can
+  put the failed rows back with **Retry failed**. Five failures in a row stop the run (the mail provider is probably down).
+- **Event tomorrow**: the job also finds events that start tomorrow (Ethiopia time) and gives everyone the event is for an
+  in-app reminder plus one email row, once per event (`Event.reminder_sent_at`).
+- The same job closes forgotten attendance sessions (`close_stale_attendance_sessions`).
+
 ## Scheduled jobs
 
 The server does not run its own scheduler. Three free GitHub Actions workflows call secret-protected URLs:
@@ -34,6 +47,7 @@ The server does not run its own scheduler. Three free GitHub Actions workflows c
 |---|---|---|
 | `weekly-reminders.yml` | Thursday 09:00 Ethiopia time | `POST /api/notifications/cron/weekly-reminders/` |
 | `class-reminders.yml` | daily 18:00 Ethiopia time | `POST /api/notifications/cron/class-reminders/` |
+| `email-outbox.yml` | every 6 hours | `POST /api/notifications/cron/email-outbox/` (attendance auto-close, event-tomorrow reminders, send the outbox) |
 | `verify-donations.yml` | hourly | `POST /api/donations/cron/verify-pending/` |
 
 How a schedule works: GitHub's clock starts the workflow at the set time (the times above are UTC converted to Ethiopia time, UTC+3), the workflow calls the backend address with the secret, and the backend does the work. The server needs no clock of its own. If the server is asleep the call wakes it (the call waits up to 5 minutes).

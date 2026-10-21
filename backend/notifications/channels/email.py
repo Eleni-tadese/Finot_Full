@@ -32,7 +32,7 @@ def _get_donation_details(payment_obj):
     return email, name, category
 
 
-def _send_html_email(subject, recipient_list, template_name=None, context=None, message_body=None, connection=None):
+def _send_html_email(subject, recipient_list, template_name=None, context=None, message_body=None, connection=None, raise_errors=False):
     """
     Central utility to send HTML emails.
     Can accept either a template_name + context OR a simple message_body string.
@@ -91,6 +91,8 @@ def _send_html_email(subject, recipient_list, template_name=None, context=None, 
         return True
     except Exception as e:
         logger.error("Failed to send email to %s: %s", recipient_list, e, exc_info=True)
+        if raise_errors:
+            raise
         return False
 
 
@@ -154,64 +156,12 @@ class EmailChannel(NotificationChannel):
 
     def on_event_published(self, event):
         """
-        Email the people the event is for: everyone for a general event, only the group's members for a group event.
-        One mail connection for all of them; addresses that can never receive mail are skipped; capped per event.
+        Queue one email per person the event is for (everyone for a general event, the group's members for a
+        group event) and send what today's allowance allows; the rest goes out with the 6-hourly job.
+        See notifications/outbox.py.
         """
-        from django.core.mail import get_connection
-        from django.utils.html import escape
+        from notifications.outbox import queue_event_announcement, send_outbox
 
-        from notifications.reminders import is_deliverable
-        from service.event_rules import format_when, notification_audience
-
-        people = [(u.email, u.first_name) for u in notification_audience(event).exclude(email="") if u.email]
-        if getattr(settings, "REMINDER_EMAIL_SKIP_UNDELIVERABLE", True):
-            people = [p for p in people if is_deliverable(p[0])]
-        limit = getattr(settings, "EVENT_EMAIL_LIMIT", 300)
-        if len(people) > limit:
-            logger.warning("EmailChannel: event email limited to %s of %s people.", limit, len(people))
-            people = people[:limit]
-        if not people:
-            return
-
-        group = escape(event.service_group.name) if event.service_group_id else ""
-        where = ""
-        if event.place_name or event.place_url:
-            label = escape(event.place_name or "Open the map")
-            url = (event.place_url or "").strip()
-            where = f"<p><strong>Where:</strong> {label}"
-            if url.startswith(("http://", "https://")):
-                where += f' (<a href="{escape(url)}">map</a>)'
-            where += "</p>"
-        details = escape(event.description or "").replace("\n", "<br>")
-        link = f"{getattr(settings, 'FRONTEND_URL', '')}/dashboard/events"
-        intro = (
-            f"A new program was announced for the <strong>{group}</strong> group:" if group
-            else "A new program was announced:"
-        )
-        subject = f"New event: {event.title}"
-
-        sent = 0
-        try:
-            connection = get_connection()
-            connection.open()
-            try:
-                for email, first_name in people:
-                    body = (
-                        f'<p style="font-size: 16px;">Dear <strong>{escape(first_name or "friend")}</strong>,</p>'
-                        f"<p>{intro}</p>"
-                        f'<div style="background-color: #f8fafc; border-left: 4px solid #fbbf24; padding: 15px; margin: 18px 0; border-radius: 4px;">'
-                        f'<h3 style="margin: 0 0 8px 0; color: #1e3a8a;">{escape(event.title)}</h3>'
-                        f"<p><strong>When:</strong> {escape(format_when(event))}</p>"
-                        f"{where}"
-                        f'<p style="margin-bottom: 0;">{details}</p>'
-                        f"</div>"
-                        f'<p style="margin: 24px 0;"><a href="{escape(link)}" style="background-color: #fbbf24; color: #1e3a8a; '
-                        f'padding: 12px 22px; border-radius: 8px; text-decoration: none; font-weight: bold;">See it on Finot</a></p>'
-                    )
-                    if _send_html_email(subject, [email], message_body=body, connection=connection):
-                        sent += 1
-            finally:
-                connection.close()
-        except Exception:
-            logger.exception("EmailChannel: event email stopped early after %s", sent)
-        logger.info("EmailChannel: event email sent to %s people.", sent)
+        queued = queue_event_announcement(event)
+        result = send_outbox() if queued else None
+        logger.info("EmailChannel: event email queued for %s people; %s", queued, result)

@@ -33,6 +33,11 @@ Generated from the code (`manage.py spectacular`). For request and response shap
 | DELETE | `/api/admin-console/departments/{id}/` | api_admin_console_departments_destroy |
 | GET | `/api/admin-console/donations/` | GET donations/?status=&fund=&kind=&search=&date_from=&date_to=&page=  rows + totals for the whole filter. |
 | POST | `/api/admin-console/donations/recheck/` | POST donations/recheck/ : ask Chapa now about every pending payment (no waiting time). |
+| GET | `/api/admin-console/email/outbox/` | api_admin_console_email_outbox_retrieve |
+| POST | `/api/admin-console/email/outbox/retry/` | api_admin_console_email_outbox_retry_create |
+| POST | `/api/admin-console/email/outbox/send/` | Send now (what the daily limit allows) without waiting for the 6-hourly job. Runs in the background. |
+| GET | `/api/admin-console/email/settings/` | api_admin_console_email_settings_retrieve |
+| PATCH | `/api/admin-console/email/settings/` | api_admin_console_email_settings_partial_update |
 | GET | `/api/admin-console/families/` | All families with their father, mother and size (families without a parent come first). |
 | POST | `/api/admin-console/families/` | Create a family. Body: name, gender ("M" / "F" / empty = mixed), optional father_id (a man), |
 | GET | `/api/admin-console/families/distribution/` | api_admin_console_families_distribution_retrieve |
@@ -166,6 +171,7 @@ Generated from the code (`manage.py spectacular`). For request and response shap
 | GET | `/api/notifications/` | List user notifications. Allows marking as read. |
 | POST | `/api/notifications/cron/account-setup-reminders/` | Daily trigger for the "finish your account" reminders (see .github/workflows/account-setup-reminders.yml). |
 | POST | `/api/notifications/cron/class-reminders/` | Daily trigger for the "class tomorrow" notifications (see .github/workflows/class-reminders.yml). Same secret as the weekly one. |
+| POST | `/api/notifications/cron/email-outbox/` | 6-hourly trigger (see .github/workflows/email-outbox.yml): close forgotten attendance sessions, queue the |
 | POST | `/api/notifications/cron/weekly-reminders/` | Called by a free external scheduler (see .github/workflows/weekly-reminders.yml). |
 | GET | `/api/notifications/device-token/` | Registers the Firebase Cloud Messaging device token. |
 | POST | `/api/notifications/device-token/` | Registers the Firebase Cloud Messaging device token. |

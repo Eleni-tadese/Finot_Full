@@ -1,0 +1,19 @@
+name: Email outbox (every 6 hours)
+
+on:
+  schedule:
+    # 00:00, 06:00, 12:00, 18:00 UTC = 03:00, 09:00, 15:00, 21:00 Ethiopia time.
+    # Each run: close forgotten attendance sessions, queue "event tomorrow" reminders, send the waiting emails
+    # up to the daily limit (Super Admin > Messages > Email).
+    - cron: "0 */6 * * *"
+  workflow_dispatch: {}
+
+jobs:
+  send:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Call the backend trigger
+        run: |
+          curl --fail --silent --show-error --max-time 300 -X POST \
+            -H "X-Cron-Token: ${{ secrets.CRON_SECRET }}" \
+            "${{ secrets.BACKEND_URL }}/api/notifications/cron/email-outbox/"

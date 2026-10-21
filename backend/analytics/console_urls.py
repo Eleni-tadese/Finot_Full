@@ -42,4 +42,8 @@ urlpatterns = [
     path("donations/recheck/", v.DonationsRecheckView.as_view()),
     path("sms/settings/", v.SmsSettingsView.as_view()),
     path("sms/logs/", v.SmsLogsView.as_view()),
+    path("email/settings/", v.EmailSettingsView.as_view()),
+    path("email/outbox/", v.EmailOutboxView.as_view()),
+    path("email/outbox/retry/", v.EmailOutboxRetryView.as_view()),
+    path("email/outbox/send/", v.EmailOutboxSendView.as_view()),
 ]

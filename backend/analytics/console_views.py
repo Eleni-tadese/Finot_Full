@@ -13,6 +13,8 @@ Everything here is Super Admin only. Mounted at /api/admin-console/.
     POST  families/distribution/confirm/        POST  families/distribution/batches/<id>/undo/
     GET   sms/settings/                         PATCH sms/settings/
     GET   sms/logs/?status=&page=
+    GET   email/settings/                       PATCH email/settings/  {daily_limit}
+    GET   email/outbox/?status=&page=           POST  email/outbox/retry/   POST email/outbox/send/
 """
 from django.contrib.auth import get_user_model
 from django.db.models import Count, Q
@@ -23,7 +25,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from core.models import Role, UserRole
-from notifications.models import SMSConfiguration, SMSLog
+from notifications.models import EmailConfiguration, EmailOutbox, SMSConfiguration, SMSLog
 from questionanswer.models import Question, TeacherSpecialization
 from questionanswer.visibility import is_super_admin, specialization_for, SENSITIVE_SPECIALIZATIONS
 from django.core.exceptions import ValidationError as DjangoValidationError
@@ -108,6 +110,9 @@ class OverviewView(ConsoleView):
         by_role = dict(
             UserRole.objects.values_list("role__name").annotate(n=Count("id")).order_by("role__name")
         )
+        from notifications.outbox import counts as email_counts
+
+        outbox_counts = email_counts()
         # "real" = everyone whose email is not a slip address (same rule as Users & roles > Real accounts);
         # the slips are counted apart so the 1000 printed logins do not hide the real community.
         slips = User.objects.filter(slip_email_q())
@@ -148,6 +153,7 @@ class OverviewView(ConsoleView):
                 "monthly_limit": config.monthly_limit,
                 "sent_this_month": config.sent_this_month(),
             },
+            "email": {key: outbox_counts[key] for key in ("waiting", "failed", "sent_today", "daily_limit")},
         })
 
 
@@ -956,6 +962,79 @@ class SmsLogsView(ConsoleView):
             }
             for log in page
         ])
+
+
+# ── Email outbox (Super Admin > Messages > Email) ───────────────────────────
+
+class EmailSettingsView(ConsoleView):
+    def get(self, request):
+        from notifications.outbox import counts
+
+        return Response(counts())
+
+    def patch(self, request):
+        from notifications.outbox import counts
+
+        config = EmailConfiguration.get()
+        if "daily_limit" in request.data:
+            limit = request.data["daily_limit"]
+            if isinstance(limit, bool) or not isinstance(limit, int) or limit < 0 or limit > 100_000:
+                raise ValidationError({"daily_limit": "Must be a whole number from 0 to 100,000."})
+            config.daily_limit = limit
+        config.save()
+        return Response(counts())
+
+
+class EmailOutboxView(ConsoleView):
+    def get(self, request):
+        qs = EmailOutbox.objects.select_related("user", "event")
+        wanted = request.query_params.get("status")
+        if wanted:
+            if wanted not in dict(EmailOutbox.STATUS_CHOICES):
+                raise ValidationError({"status": "Unknown status."})
+            # a row being sent right now is still "waiting" for the admin
+            qs = qs.filter(status__in=[EmailOutbox.WAITING, EmailOutbox.SENDING]) if wanted == EmailOutbox.WAITING else qs.filter(status=wanted)
+        paginator = ConsolePagination()
+        page = paginator.paginate_queryset(qs, request)
+        return paginator.get_paginated_response([
+            {
+                "id": row.id, "created_at": row.created_at, "sent_at": row.sent_at, "not_after": row.not_after,
+                "user": full_name(row.user) if row.user else None, "email": row.email, "kind": row.kind,
+                "event": row.event.title if row.event else None, "subject": row.subject,
+                "status": EmailOutbox.WAITING if row.status == EmailOutbox.SENDING else row.status,
+                "attempts": row.attempts, "error": row.error,
+            }
+            for row in page
+        ])
+
+
+class EmailOutboxRetryView(ConsoleView):
+    def post(self, request):
+        from notifications.outbox import retry_failed
+
+        return Response({"retried": retry_failed()})
+
+
+class EmailOutboxSendView(ConsoleView):
+    """Send now (what the daily limit allows) without waiting for the 6-hourly job. Runs in the background."""
+
+    def post(self, request):
+        import threading
+
+        from django.db import close_old_connections
+
+        from notifications.outbox import send_outbox
+
+        def _run():
+            try:
+                send_outbox()
+            finally:
+                close_old_connections()
+
+        if request.data.get("wait"):  # tests and the command line
+            return Response(send_outbox())
+        threading.Thread(target=_run, daemon=True).start()
+        return Response({"started": True})
 
 
 # ── Departments and the yearly rollover ─────────────────────────────────────

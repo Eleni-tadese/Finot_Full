@@ -115,3 +115,21 @@ class ClassReminderTriggerView(APIView):
         if not secret or not hmac.compare_digest(sent.encode(), secret.encode()):
             return Response(status=status.HTTP_404_NOT_FOUND)
         return Response(send_class_reminders())
+
+
+class EmailOutboxTriggerView(APIView):
+    """6-hourly trigger (see .github/workflows/email-outbox.yml): close forgotten attendance sessions, queue the
+    "event tomorrow" reminders, send the waiting outbox emails up to the daily limit. Same secret as the others."""
+
+    permission_classes = [permissions.AllowAny]
+    authentication_classes = []
+    throttle_classes = []
+
+    def post(self, request):
+        from .outbox import run_email_cron
+
+        secret = getattr(settings, "CRON_SECRET", "")
+        sent = request.headers.get("X-Cron-Token", "")
+        if not secret or not hmac.compare_digest(sent.encode(), secret.encode()):
+            return Response(status=status.HTTP_404_NOT_FOUND)
+        return Response(run_email_cron())

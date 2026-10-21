@@ -120,3 +120,68 @@ class SMSLog(models.Model):
 
     def __str__(self):
         return f"{self.get_trigger_display()} -> {self.phone} ({self.status})"
+
+
+class EmailConfiguration(models.Model):
+    """Single settings row (Super Admin > Messages > Email): how many outbox emails may go out per day (UTC)."""
+    daily_limit = models.PositiveIntegerField(
+        default=300, help_text="Maximum outbox emails per day. Brevo's free plan allows about 300."
+    )
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Email configuration"
+        verbose_name_plural = "Email configuration"
+
+    def __str__(self):
+        return "Email configuration"
+
+    @classmethod
+    def get(cls):
+        obj, _ = cls.objects.get_or_create(pk=1)
+        return obj
+
+    def save(self, *args, **kwargs):
+        self.pk = 1  # singleton
+        kwargs.pop("force_insert", None)
+        super().save(*args, **kwargs)
+
+
+class EmailOutbox(models.Model):
+    """
+    One bulk email waiting to be sent (see notifications/outbox.py). Rows are sent nearest event first, up to the
+    daily limit; a row whose event already started is skipped. SENDING = claimed by a run that is sending right now.
+    """
+    KIND_NEW_EVENT = "NEW_EVENT"
+    KIND_EVENT_TOMORROW = "EVENT_TOMORROW"
+    KIND_CHOICES = [(KIND_NEW_EVENT, "New event"), (KIND_EVENT_TOMORROW, "Event tomorrow")]
+
+    WAITING = "WAITING"
+    SENDING = "SENDING"
+    SENT = "SENT"
+    FAILED = "FAILED"
+    SKIPPED = "SKIPPED"
+    STATUS_CHOICES = [
+        (WAITING, "Waiting"), (SENDING, "Sending"), (SENT, "Sent"), (FAILED, "Failed"), (SKIPPED, "Skipped"),
+    ]
+
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, related_name="outbox_emails")
+    email = models.CharField(max_length=254)
+    kind = models.CharField(max_length=20, choices=KIND_CHOICES)
+    event = models.ForeignKey("service.Event", on_delete=models.SET_NULL, null=True, blank=True, related_name="outbox_emails")
+    subject = models.CharField(max_length=200)
+    body = models.TextField(help_text="HTML body (inside the standard Finot email layout).")
+    not_after = models.DateTimeField(null=True, blank=True, help_text="Skip instead of send after this moment (the event start).")
+    status = models.CharField(max_length=10, choices=STATUS_CHOICES, default=WAITING, db_index=True)
+    attempts = models.PositiveSmallIntegerField(default=0)
+    error = models.CharField(max_length=500, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True, db_index=True)
+    claimed_at = models.DateTimeField(null=True, blank=True)
+    sent_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+        verbose_name_plural = "Email outbox"
+
+    def __str__(self):
+        return f"{self.get_kind_display()} -> {self.email} ({self.status})"

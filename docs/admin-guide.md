@@ -64,7 +64,7 @@ If enrolments ever look wrong, a developer can run `sync_course_enrolments` (it 
 | Donation reminder (in-app, email, push) | every Thursday, 09:00 Ethiopia time |
 | "Class tomorrow" reminder | every day, 18:00 Ethiopia time |
 | Re-check of pending payments | every hour |
-| Close forgotten attendance sessions (`close_stale_attendance_sessions`) | daily (to be scheduled with the other jobs) |
+| Email outbox: send waiting event emails (daily limit), "event tomorrow" reminders, close forgotten attendance sessions | every 6 hours |
 
 Details and how to switch them on are in [notifications-and-reminders.md](notifications-and-reminders.md).
 

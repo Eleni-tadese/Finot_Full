@@ -156,3 +156,13 @@ def counts(session):
     else:
         present = AttendanceRecord.objects.filter(session_id=session.course_session_id, status="PRESENT").count()
     return {"present": present, "roster": roster(session).count()}
+
+
+def close_stale_sessions(now=None):
+    """Close every session past its auto_close_at (the organizer forgot). Returns (sessions closed, students marked absent)."""
+    now = now or timezone.now()
+    closed = absent = 0
+    for session in AttendanceSession.objects.filter(closed_at__isnull=True, auto_close_at__lte=now):
+        absent += close_session(session, user=None)
+        closed += 1
+    return closed, absent

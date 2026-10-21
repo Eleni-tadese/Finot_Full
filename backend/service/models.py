@@ -189,6 +189,9 @@ class Event(models.Model):
     )
 
     created_at = models.DateTimeField(auto_now_add=True)
+    reminder_sent_at = models.DateTimeField(
+        null=True, blank=True, help_text="When the 'event tomorrow' reminder was queued (notifications/outbox.py)."
+    )
 
     def __str__(self):
         return self.title
