@@ -18,7 +18,6 @@ import {
   FiTrendingUp, 
   FiUsers,
   FiSun,
-  FiMoon,
   FiCloud
 } from "react-icons/fi";
 import { motion, AnimatePresence } from "framer-motion";
@@ -42,7 +41,7 @@ const DashboardEvents = () => {
   const { user } = useAuth();
   const [events, setEvents] = useState<DashboardEvent[]>([]);
   const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState<"all" | "upcoming" | "ongoing" | "completed">("all");
+  const [filter, setFilter] = useState<"all" | "upcoming" | "ongoing">("all");
 
   useEffect(() => {
     const fetchEvents = async () => {
@@ -58,18 +57,12 @@ const DashboardEvents = () => {
     if (user) fetchEvents();
   }, [user]);
 
-  const filteredEvents = events.filter((event) => {
-    if (filter === "all") return true;
-    return event.status.toLowerCase() === filter;
-  });
-
-  const getEventIcon = () => {
-    switch (filter) {
-      case "upcoming": return <FiSun className="h-5 w-5" />;
-      case "completed": return <FiMoon className="h-5 w-5" />;
-      default: return <FiCloud className="h-5 w-5" />;
-    }
-  };
+  // Students see what is happening now and what comes next. Past events appear only on the Attendance page
+  // (one row each); organizers keep the full history with attendance in their management pages.
+  const liveEvents = events.filter((event) => event.status !== "COMPLETED");
+  const filteredEvents = liveEvents
+    .filter((event) => filter === "all" || event.status.toLowerCase() === filter)
+    .sort((a, b) => (a.status === b.status ? a.start_date.localeCompare(b.start_date) : a.status === "ONGOING" ? -1 : 1));
 
   if (loading) {
     return (
@@ -113,7 +106,7 @@ const DashboardEvents = () => {
           <div className="mt-4 flex flex-wrap gap-4">
             <div className="flex items-center gap-2 rounded-full bg-white/80 backdrop-blur-sm px-3 py-1.5 text-sm shadow-sm">
               <FiCalendar className="h-4 w-4 text-primary" />
-              <span className="font-medium">{events.length}</span>
+              <span className="font-medium">{liveEvents.length}</span>
               <span className="text-muted-foreground">{t("total_events")}</span>
             </div>
             <div className="flex items-center gap-2 rounded-full bg-white/80 backdrop-blur-sm px-3 py-1.5 text-sm shadow-sm">
@@ -126,7 +119,7 @@ const DashboardEvents = () => {
             <div className="flex items-center gap-2 rounded-full bg-white/80 backdrop-blur-sm px-3 py-1.5 text-sm shadow-sm">
               <FiUsers className="h-4 w-4 text-blue-600" />
               <span className="font-medium">
-                {events.filter(e => e.service_group_name).length}
+                {liveEvents.filter(e => e.service_group_name).length}
               </span>
               <span className="text-muted-foreground">{t("group_events")}</span>
             </div>
@@ -140,7 +133,6 @@ const DashboardEvents = () => {
           { key: "all", label: t("all_events"), icon: <FiCloud className="h-4 w-4" /> },
           { key: "upcoming", label: t("event_upcoming"), icon: <FiSun className="h-4 w-4" /> },
           { key: "ongoing", label: t("event_ongoing"), icon: <FiClock className="h-4 w-4" /> },
-          { key: "completed", label: t("event_completed"), icon: <FiMoon className="h-4 w-4" /> },
         ].map((tab) => (
           <motion.button
             key={tab.key}

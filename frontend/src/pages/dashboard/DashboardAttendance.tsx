@@ -112,7 +112,6 @@ const DashboardAttendance = () => {
                     <p className="font-medium text-foreground">{record.event_title || "Event"}</p>
                     <p className="mt-1 text-sm text-muted-foreground">
                       {record.event_date ? etDate(record.event_date) : "—"}
-                      {record.remark && ` • ${record.remark}`}
                     </p>
                     <Badge variant={statusStyles[record.status] as any} size="sm">
                       {t(`status_${record.status.toLowerCase()}`)}

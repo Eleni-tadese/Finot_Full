@@ -145,7 +145,7 @@ Student, Super Admin, Service Admin, Event Manager, Course Coordinator, Family A
 | FR-EVT-4 | The event status (upcoming, ongoing, completed) shall be computed from the start and end time. |
 | FR-EVT-5 | The system shall notify (in-app, email, push) everyone, or the group members, when an event is published. |
 | FR-EVT-6 | The event's creator (or the group's Service Admin, or the Super Admin) shall take Present/Absent attendance with a remark; one record per student per event. |
-| FR-EVT-7 | A student shall see their events and their own attendance. |
+| FR-EVT-7 | A student shall see only the **ongoing** (with Check in) and **upcoming** events. Past events appear only on their Attendance page, one row each with title, date and Present or Absent; nothing else about a past event is shown to students. Organizers keep the full list with attendance data. |
 
 ### 3.6b Smart attendance: scan sessions (FR-ATT)
 
