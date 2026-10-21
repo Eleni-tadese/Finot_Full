@@ -187,6 +187,35 @@ class TestMarkingAttendance:
 
 
 @pytest.mark.django_db
+class TestAnnouncingOnce:
+    """notifications.handlers.announce_event: once per event, never for an event that is already over."""
+
+    def test_an_event_born_in_the_past_is_announced_when_it_is_moved_to_the_future_and_only_once(self, world):
+        from datetime import timedelta
+
+        from django.utils import timezone as tz
+
+        from notifications.handlers import announce_event
+        from notifications.models import Notification
+
+        ev = world.general  # fixed past dates: Completed
+        assert announce_event(ev.id) is False and ev.announced_at is None
+        ev.start_date = tz.now() + timedelta(days=1)
+        ev.end_date = ev.start_date + timedelta(hours=2)
+        ev.save()
+        assert announce_event(ev.id) is True
+        ev.refresh_from_db()
+        assert ev.announced_at is not None
+        told = Notification.objects.filter(notification_type=Notification.TYPE_EVENT).count()
+        assert told > 0
+        ev.title = "Renamed"
+        ev.save()
+        assert announce_event(ev.id) is False  # an edit never announces twice
+        assert Notification.objects.filter(notification_type=Notification.TYPE_EVENT).count() == told
+        assert announce_event(999999) is False
+
+
+@pytest.mark.django_db
 class TestTellingPeopleAboutAnEvent:
     def test_who_is_told(self, world):
         assert {u.id for u in notification_audience(world.group_event)} == {world.a.id, world.grad.id}

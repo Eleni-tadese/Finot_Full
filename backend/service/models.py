@@ -192,6 +192,9 @@ class Event(models.Model):
     reminder_sent_at = models.DateTimeField(
         null=True, blank=True, help_text="When the 'event tomorrow' reminder was queued (notifications/outbox.py)."
     )
+    announced_at = models.DateTimeField(
+        null=True, blank=True, help_text="When everyone was told about this event (notifications/handlers.py announces once)."
+    )
 
     def __str__(self):
         return self.title

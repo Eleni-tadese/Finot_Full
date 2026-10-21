@@ -61,25 +61,41 @@ def handle_payment_failed(sender, payment, **kwargs):
     )
 
 
+def announce_event(event_id):
+    """
+    Tell everyone about the event ONCE: at creation, or at the first edit that gives it a date that is not over
+    yet (an event saved with a past date is Completed at birth and announces nothing until it is moved).
+    Event.announced_at is the mark; it is claimed with one UPDATE so two saves never announce twice.
+    Returns True when it announced.
+    """
+    from django.utils import timezone
+    from service.models import Event
+
+    event = Event.objects.filter(id=event_id).first()
+    if event is None:
+        logger.warning("announce_event: Event id=%s not found.", event_id)
+        return False
+    if event.announced_at or event.current_status == Event.COMPLETED:
+        return False
+    if Event.objects.filter(id=event_id, announced_at__isnull=True).update(announced_at=timezone.now()) != 1:
+        return False  # another save claimed it a moment ago
+    NotificationDispatcher.event_published(event)
+    return True
+
+
 @receiver(post_save, sender='service.Event')
 def handle_event_published(sender, instance, created, **kwargs):
     """
-    Listens to Event post_save. When a new event is created and has not
-    already ended, dispatches notifications via all channels in a background thread.
+    Listens to Event post_save (create and edit). Announces the event once, in a background thread, when it
+    has not been announced yet and has not already ended (see announce_event).
     """
-    if created:
+    if instance.announced_at is None:
         event_id = instance.id
 
         def _dispatch_in_thread():
-            from service.models import Event
             from django.db import close_old_connections
             try:
-                event = Event.objects.get(id=event_id)
-                if event.current_status == Event.COMPLETED:
-                    return  # created with a date in the past: nothing to announce
-                NotificationDispatcher.event_published(event)
-            except Event.DoesNotExist:
-                logger.warning("handle_event_published: Event id=%s not found.", event_id)
+                announce_event(event_id)
             finally:
                 close_old_connections()
 

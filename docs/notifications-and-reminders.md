@@ -26,6 +26,12 @@ The bell refreshes every minute and when the browser tab is shown again. Q&A ale
 - All emails go over one SMTP connection. From the web trigger they are sent in a background thread so the request returns quickly. A mail problem never stops the in-app reminder.
 - A second run within 6 days is skipped (add `--force` to the command to override).
 
+## When is an event announced?
+
+Once per event (`Event.announced_at`): when it is created, or, if it was created with a date that was already over
+(nothing is announced for a finished event), at the first edit that moves it into the future. Later edits never announce
+again. The announcement is the in-app alert, the phone push, the SMS (if switched on) and the email rows in the outbox.
+
 ## Email outbox (new event, event tomorrow, weekly reminder)
 
 Bulk emails are not sent inside the web request any more. When an event is published, one row per person is written to
