@@ -75,6 +75,17 @@ class TestOverview:
 
 @pytest.mark.django_db
 class TestUsers:
+    def test_a_new_badge_cancels_the_old_one(self, boss):
+        from attendance import codes
+
+        student = make_user("stu@finot.test")
+        old = codes.badge_for(student.id, student.student_profile.badge_version)
+        res = client_for(boss).post(BASE + f"users/{student.id}/badge/")
+        assert res.status_code == 200 and res.json()["version"] == 2
+        assert codes.badge_for(student.id, 2) != old
+        assert client_for(boss).post(BASE + "users/999999/badge/").status_code == 404
+        assert client_for(student).post(BASE + f"users/{student.id}/badge/").status_code == 403
+
     def test_search_filter_and_page_shape(self, boss):
         make_user("alem@finot.test", Role.QA_COUNSELOR)
         make_user("bekele@finot.test")

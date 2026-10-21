@@ -57,6 +57,7 @@ export const adminApi = {
     axiosInstance.get(`${C}/accounts/import/progress/export/`, { params, responseType: "blob" }).then((r) => r.data as Blob),
   undoImport: (id: number) =>
     axiosInstance.post<{ deleted: number; kept: number }>(`${C}/accounts/import/batches/${id}/undo/`).then((r) => r.data),
+  reissueBadge: (id: number) => axiosInstance.post<{ version: number }>(`${C}/users/${id}/badge/`).then((r) => r.data),
   reissueSlip: (id: number) =>
     axiosInstance.post<{ name: string; email: string; password: string; grace_days: number; deadline: string }>(`${C}/users/${id}/reissue/`).then((r) => r.data),
   userCard: (id: number) => axiosInstance.get<PersonCard>(`${C}/users/${id}/`).then((r) => r.data),

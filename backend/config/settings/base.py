@@ -277,7 +277,6 @@ BREVO_API_KEY = os.environ.get("BREVO_API_KEY", "")
 # The weekly donation named in the Thursday reminder (birr), and how many reminder emails one run may send
 # (the free Brevo plan allows about 300 emails a day).
 WEEKLY_DONATION_AMOUNT = int(os.environ.get("WEEKLY_DONATION_AMOUNT") or 10)
-WEEKLY_REMINDER_EMAIL_LIMIT = int(os.environ.get("WEEKLY_REMINDER_EMAIL_LIMIT") or 300)
 
 RETURN_URL = f"{FRONTEND_URL}/donation/success"
 CALLBACK_URL = f"{PUBLIC_DOMAIN}/api/donations/verify/"

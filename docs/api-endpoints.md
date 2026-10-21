@@ -67,6 +67,7 @@ Generated from the code (`manage.py spectacular`). For request and response shap
 | GET | `/api/admin-console/users/filters/` | Values that actually exist, so the filter dropdowns only offer choices that match someone. |
 | GET | `/api/admin-console/users/{id}/` | Everything about one person (Super Admin only). |
 | PATCH | `/api/admin-console/users/{id}/` | api_admin_console_users_partial_update |
+| POST | `/api/admin-console/users/{id}/badge/` | POST users/<id>/badge/ : a lost or shared QR badge. The old badge stops scanning (old_badge); the student opens |
 | POST | `/api/admin-console/users/{id}/reissue/` | POST users/<id>/reissue/ : a lost slip. New random password, the deadline starts again. Returns the credentials once. |
 
 ## `/api/analytics/`

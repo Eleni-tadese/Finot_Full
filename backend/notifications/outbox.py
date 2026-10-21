@@ -1,9 +1,11 @@
 """
-Email outbox: bulk emails (new event, event tomorrow) are written here first and sent in daily portions.
+Email outbox: bulk emails (new event, event tomorrow, weekly donation reminder) are written here first and sent in
+daily portions.
 
 Why: Brevo's free plan allows about 300 mails a day and a general event can reach 1000 people. Rows wait in the
 queue, the nearest event goes first, and a row whose event has already started is skipped instead of sent.
 
+  queue_emails(kind, subject, users, body_for, not_after)   the general entry: one row per person who can get mail
   queue_event_announcement(event)   one row per person the event is for (called when an event is published)
   queue_event_reminders()           "event tomorrow": in-app reminder now + one email row, once per event
   send_outbox()                     sends waiting rows up to the daily limit, over one SMTP connection
@@ -71,20 +73,25 @@ def _event_box(event):
     )
 
 
-def _queue(event, kind, subject, intro, users):
-    """One waiting row per person, never twice for the same event and kind. Returns how many rows were added."""
-    already = set(EmailOutbox.objects.filter(event=event, kind=kind).values_list("user_id", flat=True))
-    box = _event_box(event)
+def queue_emails(kind, subject, users, body_for, not_after=None, event=None):
+    """One waiting row per person who can receive mail; body_for(user) builds the HTML. Returns how many rows were added."""
     rows = [
-        EmailOutbox(
-            user=user, email=email, kind=kind, event=event, subject=subject, not_after=event.start_date,
-            body=f'<p style="font-size: 16px;">Dear <strong>{escape(user.first_name or "friend")}</strong>,</p><p>{intro}</p>{box}',
-        )
+        EmailOutbox(user=user, email=email, kind=kind, event=event, subject=subject, not_after=not_after, body=body_for(user))
         for user, email in _people(users)
-        if user.id not in already
     ]
     EmailOutbox.objects.bulk_create(rows, batch_size=500)
     return len(rows)
+
+
+def _queue(event, kind, subject, intro, users):
+    """Event rows: one per person, never twice for the same event and kind."""
+    already = set(EmailOutbox.objects.filter(event=event, kind=kind).values_list("user_id", flat=True))
+    box = _event_box(event)
+    return queue_emails(
+        kind, subject, [user for user in users if user.id not in already],
+        lambda user: f'<p style="font-size: 16px;">Dear <strong>{escape(user.first_name or "friend")}</strong>,</p><p>{intro}</p>{box}',
+        not_after=event.start_date, event=event,
+    )
 
 
 def queue_event_announcement(event):

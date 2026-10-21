@@ -31,7 +31,7 @@ class Command(BaseCommand):
         if result["status"] == "sent":
             self.stdout.write(self.style.SUCCESS(
                 f"Successfully processed {result['users']} users, sent FCM to {result['devices']} devices and "
-                f"{result['emails']} emails ({result['emails_skipped']} over the email limit)."
+                f"queued {result['emails']} emails: {result['emails_sent']} sent now, {result['emails_waiting']} waiting for the daily limit."
             ))
         else:
             self.stdout.write(self.style.WARNING(f"Nothing sent: {result['reason']}."))

@@ -1830,5 +1830,8 @@
   "email_status_SKIPPED": "ታልፏል (ዝግጅቱ ተጀምሯል)",
   "email_kind_NEW_EVENT": "አዲስ ዝግጅት",
   "email_kind_EVENT_TOMORROW": "ነገ ዝግጅት",
-  "adm_todo_emails": "{{n}} ኢሜይል(ሎች) መላክ አልተቻለም። እንደገና ለመሞከር መልዕክቶችን ይክፈቱ።"
+  "adm_todo_emails": "{{n}} ኢሜይል(ሎች) መላክ አልተቻለም። እንደገና ለመሞከር መልዕክቶችን ይክፈቱ።",
+  "badge_reissue": "አዲስ ባጅ",
+  "badge_reissue_confirm": "ለ{{name}} አዲስ የመገኘት ባጅ ይሰጥ? የድሮው የባጅ ምስል መስራት ያቆማል፤ አዲሱን ለማግኘት «ባጄ» ገጹን እንደገና ይከፍታሉ።",
+  "badge_reissued": "አዲስ ባጅ ተሰርቷል። የድሮው ከእንግዲህ አይነበብም።"
 }

@@ -1830,5 +1830,8 @@
   "email_status_SKIPPED": "Darbameera (sagantaan jalqabameera)",
   "email_kind_NEW_EVENT": "Sagantaa haaraa",
   "email_kind_EVENT_TOMORROW": "Sagantaa boruu",
-  "adm_todo_emails": "Imeelii {{n}} erguun hin danda'amne. Irra deebi'uuf Ergaawwan bani."
+  "adm_todo_emails": "Imeelii {{n}} erguun hin danda'amne. Irra deebi'uuf Ergaawwan bani.",
+  "badge_reissue": "Baajii haaraa",
+  "badge_reissue_confirm": "{{name}}f baajii argamaa haaraa haa kennamu? Suuraan baajii duraanii hojjechuu dhiisa; haaraa argachuuf fuula «Baajii koo» irra deebi'anii banu.",
+  "badge_reissued": "Baajiin haaraa hojjetameera. Kan duraanii siiqi hin ta'u."
 }

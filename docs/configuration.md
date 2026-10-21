@@ -38,7 +38,6 @@ All configuration is read from **environment variables**. Nothing secret is stor
 | `CRON_SECRET` | for schedules | long random string; the GitHub workflows send it as `X-Cron-Token`. Empty disables the scheduled triggers |
 | `WEEKLY_DONATION_AMOUNT` | optional | amount (birr) named in the Thursday reminder; default `10` |
 | `EVENT_EMAIL_LIMIT` | optional | most emails one new event may send; default `300` |
-| `WEEKLY_REMINDER_EMAIL_LIMIT` | optional | most reminder emails one run may send; default `300` (the free Brevo plan allows about 300 a day) |
 
 ## Frontend
 

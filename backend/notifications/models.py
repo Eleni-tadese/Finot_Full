@@ -154,7 +154,10 @@ class EmailOutbox(models.Model):
     """
     KIND_NEW_EVENT = "NEW_EVENT"
     KIND_EVENT_TOMORROW = "EVENT_TOMORROW"
-    KIND_CHOICES = [(KIND_NEW_EVENT, "New event"), (KIND_EVENT_TOMORROW, "Event tomorrow")]
+    KIND_WEEKLY_DONATION = "WEEKLY_DONATION"
+    KIND_CHOICES = [
+        (KIND_NEW_EVENT, "New event"), (KIND_EVENT_TOMORROW, "Event tomorrow"), (KIND_WEEKLY_DONATION, "Weekly donation reminder"),
+    ]
 
     WAITING = "WAITING"
     SENDING = "SENDING"

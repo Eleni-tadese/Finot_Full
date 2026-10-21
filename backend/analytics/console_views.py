@@ -7,6 +7,7 @@ Everything here is Super Admin only. Mounted at /api/admin-console/.
     GET   roles/
     GET   users/?search=&role=&status=&gender=&batch=&department=&group=&family=&dorm_block=&section=&page=
     GET   users/filters/                        PATCH users/<id>/  {is_active?, roles?}
+    POST  users/<id>/reissue/  (new slip)       POST  users/<id>/badge/  (new attendance badge)
     GET   sub-admins/                           PUT   service-groups/<id>/admin/
     GET   qa/counselors/                        PUT   qa/counselors/<id>/specializations/
     GET   families/distribution/                POST  families/distribution/preview/
@@ -17,7 +18,7 @@ Everything here is Super Admin only. Mounted at /api/admin-console/.
     GET   email/outbox/?status=&page=           POST  email/outbox/retry/   POST email/outbox/send/
 """
 from django.contrib.auth import get_user_model
-from django.db.models import Count, Q
+from django.db.models import Count, F, Q
 from rest_framework import permissions, status
 from rest_framework.exceptions import ValidationError
 from rest_framework.pagination import PageNumberPagination
@@ -188,6 +189,17 @@ def serialize_user(user):
         "date_joined": user.date_joined,
         "setup": _setup_json(user),
     }
+
+
+class UserBadgeReissueView(ConsoleView):
+    """POST users/<id>/badge/ : a lost or shared QR badge. The old badge stops scanning (old_badge); the student opens
+    My badge again for the new one (attendance/codes.py signs the id together with badge_version)."""
+
+    def post(self, request, pk):
+        updated = StudentProfile.objects.filter(user_id=pk).update(badge_version=F("badge_version") + 1)
+        if not updated:
+            return Response({"detail": "Not found."}, status=status.HTTP_404_NOT_FOUND)
+        return Response({"version": StudentProfile.objects.get(user_id=pk).badge_version})
 
 
 class UserReissueView(ConsoleView):

@@ -1830,5 +1830,8 @@
   "email_status_SKIPPED": "Skipped (event already started)",
   "email_kind_NEW_EVENT": "New event",
   "email_kind_EVENT_TOMORROW": "Event tomorrow",
-  "adm_todo_emails": "{{n}} email(s) could not be sent. Open Messages to retry."
+  "adm_todo_emails": "{{n}} email(s) could not be sent. Open Messages to retry.",
+  "badge_reissue": "New badge",
+  "badge_reissue_confirm": "Give {{name}} a new attendance badge? The old badge picture stops working; they open My badge again to get the new one.",
+  "badge_reissued": "New badge made. The old one no longer scans."
 }

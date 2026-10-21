@@ -68,34 +68,40 @@ def is_deliverable(email):
     return "@" in (email or "") and "." in domain and not domain.endswith(UNDELIVERABLE_SUFFIXES) and domain not in UNDELIVERABLE_DOMAINS
 
 
+def weekly_email_body(first_name):
+    """The HTML of the reminder email (inside the standard Finot layout)."""
+    from django.conf import settings
+    from django.utils.html import escape
+
+    link = f"{getattr(settings, 'FRONTEND_URL', '')}/dashboard/donations/give"
+    return (
+        f'<p style="font-size: 16px;">Dear <strong>{escape(first_name or "friend")}</strong>,</p>'
+        f"<p>Happy Thursday! Please remember to send your weekly fellowship donation of "
+        f"<strong>{amount()} birr</strong> today.</p>"
+        f'<p style="margin: 24px 0;"><a href="{link}" style="background-color: #fbbf24; color: #1e3a8a; '
+        f'padding: 12px 22px; border-radius: 8px; text-decoration: none; font-weight: bold;">Give now</a></p>'
+        f"<p>May God bless you!</p>"
+    )
+
+
 def send_reminder_emails(recipients):
     """
-    Email the reminder to (email, first_name) pairs, over ONE mail connection.
-    Never raises: a mail problem must not stop the in-app reminder. Returns how many were sent.
+    Email the reminder to (email, first_name) pairs at once, over ONE mail connection (used by --test-email).
+    Never raises. Returns how many were sent.
     """
     from django.core.mail import get_connection
-    from django.conf import settings
 
     from notifications.channels.email import _send_html_email
 
     if not recipients:
         return 0
-    link = f"{getattr(settings, 'FRONTEND_URL', '')}/dashboard/donations/give"
     sent = 0
     try:
         connection = get_connection()
         connection.open()
         try:
             for email, first_name in recipients:
-                body = (
-                    f'<p style="font-size: 16px;">Dear <strong>{first_name or "friend"}</strong>,</p>'
-                    f"<p>Happy Thursday! Please remember to send your weekly fellowship donation of "
-                    f"<strong>{amount()} birr</strong> today.</p>"
-                    f'<p style="margin: 24px 0;"><a href="{link}" style="background-color: #fbbf24; color: #1e3a8a; '
-                    f'padding: 12px 22px; border-radius: 8px; text-decoration: none; font-weight: bold;">Give now</a></p>'
-                    f"<p>May God bless you!</p>"
-                )
-                if _send_html_email("Weekly donation reminder", [email], message_body=body, connection=connection):
+                if _send_html_email("Weekly donation reminder", [email], message_body=weekly_email_body(first_name), connection=connection):
                     sent += 1
         finally:
             connection.close()
@@ -106,20 +112,22 @@ def send_reminder_emails(recipients):
 
 def send_weekly_reminders(force=False, background_email=False):
     """
-    Returns {"status": "sent"|"skipped"|"no_users", "users": n, "devices": n, "emails": n, "emails_skipped": n, "reason": str}.
+    Returns {"status": "sent"|"skipped"|"no_users", "users": n, "devices": n, "emails": n (queued), "emails_sent": n,
+    "emails_waiting": n, "reason": str}.
 
-    The in-app notification, the phone push and (if switched on) the SMS go out at once. The emails (limited to
-    WEEKLY_REMINDER_EMAIL_LIMIT per run) are sent right away, or, with background_email=True (the web trigger),
-    in a background thread so the request returns quickly; then "emails" is the number queued.
+    The in-app notification, the phone push and (if switched on) the SMS go out at once. The emails go through the
+    email outbox (notifications/outbox.py: daily limit, retries, Super Admin > Messages > Email): the rows are queued
+    here and sent right away, or, with background_email=True (the web trigger), in a background thread so the
+    request returns quickly. A row not sent within two days is skipped (the Thursday has passed).
     """
     if not force and already_sent_this_week():
-        return {"status": "skipped", "users": 0, "devices": 0, "emails": 0, "emails_skipped": 0, "reason": "already sent in the last 6 days"}
+        return {"status": "skipped", "users": 0, "devices": 0, "emails": 0, "emails_sent": 0, "emails_waiting": 0, "reason": "already sent in the last 6 days"}
 
     active = User.objects.filter(
         is_active=True, student_profile__status__in=[StudentProfile.IN_CAMPUS, StudentProfile.GRADUATED]
     ).order_by("id")
     if not active.exists():
-        return {"status": "no_users", "users": 0, "devices": 0, "emails": 0, "emails_skipped": 0, "reason": "no active students or graduates"}
+        return {"status": "no_users", "users": 0, "devices": 0, "emails": 0, "emails_sent": 0, "emails_waiting": 0, "reason": "no active students or graduates"}
 
     _initialize_firebase()
     total_users = total_tokens = 0
@@ -128,7 +136,7 @@ def send_weekly_reminders(force=False, background_email=False):
     for user in active.iterator(chunk_size=BATCH_SIZE):
         batch.append(user)
         if user.email:
-            recipients.append((user.email, user.first_name))
+            recipients.append(user)
         if len(batch) == BATCH_SIZE:
             u, t = _process_batch(batch)
             total_users += u
@@ -139,22 +147,30 @@ def send_weekly_reminders(force=False, background_email=False):
         total_users += u
         total_tokens += t
 
-    from django.conf import settings
+    from notifications.models import EmailOutbox
+    from notifications.outbox import queue_emails, send_outbox
 
-    if getattr(settings, "REMINDER_EMAIL_SKIP_UNDELIVERABLE", True):
-        recipients = [r for r in recipients if is_deliverable(r[0])]
-
-    limit = getattr(settings, "WEEKLY_REMINDER_EMAIL_LIMIT", 300)
-    skipped = max(len(recipients) - limit, 0)
-    if skipped:
-        logger.warning("Weekly reminder: %s emails not sent (limit %s per run).", skipped, limit)
-    recipients = recipients[:limit]
-
-    if background_email and recipients:
+    queued = queue_emails(
+        EmailOutbox.KIND_WEEKLY_DONATION, "Weekly donation reminder", recipients,
+        lambda user: weekly_email_body(user.first_name), not_after=timezone.now() + timedelta(days=2),
+    )
+    sent = 0
+    if queued and background_email:
         import threading
 
-        threading.Thread(target=send_reminder_emails, args=(recipients,), daemon=True).start()
-        emails = len(recipients)
-    else:
-        emails = send_reminder_emails(recipients)
-    return {"status": "sent", "users": total_users, "devices": total_tokens, "emails": emails, "emails_skipped": skipped, "reason": ""}
+        from django.db import close_old_connections
+
+        def _send_in_thread():
+            try:
+                send_outbox()
+            finally:
+                close_old_connections()
+
+        threading.Thread(target=_send_in_thread, daemon=True).start()
+    elif queued:
+        sent = send_outbox()["sent"]
+    waiting = EmailOutbox.objects.filter(status=EmailOutbox.WAITING, kind=EmailOutbox.KIND_WEEKLY_DONATION).count()
+    return {
+        "status": "sent", "users": total_users, "devices": total_tokens,
+        "emails": queued, "emails_sent": sent, "emails_waiting": waiting, "reason": "",
+    }

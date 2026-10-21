@@ -101,6 +101,16 @@ const UsersPage = () => {
     }
   };
 
+  const newBadge = async (user: AdminUser) => {
+    if (!(await confirm(t("badge_reissue_confirm", "Give {{name}} a new attendance badge? The old badge picture stops working; they open My badge again to get the new one.", { name: user.full_name })))) return;
+    try {
+      await adminApi.reissueBadge(user.id);
+      toast.success(t("badge_reissued", "New badge made. The old one no longer scans."));
+    } catch (e: any) {
+      toast.error(firstApiError(e?.response?.data) || t("adm_save_failed", "Could not save."));
+    }
+  };
+
   const printSlip = () => {
     if (!slip) return;
     const w = window.open("", "_blank");
@@ -235,6 +245,7 @@ const UsersPage = () => {
                       <button onClick={() => openDetails(u)} className="btn-outline px-3 py-1.5 text-xs">{t("usr_edit_details", "Edit details")}</button>
                       <button onClick={() => openEditor(u)} className="btn-outline px-3 py-1.5 text-xs">{t("adm_edit_roles", "Edit roles")}</button>
                       {u.setup?.pending && <button onClick={() => reissue(u)} className="btn-outline px-3 py-1.5 text-xs">{t("slip_reissue", "New slip")}</button>}
+                      {u.student_status && <button onClick={() => newBadge(u)} className="btn-outline px-3 py-1.5 text-xs">{t("badge_reissue", "New badge")}</button>}
                       <button onClick={() => toggleActive(u)} className="btn-outline px-3 py-1.5 text-xs">
                         {u.is_active ? t("adm_deactivate", "Deactivate") : t("adm_activate", "Activate")}
                       </button>

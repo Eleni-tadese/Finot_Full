@@ -21,12 +21,12 @@ The bell refreshes every minute and when the browser tab is shown again. Q&A ale
 
 - Text: "Happy Thursday! Please remember to send your weekly fellowship donation of **10 birr** today." The amount comes from `WEEKLY_DONATION_AMOUNT` (default 10).
 - The email uses the standard Finot email layout and has a **Give now** button to the donation page.
-- One run sends at most `WEEKLY_REMINDER_EMAIL_LIMIT` emails (default 300, the free Brevo daily allowance). People over the limit still get the in-app reminder, and the run's result reports how many emails were left out.
+- The emails go through the email outbox (see below): one run queues one row per person and sends what the daily limit allows; the rest goes out with the 6-hourly job, and a row not sent within two days is skipped. Everybody still gets the in-app reminder at once.
 - Addresses that can never receive mail (`@something.test`, `@example.com`, `.invalid`, no dot in the domain) are skipped, so sample accounts in a development database cannot cause bounces. Turn this off only in tests (`REMINDER_EMAIL_SKIP_UNDELIVERABLE = False`).
 - All emails go over one SMTP connection. From the web trigger they are sent in a background thread so the request returns quickly. A mail problem never stops the in-app reminder.
 - A second run within 6 days is skipped (add `--force` to the command to override).
 
-## Email outbox (new event, event tomorrow)
+## Email outbox (new event, event tomorrow, weekly reminder)
 
 Bulk emails are not sent inside the web request any more. When an event is published, one row per person is written to
 the **email outbox** (`notifications/outbox.py`, table `notifications_emailoutbox`), and the rows are sent in portions:

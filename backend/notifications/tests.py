@@ -238,15 +238,19 @@ class TestWeeklyReminderEmailAndAmount:
         assert len(mailoutbox) == 1
         assert Notification.objects.filter(user=nomail, notification_type=Notification.TYPE_REMINDER).exists()
 
-    def test_the_email_limit_caps_one_run_and_says_how_many_were_left_out(self, settings, mailoutbox):
+    def test_the_daily_limit_caps_one_run_and_the_rest_waits_in_the_outbox(self, mailoutbox):
+        from notifications.models import EmailConfiguration, EmailOutbox
         from notifications.reminders import send_weekly_reminders
 
-        settings.WEEKLY_REMINDER_EMAIL_LIMIT = 2
+        config = EmailConfiguration.get()
+        config.daily_limit = 2
+        config.save()
         for i in range(1, 5):
             make_student(i)
         result = send_weekly_reminders(force=True)
-        assert result["emails"] == 2 and result["emails_skipped"] == 2 and len(mailoutbox) == 2
+        assert result["emails"] == 4 and result["emails_sent"] == 2 and result["emails_waiting"] == 2 and len(mailoutbox) == 2
         assert result["users"] == 4  # everybody still gets the in-app reminder
+        assert EmailOutbox.objects.filter(kind=EmailOutbox.KIND_WEEKLY_DONATION, status=EmailOutbox.WAITING).count() == 2
 
     def test_a_second_run_in_the_same_week_sends_no_second_email(self, mailoutbox):
         make_student(1)
@@ -264,7 +268,8 @@ class TestWeeklyReminderEmailAndAmount:
         make_student(1)
         monkeypatch.setattr(mail, "get_connection", broken)
         result = send_weekly_reminders(force=True)
-        assert result["status"] == "sent" and result["users"] == 1 and result["emails"] == 0
+        assert result["status"] == "sent" and result["users"] == 1 and result["emails"] == 1 and result["emails_sent"] == 0
+        assert result["emails_waiting"] == 1  # the outbox keeps it for the next run
         assert Notification.objects.filter(notification_type=Notification.TYPE_REMINDER).count() == 1
 
     def test_the_web_trigger_answers_at_once_and_still_sends(self, settings, mailoutbox):
