@@ -426,6 +426,14 @@ class FamilyViewSet(viewsets.ReadOnlyModelViewSet):
 
 from django.db.models import Q
 
+def _for_audience(queryset, user):
+    """A student sees an event only when its audience (years, gender, departments) includes them."""
+    from .event_rules import matches_audience
+
+    ids = [e.id for e in queryset if matches_audience(user, e)]
+    return queryset.filter(pk__in=ids)
+
+
 class EventViewSet(viewsets.ModelViewSet):
     """
     View for Events.
@@ -462,12 +470,12 @@ class EventViewSet(viewsets.ModelViewSet):
             .values_list('service_group_id', flat=True)
         )
         if group_ids:
-            return Event.objects.filter(
+            return _for_audience(Event.objects.filter(
                 Q(service_group__isnull=True) | Q(service_group_id__in=group_ids)
-            ).order_by('-start_date').select_related('created_by', 'service_group')
+            ).order_by('-start_date').select_related('created_by', 'service_group'), user)
 
         # Fallback: only global events
-        return Event.objects.filter(service_group__isnull=True).order_by('-start_date').select_related('created_by', 'service_group')
+        return _for_audience(Event.objects.filter(service_group__isnull=True).order_by('-start_date').select_related('created_by', 'service_group'), user)
 
     @action(detail=False, methods=['get'], url_path='my-events')
     def my_events(self, request):

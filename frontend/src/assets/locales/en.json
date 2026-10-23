@@ -1888,5 +1888,17 @@
   "qa_anonymous": "Stay anonymous",
   "qa_anonymous_hint": "The counselor sees only the nickname you type below, never your name or account. Untick it if you want the counselor to know who you are.",
   "qa_email_me": "Email me when it is answered",
-  "qa_email_me_hint": "The email goes only to you and never contains your question or the answer; you read those in your private inbox."
+  "qa_email_me_hint": "The email goes only to you and never contains your question or the answer; you read those in your private inbox.",
+  "ev_audience": "Who is it for? (optional)",
+  "ev_audience_hint": "Leave everything empty for everyone. Otherwise only the matching students are told, listed for attendance and see the event.",
+  "ev_aud_years": "Years of study",
+  "ev_aud_gender": "Gender",
+  "ev_aud_everyone": "Everyone",
+  "ev_aud_women": "Women",
+  "ev_aud_men": "Men",
+  "ev_aud_departments": "Departments or stages",
+  "ev_aud_no_departments": "No departments in the list yet.",
+  "ev_aud_year_n": "Year {{n}}",
+  "ev_aud_summary": "This event is for: {{who}}",
+  "ev_aud_for": "For: {{who}}"
 }

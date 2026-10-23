@@ -163,6 +163,11 @@ start_date: string;
 end_date: string;
 photo?: string;
 status: "UPCOMING" | "ONGOING" | "COMPLETED";
+// audience: empty = everyone; otherwise only the matching students are told, listed and see the event
+audience_years?: number[];
+audience_gender?: "" | "M" | "F";
+audience_departments?: string[];
+audience_label?: string;
 }
 
 // Attendance

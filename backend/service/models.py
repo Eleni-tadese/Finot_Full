@@ -171,6 +171,12 @@ class Event(models.Model):
         max_length=500, blank=True, null=True, help_text="Google Maps URL"
     )
 
+    # Audience (optional). Empty = everyone (or the whole group for a group event). Otherwise only the matching
+    # students are told, listed for attendance and see the event (service/event_rules.py: audience_q).
+    audience_years = models.JSONField(default=list, blank=True, help_text="Years of study, e.g. [1, 2]. Empty = all years.")
+    audience_gender = models.CharField(max_length=1, blank=True, choices=[("M", "Men"), ("F", "Women")], help_text="Empty = everyone.")
+    audience_departments = models.JSONField(default=list, blank=True, help_text="Department or stage names. Empty = all.")
+
     # Adding Service Group Isolation
     service_group = models.ForeignKey(
         ServiceGroup,

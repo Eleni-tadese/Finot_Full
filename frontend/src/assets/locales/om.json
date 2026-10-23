@@ -1888,5 +1888,17 @@
   "qa_anonymous": "Eenyummaan koo hin beekamin",
   "qa_anonymous_hint": "Gorsaan maqaa moggaasaa gaditti barreessitu qofa arga; maqaa kee yookiin akkaawuntii kee gonkumaa hin argu. Gorsaan eenyu akka taate akka beeku yoo barbaadde mallattoo kaasi.",
   "qa_email_me": "Yeroo deebi'u imeeliin natti himi",
-  "qa_email_me_hint": "Imeeliin siif qofa ergama; gaaffii kee yookiin deebii gonkumaa of keessaa hin qabu. Isaan saanduqa dhuunfaa kee keessatti dubbifta."
+  "qa_email_me_hint": "Imeeliin siif qofa ergama; gaaffii kee yookiin deebii gonkumaa of keessaa hin qabu. Isaan saanduqa dhuunfaa kee keessatti dubbifta.",
+  "ev_audience": "Eenyuuf? (filannoo)",
+  "ev_audience_hint": "Hundaaf yoo ta'e hunda duwwaa dhiisi. Yoo ta'uu baate barattoonni wal simatan qofa himamu, argamaaf tarreeffamu, sagantaa kanas argu.",
+  "ev_aud_years": "Waggoota barnootaa",
+  "ev_aud_gender": "Saala",
+  "ev_aud_everyone": "Hunda",
+  "ev_aud_women": "Dubartoota",
+  "ev_aud_men": "Dhiirota",
+  "ev_aud_departments": "Muummeewwan yookiin sadarkaalee",
+  "ev_aud_no_departments": "Ammatti muummeen tarree keessa hin jiru.",
+  "ev_aud_year_n": "Waggaa {{n}}",
+  "ev_aud_summary": "Sagantaan kun kan: {{who}}",
+  "ev_aud_for": "Kan: {{who}}"
 }

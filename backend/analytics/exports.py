@@ -56,11 +56,14 @@ def events_sheets(events=None):
     if events is None:
         events = Event.objects.all()
     events = events.select_related("service_group", "created_by").order_by("-start_date")
-    headers = ["Title", "Status", "Start", "End", "Place", "Service group", "Created by"]
+    from service.event_rules import audience_label
+
+    headers = ["Title", "Status", "Start", "End", "Place", "Service group", "Audience", "Created by"]
     rows = (
         [
             e.title, e.current_status, e.start_date, e.end_date, e.place_name,
             e.service_group.name if e.service_group else "Global",
+            audience_label(e) or "Everyone",
             full_name(e.created_by) if e.created_by else "",
         ]
         for e in events

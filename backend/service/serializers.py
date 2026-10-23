@@ -174,6 +174,27 @@ class EventSerializer(serializers.ModelSerializer):
     def get_service_group_name(self, obj):
         return group_name(obj.service_group, self.context.get('request')) if obj.service_group else None
 
+    audience_label = serializers.SerializerMethodField()
+
+    def get_audience_label(self, obj):
+        from .event_rules import audience_label
+
+        return audience_label(obj)
+
+    def validate_audience_years(self, value):
+        try:
+            years = sorted({int(y) for y in (value or [])})
+        except (TypeError, ValueError):
+            raise serializers.ValidationError('Years must be numbers.')
+        if any(not 1 <= y <= 7 for y in years):
+            raise serializers.ValidationError('A year is between 1 and 7.')
+        return years
+
+    def validate_audience_departments(self, value):
+        if not isinstance(value, list) or any(not isinstance(d, str) for d in value):
+            raise serializers.ValidationError('Departments must be a list of names.')
+        return [d.strip() for d in value if d.strip()]
+
     def get_status(self, obj):
         # worked out from the dates every time, so an event moves upcoming -> ongoing -> completed by itself
         return obj.current_status
@@ -187,7 +208,8 @@ class EventSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Event
-        fields = ['id', 'title', 'description', 'start_date', 'end_date', 'photo', 'status', 'created_by', 'created_by_name', 'created_at', 'place_name', 'place_url', 'service_group', 'service_group_name']
+        fields = ['id', 'title', 'description', 'start_date', 'end_date', 'photo', 'status', 'created_by', 'created_by_name', 'created_at', 'place_name', 'place_url', 'service_group', 'service_group_name',
+                  'audience_years', 'audience_gender', 'audience_departments', 'audience_label']
         read_only_fields = ['created_by', 'created_at']
 
 

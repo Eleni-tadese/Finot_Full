@@ -6,6 +6,7 @@ import ExpandableText from "../../../components/ui/ExpandableText";
 import { api } from "../../../lib/api";
 import { PlusIcon, MapPinIcon, TrashIcon, PhotoIcon, PencilIcon, XMarkIcon, FunnelIcon } from "@heroicons/react/24/outline";
 import { useTranslation } from "react-i18next";
+import type { TFunction } from "i18next";
 import toast from "react-hot-toast";
 import { useAuth } from "../../../context/AuthContext";
 import { hasRole } from "../../../features/auth/roles";
@@ -18,6 +19,9 @@ interface EventFormData {
   end_date: string;
   place_name: string;
   place_url: string;
+  audience_years: number[];
+  audience_gender: "" | "M" | "F";
+  audience_departments: string[];
 }
 
 const emptyForm: EventFormData = {
@@ -27,7 +31,20 @@ const emptyForm: EventFormData = {
   end_date: "",
   place_name: "",
   place_url: "",
+  audience_years: [],
+  audience_gender: "",
+  audience_departments: [],
 };
+
+/** "Year 1, 2 · Women · Software Engineering", or "" when the event is for everyone. */
+export function audienceLabel(e: { audience_years?: number[]; audience_gender?: string; audience_departments?: string[] }, t: TFunction): string {
+  const parts: string[] = [];
+  if (e.audience_years && e.audience_years.length) parts.push(t("ev_aud_year_n", "Year {{n}}", { n: [...e.audience_years].sort().join(", ") }));
+  if (e.audience_gender === "F") parts.push(t("ev_aud_women", "Women"));
+  if (e.audience_gender === "M") parts.push(t("ev_aud_men", "Men"));
+  if (e.audience_departments && e.audience_departments.length) parts.push(e.audience_departments.join(", "));
+  return parts.join(" · ");
+}
 
 type StatusFilter = "ALL" | "UPCOMING" | "ONGOING" | "COMPLETED";
 
@@ -49,6 +66,12 @@ export default function GroupEventsManager({ groupId, eventType }: GroupEventsMa
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   const [editingEventId, setEditingEventId] = useState<number | null>(null);
   const [formData, setFormData] = useState<EventFormData>({ ...emptyForm });
+  const [departments, setDepartments] = useState<{ id: number; name: string }[]>([]);
+  useEffect(() => {
+    import("../../../lib/axios").then(({ default: axiosInstance }) =>
+      axiosInstance.get("/api/student/departments/").then((r) => setDepartments(r.data)).catch(() => setDepartments([])),
+    );
+  }, []);
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("ALL");
   const formRef = useRef<HTMLFormElement>(null);
 
@@ -131,6 +154,9 @@ export default function GroupEventsManager({ groupId, eventType }: GroupEventsMa
       end_date: event.end_date ? event.end_date.slice(0, 16) : "",
       place_name: event.place_name || "",
       place_url: event.place_url || "",
+      audience_years: event.audience_years || [],
+      audience_gender: event.audience_gender || "",
+      audience_departments: event.audience_departments || [],
     });
     setPhotoPreview(event.photo || null);
     setPhotoFile(null);
@@ -150,6 +176,10 @@ export default function GroupEventsManager({ groupId, eventType }: GroupEventsMa
       fd.append("end_date", formData.end_date || formData.start_date);
       if (formData.place_name) fd.append("place_name", formData.place_name);
       if (formData.place_url) fd.append("place_url", formData.place_url);
+      // the audience lists travel as JSON text inside the form data (the server parses them)
+      fd.append("audience_years", JSON.stringify(formData.audience_years));
+      fd.append("audience_gender", formData.audience_gender);
+      fd.append("audience_departments", JSON.stringify(formData.audience_departments));
       if (photoFile) fd.append("photo", photoFile);
       
       // ONLY add service_group if eventType is "group" AND groupId exists
@@ -294,6 +324,49 @@ export default function GroupEventsManager({ groupId, eventType }: GroupEventsMa
               <textarea name="description" rows={5} value={formData.description} onChange={handleChange} placeholder={t("ev_desc_ph", "What is the program? Who should come? What to bring or wear? Who is speaking? Everything people need to know is told to them by notification and email.")}
                 className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary" />
             </div>
+            <div className="md:col-span-2 rounded-xl border border-border bg-muted/30 p-3">
+              <p className="text-sm font-medium text-foreground">{t("ev_audience", "Who is it for? (optional)")}</p>
+              <p className="mb-3 text-xs text-muted-foreground">{t("ev_audience_hint", "Leave everything empty for everyone. Otherwise only the matching students are told, listed for attendance and see the event.")}</p>
+              <div className="grid gap-3 md:grid-cols-3">
+                <div>
+                  <p className="mb-1 text-xs font-medium text-muted-foreground">{t("ev_aud_years", "Years of study")}</p>
+                  <div className="flex flex-wrap gap-1">
+                    {[1, 2, 3, 4, 5, 6, 7].map((y) => {
+                      const on = formData.audience_years.includes(y);
+                      return (
+                        <button key={y} type="button" onClick={() => setFormData({ ...formData, audience_years: on ? formData.audience_years.filter((v) => v !== y) : [...formData.audience_years, y].sort() })}
+                          className={`rounded-full border px-3 py-1 text-xs ${on ? "border-primary bg-primary text-white" : "border-border bg-background text-foreground"}`}>{y}</button>
+                      );
+                    })}
+                  </div>
+                </div>
+                <div>
+                  <p className="mb-1 text-xs font-medium text-muted-foreground">{t("ev_aud_gender", "Gender")}</p>
+                  <select value={formData.audience_gender} onChange={(e) => setFormData({ ...formData, audience_gender: e.target.value as "" | "M" | "F" })} className="input w-full py-1.5 text-sm">
+                    <option value="">{t("ev_aud_everyone", "Everyone")}</option>
+                    <option value="F">{t("ev_aud_women", "Women")}</option>
+                    <option value="M">{t("ev_aud_men", "Men")}</option>
+                  </select>
+                </div>
+                <div>
+                  <p className="mb-1 text-xs font-medium text-muted-foreground">{t("ev_aud_departments", "Departments or stages")}</p>
+                  {departments.length === 0 ? (
+                    <p className="text-xs text-muted-foreground">{t("ev_aud_no_departments", "No departments in the list yet.")}</p>
+                  ) : (
+                    <div className="max-h-32 space-y-1 overflow-y-auto rounded-lg border border-border bg-background p-2">
+                      {departments.map((d) => (
+                        <label key={d.id} className="flex items-center gap-2 text-xs text-foreground">
+                          <input type="checkbox" className="h-3.5 w-3.5" checked={formData.audience_departments.includes(d.name)}
+                            onChange={(e) => setFormData({ ...formData, audience_departments: e.target.checked ? [...formData.audience_departments, d.name] : formData.audience_departments.filter((n) => n !== d.name) })} />
+                          {d.name}
+                        </label>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+              {audienceLabel(formData, t) && <p className="mt-2 text-xs text-foreground">{t("ev_aud_summary", "This event is for: {{who}}", { who: audienceLabel(formData, t) })}</p>}
+            </div>
             <div className="md:col-span-2">
               <label className="text-sm font-medium text-muted-foreground">{t("event_image_opt")}</label>
               <div className="mt-1 flex items-center gap-4">
@@ -375,6 +448,9 @@ export default function GroupEventsManager({ groupId, eventType }: GroupEventsMa
                   <span className="inline-block text-xs px-2 py-0.5 rounded bg-accent/20 text-accent-foreground font-medium">
                     {event.service_group_name} {t("group")}
                   </span>
+                )}
+                {audienceLabel(event, t) && (
+                  <p className="text-xs text-muted-foreground">{t("ev_aud_for", "For: {{who}}", { who: audienceLabel(event, t) })}</p>
                 )}
                 {(event.place_name || event.place_url) && (
                   <div className="flex flex-col gap-1 p-2 bg-muted/50 rounded-lg">

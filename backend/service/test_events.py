@@ -187,6 +187,54 @@ class TestMarkingAttendance:
 
 
 @pytest.mark.django_db
+class TestAudience:
+    """An event may be for some students only: years, gender, departments."""
+
+    def people(self, world):
+        from datetime import timedelta
+
+        from django.utils import timezone as tz
+
+        y1f, y1m, y2f = make_user("y1f@x.test"), make_user("y1m@x.test"), make_user("y2f@x.test")
+        User.objects.filter(pk__in=[y1f.pk, y2f.pk]).update(gender="F")
+        User.objects.filter(pk=y1m.pk).update(gender="M")
+        StudentProfile.objects.filter(user__in=[y1f, y1m]).update(batch_year=1, department="Pre-Engineering")
+        StudentProfile.objects.filter(user=y2f).update(batch_year=2, department="Pharmacy")
+        start = tz.now() + timedelta(days=1)
+        event = baker.make(Event, title="Sisters of year 1", service_group=None, created_by=world.manager,
+                           start_date=start, end_date=start + timedelta(hours=2), audience_years=[1], audience_gender="F")
+        return y1f, y1m, y2f, event
+
+    def test_roster_audience_and_visibility_follow_the_audience(self, world):
+        y1f, y1m, y2f, event = self.people(world)
+        assert {u.id for u in attendance_roster(event)} == {y1f.id}
+        assert {u.id for u in notification_audience(event)} == {y1f.id}
+        def titles(user):  # the list may be paginated
+            data = client_for(user).get("/api/service/events/").json()
+            return [e["title"] for e in (data["results"] if isinstance(data, dict) else data)]
+        assert "Sisters of year 1" in titles(y1f)
+        assert "Sisters of year 1" not in titles(y1m) and "Sisters of year 1" not in titles(y2f)
+        assert "Sisters of year 1" in titles(world.manager) and "Sisters of year 1" in titles(world.boss)  # staff see every event
+        assert "Fellowship day" in titles(y1m)  # an event without audience is for everyone
+
+    def test_departments_and_label_and_validation(self, world):
+        from service.event_rules import audience_label
+
+        y1f, y1m, y2f, event = self.people(world)
+        event.audience_gender = ""
+        event.audience_departments = ["pre-engineering"]  # case does not matter
+        event.save()
+        assert {u.id for u in attendance_roster(event)} == {y1f.id, y1m.id}
+        assert audience_label(event) == "Year 1 · pre-engineering"
+        c = client_for(world.manager)
+        body = {"title": "T", "description": "d", "start_date": "2027-01-10T09:00", "end_date": "2027-01-10T10:00"}
+        assert c.post("/api/service/events/", {**body, "audience_years": [9]}, format="json").status_code == 400
+        assert c.post("/api/service/events/", {**body, "audience_departments": [1]}, format="json").status_code == 400
+        ok = c.post("/api/service/events/", {**body, "audience_years": ["2", 1], "audience_gender": "M"}, format="json")
+        assert ok.status_code == 201 and ok.json()["audience_years"] == [1, 2] and ok.json()["audience_label"] == "Year 1, 2 · Men"
+
+
+@pytest.mark.django_db
 class TestAnnouncingOnce:
     """notifications.handlers.announce_event: once per event, never for an event that is already over."""
 
