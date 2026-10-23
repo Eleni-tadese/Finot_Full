@@ -174,6 +174,38 @@ class EmailChannel(NotificationChannel):
         """
         _send_html_email(subject, [email], message_body=message_body)
 
+    def on_question_answered(self, answer):
+        """
+        Email the person who asked, if they are a signed-in user with an address. A private answer is never put in
+        the email (it is private): the mail only says an answer waits in their inbox. A public answer is announced
+        once it is published. An anonymous asker (no account) cannot be reached: nothing is sent.
+        """
+        from django.utils.html import escape
+
+        from notifications.models import EmailOutbox
+        from notifications.outbox import queue_emails, send_outbox_soon
+
+        question = answer.question
+        asker = question.user
+        if asker is None or not asker.email:
+            return
+        private = question.visibility == "PRIVATE"
+        page = "/dashboard/questions" if private else "/anonymous/questions"
+        link = f"{getattr(settings, 'FRONTEND_URL', '')}{page}"
+        if private:
+            subject = "Your private question was answered"
+            text = f'A counselor answered your private question in the "{escape(question.category)}" category. Open your private inbox on Finot to read it.'
+        else:
+            subject = "Your question was answered"
+            text = "An answer to your question on the Q&A page was published."
+        body = (
+            f'<p style="font-size: 16px;">Dear <strong>{escape(asker.first_name or "friend")}</strong>,</p><p>{text}</p>'
+            f'<p style="margin: 24px 0;"><a href="{escape(link)}" style="background-color: #fbbf24; color: #1e3a8a; '
+            f'padding: 12px 22px; border-radius: 8px; text-decoration: none; font-weight: bold;">Read it on Finot</a></p>'
+        )
+        if queue_emails(EmailOutbox.KIND_QA_ANSWER, subject, [asker], lambda user: body):
+            send_outbox_soon()
+
     def on_event_published(self, event):
         """
         Queue one email per person the event is for (everyone for a general event, the group's members for a

@@ -160,9 +160,10 @@ class EmailOutbox(models.Model):
     KIND_EVENT_TOMORROW = "EVENT_TOMORROW"
     KIND_WEEKLY_DONATION = "WEEKLY_DONATION"
     KIND_QA_ALERT = "QA_ALERT"
+    KIND_QA_ANSWER = "QA_ANSWER"
     KIND_CHOICES = [
         (KIND_NEW_EVENT, "New event"), (KIND_EVENT_TOMORROW, "Event tomorrow"), (KIND_WEEKLY_DONATION, "Weekly donation reminder"),
-        (KIND_QA_ALERT, "Q&A staff alert"),
+        (KIND_QA_ALERT, "Q&A staff alert"), (KIND_QA_ANSWER, "Your question was answered"),
     ]
 
     WAITING = "WAITING"

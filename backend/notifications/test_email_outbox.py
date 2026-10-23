@@ -125,6 +125,33 @@ class TestSending:
 
 
 @pytest.mark.django_db
+class TestAnswerEmails:
+    def test_the_asker_is_emailed_without_the_private_text(self, mailoutbox):
+        from questionanswer.models import Answer, Question
+
+        asker = person("ask@x.test")
+        q = baker.make(Question, user=asker, visibility="PRIVATE", category="Spiritual", question_body="My secret worry")
+        answer = baker.make(Answer, question=q, answer_body="A very private answer", is_approved=True)
+        EmailChannel().on_question_answered(answer)
+        assert [m.to for m in mailoutbox] == [["ask@x.test"]]
+        html = mailoutbox[0].alternatives[0][0]
+        assert "Spiritual" in html and "dashboard/questions" in html
+        assert "very private answer" not in html and "secret worry" not in html
+        assert EmailOutbox.objects.get().kind == EmailOutbox.KIND_QA_ANSWER
+
+    def test_public_asker_is_emailed_when_published_and_an_anonymous_one_is_not(self, mailoutbox):
+        from questionanswer.models import Answer, Question
+
+        asker = person("pub@x.test")
+        q = baker.make(Question, user=asker, visibility="PUBLIC", category="Academic", is_approved=True)
+        EmailChannel().on_question_answered(baker.make(Answer, question=q, is_approved=True))
+        assert [m.to for m in mailoutbox] == [["pub@x.test"]] and "anonymous/questions" in mailoutbox[0].alternatives[0][0]
+        anonymous = baker.make(Question, user=None, visibility="PUBLIC", category="Academic", is_approved=True)
+        EmailChannel().on_question_answered(baker.make(Answer, question=anonymous, is_approved=True))
+        assert len(mailoutbox) == 1  # nobody to write to
+
+
+@pytest.mark.django_db
 class TestReminders:
     def test_tomorrows_events_get_an_in_app_reminder_and_an_email_row_once(self):
         p = person("p@x.test")

@@ -74,14 +74,18 @@ class InAppChannel(NotificationChannel):
         if question.user is None:
             return  # Shouldn't happen (private questions require auth), but safety check
 
-        Notification.objects.create(
-            user=question.user,
-            title="Your Question Has Been Answered",
-            message=(
+        if question.visibility == "PUBLIC":
+            message = "An answer to your question on the Q&A page was published."
+        else:
+            message = (
                 f"A counselor has answered your private question "
                 f"in the \"{question.category}\" category. "
                 f"Check your private inbox to read the response."
-            ),
+            )
+        Notification.objects.create(
+            user=question.user,
+            title="Your Question Has Been Answered",
+            message=message,
             notification_type=Notification.TYPE_QA,
         )
 

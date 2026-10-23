@@ -475,7 +475,9 @@ class AnswerViewSet(viewsets.ModelViewSet):
             # Everyone else's answer waits for the moderator.
             user = self.request.user
             approver = is_super_admin(user) or user.roles.filter(name=Role.QA_MODERATOR).exists()
-            serializer.save(responder=user, is_approved=approver)
+            answer = serializer.save(responder=user, is_approved=approver)
+            if approver and question.user_id:  # published at once: tell the asker (an anonymous asker cannot be reached)
+                question_answered.send(sender=Answer, answer=answer)
 
     def perform_update(self, serializer):
         """
@@ -504,6 +506,9 @@ class AnswerViewSet(viewsets.ModelViewSet):
                 {"detail": "Private answers do not require approval."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
+        was_approved = answer.is_approved
         answer.is_approved = True
         answer.save(update_fields=["is_approved"])
+        if not was_approved and answer.question.user_id:  # now published: tell the asker, once
+            question_answered.send(sender=Answer, answer=answer)
         return Response({"detail": "Answer approved."}, status=status.HTTP_200_OK)
