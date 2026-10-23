@@ -26,23 +26,38 @@ export default function QrScanner({ onDecoded, onError, paused = false, classNam
     const scanner = new Html5Qrcode(idRef.current, { verbose: false });
     scannerRef.current = scanner;
     let stopped = false;
-    scanner
+    let started = false;
+    const starting = scanner
       .start(
         { facingMode: "environment" },
         { fps: 10, qrbox: (w, h) => ({ width: Math.min(w, h) * 0.7, height: Math.min(w, h) * 0.7 }) },
         (text) => decodedRef.current(text),
         () => undefined, // no QR in this frame: normal, ignore
       )
+      .then(() => {
+        started = true;
+      })
       .catch((err: unknown) => {
         if (!stopped) errorRef.current?.(String((err as { message?: string })?.message ?? err));
       });
     return () => {
+      // React (in development) mounts twice: the first cleanup can run before the camera has started.
+      // stop() throws synchronously when nothing is running, so wait for the start and swallow errors.
       stopped = true;
       const s = scannerRef.current;
       scannerRef.current = null;
-      if (s) {
-        s.stop().then(() => s.clear()).catch(() => undefined);
-      }
+      if (!s) return;
+      starting.finally(() => {
+        try {
+          if (started) {
+            s.stop().then(() => s.clear()).catch(() => undefined);
+          } else {
+            s.clear();
+          }
+        } catch {
+          /* already stopped */
+        }
+      });
     };
   }, [paused]);
 
