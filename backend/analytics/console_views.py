@@ -6,7 +6,7 @@ Everything here is Super Admin only. Mounted at /api/admin-console/.
     GET   overview/
     GET   roles/
     GET   users/?search=&role=&status=&gender=&batch=&department=&group=&family=&dorm_block=&section=&page=
-    GET   users/filters/                        PATCH users/<id>/  {is_active?, roles?}
+    GET   users/filters/                        PATCH users/<id>/  {is_active?, roles?, first_name?, middle_name?, last_name?, gender?, email?, batch_year?, department?, student_status?}
     POST  users/<id>/reissue/  (new slip)       POST  users/<id>/badge/  (new attendance badge)
     GET   sub-admins/                           PUT   service-groups/<id>/admin/
     GET   qa/counselors/                        PUT   qa/counselors/<id>/specializations/
@@ -176,6 +176,9 @@ def serialize_user(user):
         "username": user.username,
         "email": user.email,
         "full_name": full_name(user),
+        "first_name": user.first_name,
+        "middle_name": getattr(user, "middle_name", "") or "",
+        "last_name": user.last_name,
         "is_active": user.is_active,
         "gender": user.gender,
         "batch_year": profile.batch_year if profile else None,
@@ -339,6 +342,42 @@ class UsersView(ConsoleView):
         return paginator.get_paginated_response([serialize_user(u) for u in page])
 
 
+def _apply_identity(user, data):
+    """Name, gender and login email of one person: the Super Admin fixes what was typed wrongly on the slip."""
+    from django.core.validators import validate_email
+
+    fields = []
+    for key, label in (("first_name", "First name"), ("middle_name", "Father's name"), ("last_name", "Grandfather's name")):
+        if key in data:
+            text = " ".join(str(data[key] or "").split())
+            if not text or len(text) > 150:
+                raise ValidationError({key: f"{label} is required (at most 150 characters)."})
+            setattr(user, key, text)
+            fields.append(key)
+    if "gender" in data:
+        if data["gender"] not in ("M", "F"):
+            raise ValidationError({"gender": "Choose male or female."})
+        user.gender = data["gender"]
+        fields.append("gender")
+    if "email" in data:
+        email = str(data["email"] or "").strip().lower()
+        try:
+            validate_email(email)
+        except DjangoValidationError:
+            raise ValidationError({"email": "Write a valid email address."})
+        if User.objects.filter(Q(email__iexact=email) | Q(username__iexact=email)).exclude(pk=user.pk).exists():
+            raise ValidationError({"email": "This email is already used by another account."})
+        user.email = email
+        user.username = email  # people sign in with the email
+        fields += ["email", "username"]
+    if fields:
+        user.save(update_fields=fields)
+    if "email" in data:
+        from student.account_setup import refresh_completion
+
+        refresh_completion(user)  # a slip account with a real email and a changed password is finished
+
+
 def _apply_profile_facts(user, data):
     """Year, department and stage of one person; the Super Admin is the only one who may change them after sign-up."""
     if not any(k in data for k in ("batch_year", "department", "student_status")):
@@ -407,6 +446,7 @@ class UserDetailView(ConsoleView):
             user.is_active = active
             user.save(update_fields=["is_active"])
 
+        _apply_identity(user, request.data)
         _apply_profile_facts(user, request.data)
         user = User.objects.prefetch_related("userrole_set__role").get(pk=pk)
 

@@ -75,6 +75,20 @@ class TestOverview:
 
 @pytest.mark.django_db
 class TestUsers:
+    def test_super_admin_fixes_name_gender_and_login_email(self, boss):
+        person = make_user("typo@finot.test")
+        make_user("taken@finot.test")
+        c = client_for(boss)
+        res = c.patch(f"{BASE}users/{person.id}/", {"first_name": "  Hawi ", "middle_name": "Tilo", "last_name": "Dugda", "gender": "F", "email": "Hawi.Real@Gmail.com"}, format="json")
+        assert res.status_code == 200, res.content
+        assert res.json()["full_name"].startswith("Hawi Tilo Dugda") and res.json()["email"] == "hawi.real@gmail.com" and res.json()["gender"] == "F"
+        person.refresh_from_db()
+        assert person.username == "hawi.real@gmail.com"  # the login follows the email
+        assert c.patch(f"{BASE}users/{person.id}/", {"email": "taken@finot.test"}, format="json").status_code == 400
+        assert c.patch(f"{BASE}users/{person.id}/", {"email": "nonsense"}, format="json").status_code == 400
+        assert c.patch(f"{BASE}users/{person.id}/", {"first_name": ""}, format="json").status_code == 400
+        assert c.patch(f"{BASE}users/{person.id}/", {"gender": "X"}, format="json").status_code == 400
+
     def test_a_new_badge_cancels_the_old_one(self, boss):
         from attendance import codes
 

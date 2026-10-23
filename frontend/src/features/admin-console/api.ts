@@ -67,6 +67,7 @@ export const adminApi = {
     body: {
       is_active?: boolean; roles?: string[]; add_role?: string; remove_role?: string;
       batch_year?: number | null; department?: string; student_status?: string;
+      first_name?: string; middle_name?: string; last_name?: string; gender?: "M" | "F"; email?: string;
     },
   ) =>
     axiosInstance.patch<AdminUser>(`${C}/users/${id}/`, body).then((r) => r.data),

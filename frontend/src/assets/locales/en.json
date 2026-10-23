@@ -1865,5 +1865,13 @@
   "adm_email_notice": "Notice at the top of every email",
   "adm_email_notice_hint": "While this box is not empty, every email starts with this text in a yellow box. Use it while testing, for example: \"This is only a test of the Finot platform. Please ignore it, and thank you for your patience.\" Clear it when you go live.",
   "adm_email_notice_on": "Notice is on",
-  "adm_email_notice_off": "No notice: emails go out as normal."
+  "adm_email_notice_off": "No notice: emails go out as normal.",
+  "usr_first_name": "First name",
+  "usr_father_name": "Father's name",
+  "usr_grandfather_name": "Grandfather's name",
+  "usr_gender": "Gender",
+  "gender_male": "Male",
+  "gender_female": "Female",
+  "usr_login_email": "Login email",
+  "usr_identity_hint": "Fix what was typed wrongly on the slip. A new login email works at once, without a code; tell the person."
 }

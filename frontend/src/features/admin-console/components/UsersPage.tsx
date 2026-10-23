@@ -36,7 +36,7 @@ const UsersPage = () => {
   const [details, setDetails] = useState<AdminUser | null>(null);
   const [viewing, setViewing] = useState<AdminUser | null>(null);
   const [slip, setSlip] = useState<{ cred: Credential; days: number } | null>(null);
-  const [detailsForm, setDetailsForm] = useState({ batch: "", department: "", stage: "IN_CAMPUS" });
+  const [detailsForm, setDetailsForm] = useState({ batch: "", department: "", stage: "IN_CAMPUS", first: "", middle: "", last: "", gender: "", email: "" });
 
   useEffect(() => {
     adminApi.roles().then(setRoles).catch(() => undefined);
@@ -131,17 +131,27 @@ const UsersPage = () => {
   const toggleSpec = (s: Specialization) => setSpecs((prev) => (prev.includes(s) ? prev.filter((x) => x !== s) : [...prev, s]));
   const openDetails = (user: AdminUser) => {
     setDetails(user);
-    setDetailsForm({ batch: user.batch_year ? String(user.batch_year) : "", department: user.department || "", stage: user.student_status || "IN_CAMPUS" });
+    setDetailsForm({
+      batch: user.batch_year ? String(user.batch_year) : "", department: user.department || "", stage: user.student_status || "IN_CAMPUS",
+      first: user.first_name || "", middle: user.middle_name || "", last: user.last_name || "", gender: user.gender || "", email: user.email || "",
+    });
   };
   const saveDetails = async () => {
     if (!details) return;
     setSaving(true);
     try {
-      replaceUser(await adminApi.updateUser(details.id, {
+      // only what changed is sent, so an untouched field can never fail validation
+      const body: Parameters<typeof adminApi.updateUser>[1] = {
         batch_year: detailsForm.batch ? Number(detailsForm.batch) : null,
         department: detailsForm.department,
         student_status: detailsForm.stage,
-      }));
+      };
+      if (detailsForm.first !== details.first_name) body.first_name = detailsForm.first;
+      if (detailsForm.middle !== details.middle_name) body.middle_name = detailsForm.middle;
+      if (detailsForm.last !== details.last_name) body.last_name = detailsForm.last;
+      if (detailsForm.gender && detailsForm.gender !== details.gender) body.gender = detailsForm.gender as "M" | "F";
+      if (detailsForm.email.trim().toLowerCase() !== details.email.toLowerCase()) body.email = detailsForm.email.trim();
+      replaceUser(await adminApi.updateUser(details.id, body));
       toast.success(t("adm_saved", "Saved."));
       setDetails(null);
     } catch (e: any) {
@@ -349,6 +359,31 @@ const UsersPage = () => {
           }
         >
           <div className="space-y-3">
+            <div className="grid gap-3 sm:grid-cols-3">
+              <label className="block text-sm font-medium">{t("usr_first_name", "First name")}
+                <input className="input mt-1 w-full" value={detailsForm.first} onChange={(e) => setDetailsForm({ ...detailsForm, first: e.target.value })} />
+              </label>
+              <label className="block text-sm font-medium">{t("usr_father_name", "Father's name")}
+                <input className="input mt-1 w-full" value={detailsForm.middle} onChange={(e) => setDetailsForm({ ...detailsForm, middle: e.target.value })} />
+              </label>
+              <label className="block text-sm font-medium">{t("usr_grandfather_name", "Grandfather's name")}
+                <input className="input mt-1 w-full" value={detailsForm.last} onChange={(e) => setDetailsForm({ ...detailsForm, last: e.target.value })} />
+              </label>
+            </div>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <label className="block text-sm font-medium">{t("usr_gender", "Gender")}
+                <select className="input mt-1 w-full" value={detailsForm.gender} onChange={(e) => setDetailsForm({ ...detailsForm, gender: e.target.value })}>
+                  <option value="">{t("usr_not_set", "Not set")}</option>
+                  <option value="M">{t("gender_male", "Male")}</option>
+                  <option value="F">{t("gender_female", "Female")}</option>
+                </select>
+              </label>
+              <label className="block text-sm font-medium">{t("usr_login_email", "Login email")}
+                <input className="input mt-1 w-full" type="email" value={detailsForm.email} onChange={(e) => setDetailsForm({ ...detailsForm, email: e.target.value })} />
+              </label>
+            </div>
+            <p className="text-xs text-muted-foreground">{t("usr_identity_hint", "Fix what was typed wrongly on the slip. A new login email works at once, without a code; tell the person.")}</p>
+            <hr className="border-border" />
             <label className="block text-sm font-medium">{t("usr_year", "Year of study")}
               <select className="input mt-1 w-full" value={detailsForm.batch} onChange={(e) => setDetailsForm({ ...detailsForm, batch: e.target.value })}>
                 <option value="">{t("usr_not_set", "Not set")}</option>
