@@ -20,6 +20,7 @@ const EmailOutboxPanel = () => {
   const { t } = useTranslation();
   const [settings, setSettings] = useState<EmailSettings | null>(null);
   const [limit, setLimit] = useState("");
+  const [notice, setNotice] = useState("");
   const [busy, setBusy] = useState(false);
   const [rows, setRows] = useState<EmailOutboxRow[]>([]);
   const [count, setCount] = useState(0);
@@ -33,6 +34,7 @@ const EmailOutboxPanel = () => {
       const s = await adminApi.emailSettings();
       setSettings(s);
       setLimit(String(s.daily_limit));
+      setNotice(s.test_notice);
     } catch {
       toast.error(t("adm_load_failed", "Could not load this page. Please try again."));
     }
@@ -66,6 +68,10 @@ const EmailOutboxPanel = () => {
     await adminApi.updateEmailSettings({ daily_limit: Number(limit) });
     toast.success(t("adm_saved", "Saved."));
   });
+  const saveNotice = () => run(async () => {
+    await adminApi.updateEmailSettings({ test_notice: notice });
+    toast.success(t("adm_saved", "Saved."));
+  });
   const sendNow = () => run(async () => {
     await adminApi.sendEmailsNow();
     toast.success(t("adm_email_send_started", "Sending started. Refresh this page in a minute."));
@@ -77,6 +83,7 @@ const EmailOutboxPanel = () => {
 
   const used = settings.daily_limit > 0 ? Math.min(100, (settings.sent_today * 100) / settings.daily_limit) : 100;
   const limitChanged = limit !== String(settings.daily_limit);
+  const noticeChanged = notice.trim() !== settings.test_notice;
 
   return (
     <div className="space-y-6">
@@ -96,6 +103,16 @@ const EmailOutboxPanel = () => {
             disabled={busy || !limitChanged || limit === "" || Number.isNaN(Number(limit))}
             className="btn-primary px-4 py-2 text-sm"
           >{t("save")}</button>
+        </div>
+
+        <hr className="my-5 border-border" />
+
+        <label className="block text-sm font-medium text-foreground" htmlFor="email-notice">{t("adm_email_notice", "Notice at the top of every email")}</label>
+        <p className="mb-2 text-xs text-muted-foreground">{t("adm_email_notice_hint", "While this box is not empty, every email starts with this text in a yellow box. Use it while testing, for example: \"This is only a test of the Finot platform. Please ignore it, and thank you for your patience.\" Clear it when you go live.")}</p>
+        <textarea id="email-notice" maxLength={500} rows={2} value={notice} onChange={(e) => setNotice(e.target.value)} className="input w-full" />
+        <div className="mt-2 flex items-center gap-2">
+          <button onClick={saveNotice} disabled={busy || !noticeChanged} className="btn-primary px-4 py-2 text-sm">{t("save")}</button>
+          {settings.test_notice ? <span className="rounded-full bg-amber-100 px-3 py-1 text-xs font-medium text-amber-800">{t("adm_email_notice_on", "Notice is on")}</span> : <span className="text-xs text-muted-foreground">{t("adm_email_notice_off", "No notice: emails go out as normal.")}</span>}
         </div>
 
         <div className="mt-5">

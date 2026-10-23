@@ -1861,5 +1861,9 @@
   "ins_my_months": "Your last 6 months",
   "ins_my_months_hint": "Events and class days together.",
   "ins_no_data_me": "Nothing recorded in the last 6 months.",
-  "ins_streak": "Present at the last {{n}} events in a row"
+  "ins_streak": "Present at the last {{n}} events in a row",
+  "adm_email_notice": "Notice at the top of every email",
+  "adm_email_notice_hint": "While this box is not empty, every email starts with this text in a yellow box. Use it while testing, for example: \"This is only a test of the Finot platform. Please ignore it, and thank you for your patience.\" Clear it when you go live.",
+  "adm_email_notice_on": "Notice is on",
+  "adm_email_notice_off": "No notice: emails go out as normal."
 }

@@ -118,7 +118,7 @@ export const adminApi = {
     axiosInstance.get<Paginated<SmsLogRow>>(`${C}/sms/logs/`, { params }).then((r) => r.data),
   // Email outbox
   emailSettings: () => axiosInstance.get<EmailSettings>(`${C}/email/settings/`).then((r) => r.data),
-  updateEmailSettings: (body: { daily_limit: number }) =>
+  updateEmailSettings: (body: { daily_limit?: number; test_notice?: string }) =>
     axiosInstance.patch<EmailSettings>(`${C}/email/settings/`, body).then((r) => r.data),
   emailOutbox: (params: { status?: string; page?: number }) =>
     axiosInstance.get<Paginated<EmailOutboxRow>>(`${C}/email/outbox/`, { params }).then((r) => r.data),

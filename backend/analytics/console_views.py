@@ -14,7 +14,7 @@ Everything here is Super Admin only. Mounted at /api/admin-console/.
     POST  families/distribution/confirm/        POST  families/distribution/batches/<id>/undo/
     GET   sms/settings/                         PATCH sms/settings/
     GET   sms/logs/?status=&page=
-    GET   email/settings/                       PATCH email/settings/  {daily_limit}
+    GET   email/settings/                       PATCH email/settings/  {daily_limit, test_notice}
     GET   email/outbox/?status=&page=           POST  email/outbox/retry/   POST email/outbox/send/
 """
 from django.contrib.auth import get_user_model
@@ -993,6 +993,11 @@ class EmailSettingsView(ConsoleView):
             if isinstance(limit, bool) or not isinstance(limit, int) or limit < 0 or limit > 100_000:
                 raise ValidationError({"daily_limit": "Must be a whole number from 0 to 100,000."})
             config.daily_limit = limit
+        if "test_notice" in request.data:
+            notice = request.data["test_notice"]
+            if not isinstance(notice, str) or len(notice) > 500:
+                raise ValidationError({"test_notice": "Must be a text of at most 500 characters."})
+            config.test_notice = notice.strip()
         config.save()
         return Response(counts())
 

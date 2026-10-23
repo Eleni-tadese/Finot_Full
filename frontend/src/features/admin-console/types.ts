@@ -174,6 +174,7 @@ export interface SmsSettings {
 /** Super Admin > Messages > Email (backend notifications/outbox.py). */
 export interface EmailSettings {
   daily_limit: number;
+  test_notice: string; // shown at the top of every email while not empty
   sent_today: number;
   remaining_today: number;
   waiting: number;

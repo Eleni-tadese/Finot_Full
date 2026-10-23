@@ -1861,5 +1861,9 @@
   "ins_my_months": "Ji'oota 6 darban kee",
   "ins_my_months_hint": "Sagantaalee fi guyyoota barnootaa walumaan.",
   "ins_no_data_me": "Ji'oota 6 darban keessatti wanti galmaa'e hin jiru.",
-  "ins_streak": "Sagantaalee {{n}} dhumaa walitti aansee argamteetta"
+  "ins_streak": "Sagantaalee {{n}} dhumaa walitti aansee argamteetta",
+  "adm_email_notice": "Beeksisa mataa imeelii hundaa irratti mul'atu",
+  "adm_email_notice_hint": "Saanduqni kun duwwaa hin taane yoo ta'e, imeeliin hundi barreeffama kana saanduqa keelloo keessatti jalqaba. Yeroo yaalii itti fayyadami, fakkeenyaaf: «Kun yaalii waltajjii Finot qofa. Maaloo irra darbaa; obsa keessaniif galatoomaa.» Yeroo hojii jalqabdu haqi.",
+  "adm_email_notice_on": "Beeksisni banaa dha",
+  "adm_email_notice_off": "Beeksisni hin jiru: imeeliin akkuma baratameen ergama."
 }

@@ -2,7 +2,7 @@ import logging
 from django.core.mail import send_mail
 from django.conf import settings
 from django.template.loader import render_to_string
-from django.utils.html import strip_tags
+from django.utils.html import escape, strip_tags
 import datetime
 
 from .base import NotificationChannel
@@ -32,6 +32,16 @@ def _get_donation_details(payment_obj):
     return email, name, category
 
 
+def _test_notice():
+    """The text the Super Admin wrote on Messages > Email, or '' (never raises: mail must not depend on it)."""
+    try:
+        from notifications.models import EmailConfiguration
+
+        return (EmailConfiguration.get().test_notice or "").strip()
+    except Exception:
+        return ""
+
+
 def _send_html_email(subject, recipient_list, template_name=None, context=None, message_body=None, connection=None, raise_errors=False):
     """
     Central utility to send HTML emails.
@@ -40,8 +50,18 @@ def _send_html_email(subject, recipient_list, template_name=None, context=None, 
     if not isinstance(recipient_list, list):
         recipient_list = [recipient_list]
 
+    # While the Super Admin has written a test notice (Messages > Email), every email starts with it.
+    notice = _test_notice()
+    if notice and message_body is not None:
+        message_body = (
+            f'<div style="background-color: #fef3c7; border: 1px solid #f59e0b; color: #78350f; padding: 12px 14px; '
+            f'border-radius: 8px; margin-bottom: 18px; font-size: 14px;">{escape(notice)}</div>' + message_body
+        )
+
     if template_name:
         html_message = render_to_string(template_name, context)
+        if notice:
+            html_message = f'<p style="background-color: #fef3c7; padding: 12px 14px;">{escape(notice)}</p>' + html_message
         plain_message = strip_tags(html_message)
     else:
         logo_url = getattr(settings, "FINOT_LOGO_URL", "")
@@ -76,7 +96,7 @@ def _send_html_email(subject, recipient_list, template_name=None, context=None, 
             </body>
         </html>
         """
-        plain_message = message_body
+        plain_message = strip_tags(message_body)
 
     try:
         send_mail(

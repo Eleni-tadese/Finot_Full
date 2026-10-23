@@ -142,10 +142,12 @@ def counts():
     by_status = {key: 0 for key, _ in EmailOutbox.STATUS_CHOICES}
     for row in EmailOutbox.objects.values("status").annotate(n=Count("id")):
         by_status[row["status"]] = row["n"]
-    limit = EmailConfiguration.get().daily_limit
+    config = EmailConfiguration.get()
+    limit = config.daily_limit
     today = sent_today()
     return {
         "daily_limit": limit, "sent_today": today, "remaining_today": max(limit - today, 0),
+        "test_notice": config.test_notice,
         "waiting": by_status[EmailOutbox.WAITING] + by_status[EmailOutbox.SENDING],
         "sent": by_status[EmailOutbox.SENT], "failed": by_status[EmailOutbox.FAILED], "skipped": by_status[EmailOutbox.SKIPPED],
     }

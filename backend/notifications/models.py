@@ -127,6 +127,10 @@ class EmailConfiguration(models.Model):
     daily_limit = models.PositiveIntegerField(
         default=300, help_text="Maximum outbox emails per day. Brevo's free plan allows about 300."
     )
+    test_notice = models.CharField(
+        max_length=500, blank=True,
+        help_text="Shown in a box at the top of EVERY email while not empty, e.g. 'This is a test of Finot. Please ignore it.'",
+    )
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:

@@ -177,7 +177,12 @@ class TestConsole:
         assert c.post(A + "email/outbox/retry/").json()["retried"] == 2
         assert c.get(A + "email/outbox/", {"status": "WAITING"}).json()["count"] == 2
 
+        # a test notice is put at the top of every email until it is cleared
+        assert c.patch(A + "email/settings/", {"test_notice": "x" * 501}, format="json").status_code == 400
+        assert c.patch(A + "email/settings/", {"test_notice": "  This is only a test of Finot. "}, format="json").json()["test_notice"] == "This is only a test of Finot."
         overview = c.get(A + "overview/").json()["email"]
         assert overview == {"waiting": 2, "failed": 0, "sent_today": 0, "daily_limit": 50}
         assert c.post(A + "email/outbox/send/", {"wait": True}, format="json").json()["sent"] == 2 and len(mailoutbox) == 2
+        assert "only a test of Finot" in mailoutbox[0].alternatives[0][0] and "only a test of Finot" in mailoutbox[0].body
+        assert c.patch(A + "email/settings/", {"test_notice": ""}, format="json").json()["test_notice"] == ""
         assert client_for(person("stu@x.test")).get(A + "email/settings/").status_code == 403
