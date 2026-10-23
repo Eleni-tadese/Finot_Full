@@ -1,7 +1,7 @@
 from django.contrib import admin
 from unfold.admin import ModelAdmin
 from unfold.decorators import display
-from .models import FCMDeviceToken, Notification, SMSConfiguration, SMSLog
+from .models import EmailConfiguration, EmailOutbox, FCMDeviceToken, Notification, SMSConfiguration, SMSLog
 
 
 @admin.register(FCMDeviceToken)
@@ -66,3 +66,34 @@ class SMSLogAdmin(ModelAdmin):
 
     def has_change_permission(self, request, obj=None):
         return False
+
+
+@admin.register(EmailConfiguration)
+class EmailConfigurationAdmin(ModelAdmin):
+    """Normally edited on the website (Super Admin > Messages > Email); here for emergencies."""
+    list_display = ('__str__', 'daily_limit', 'test_notice', 'updated_at')
+    fields = ('daily_limit', 'test_notice', 'updated_at')
+    readonly_fields = ('updated_at',)
+
+    def has_add_permission(self, request):
+        return not EmailConfiguration.objects.exists()
+
+    def has_delete_permission(self, request, obj=None):
+        return False
+
+
+@admin.register(EmailOutbox)
+class EmailOutboxAdmin(ModelAdmin):
+    """The queue of bulk emails (notifications/outbox.py). Rows can be deleted here, for example leftover test rows."""
+    list_display = ('created_at', 'kind', 'email', 'subject', 'status', 'attempts', 'not_after', 'sent_at')
+    list_filter = ('status', 'kind', 'created_at')
+    search_fields = ('email', 'subject', 'user__email', 'event__title')
+    readonly_fields = [f.name for f in EmailOutbox._meta.fields]
+    list_per_page = 50
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        return False
+
