@@ -198,6 +198,7 @@ class TestAudience:
         y1f, y1m, y2f = make_user("y1f@x.test"), make_user("y1m@x.test"), make_user("y2f@x.test")
         User.objects.filter(pk__in=[y1f.pk, y2f.pk]).update(gender="F")
         User.objects.filter(pk=y1m.pk).update(gender="M")
+        y1f, y1m, y2f = (User.objects.get(pk=u.pk) for u in (y1f, y1m, y2f))  # fresh objects carry the gender
         StudentProfile.objects.filter(user__in=[y1f, y1m]).update(batch_year=1, department="Pre-Engineering")
         StudentProfile.objects.filter(user=y2f).update(batch_year=2, department="Pharmacy")
         start = tz.now() + timedelta(days=1)
