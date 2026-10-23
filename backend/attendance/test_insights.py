@@ -67,10 +67,13 @@ class TestCourseInsights:
             day = CourseSession.objects.create(semester_course=w.course, date=today - timedelta(days=days), topic=f"T{days}")
             AttendanceRecord.objects.create(session=day, student=w.s1, status="PRESENT", marked_by=w.coord)
             AttendanceRecord.objects.create(session=day, student=w.s2, status="ABSENT", marked_by=w.coord)
+        w.day.delete()  # the world's day is dated with the UTC date; use a clearly future Ethiopian date instead
+        tomorrow = today + timedelta(days=1)
+        CourseSession.objects.create(semester_course=w.course, date=tomorrow, topic="Planned")
         data = course_insights(w.course)
         assert [r["present"] for r in data["events"]] == [1, 1, 1] and data["events"][0]["rate"] == 50.0
         assert [p["id"] for p in data["at_risk"]] == [w.s2.id]
-        assert data["next"]["date"] == today and data["next"]["expected_present"] == 1 and data["next"]["expected_rate"] == 50.0
+        assert data["next"]["date"] == tomorrow and data["next"]["expected_present"] == 1 and data["next"]["expected_rate"] == 50.0
 
     def test_endpoint_permissions(self, w):
         url = I + f"courses/{w.course.id}/"
