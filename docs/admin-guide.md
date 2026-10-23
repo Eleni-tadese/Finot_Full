@@ -11,7 +11,7 @@ There is no "add user" button on purpose: **every person registers themselves** 
 
 ## 2. Set up, in this order
 
-1. **Departments** – add each department with its length in years (4, 5, ...). Students pick from this list, and the length tells the system when a student graduates.
+1. **Departments** – add each department with its length in years (4, 5, ...). Students pick from this list, and the length tells the system when a student graduates. Where freshers enter a division first (Pre-Science, Pre-Engineering, then a school), add those as departments ticked **"a stage before the final department"** and say what each one **leads to**: a student on a stage may choose again from that list; the final department is chosen once.
 2. **Users & roles** – find a person and use **Edit roles**. Rules by year of study are in [roles-and-permissions.md](roles-and-permissions.md). When you tick **QA Counselor**, the same window lets you tick the question categories that counselor answers.
 3. **Service groups** – create a group; add members (**Members → Add a student**); then **Edit group → Group admin** and pick one of its members. That person becomes the group's Service Admin automatically. Turn the **selection window** on when students may choose groups; group admins accept applicants.
 4. **Courses** – see section 3.

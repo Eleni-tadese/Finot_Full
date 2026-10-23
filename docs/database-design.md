@@ -153,7 +153,7 @@ erDiagram
 | `student_studentprofile` | The student's details | 1:1 with user. Also holds dorm block and room, section, Telegram, phone and SMS opt-in, emergency contact, home address, previous church, activity serving, confession father, photo, password-changed time and the reminder stage of the account set-up |
 | `student_accountimportbatch` | One bulk registration | `grace_days` (7 to 60); `undone_at` marks an undone batch |
 | `student_emailverification` | A pending 6-digit code for a new email | Only a hash of the code is stored; `attempts` and `expires_at` enforce the limits |
-| `student_department` | Departments and their program length | A hidden (`is_active = false`) department stays on existing students |
+| `student_department` | Departments and their program length; `is_stage` + `leads_to` (self M2M) model divisions before the final department (Pre-Engineering, a school) | A hidden (`is_active = false`) department stays on existing students; a student on a stage may change department again |
 | `student_yearrollover` | One "start new year" run | `changes` (JSON) lists who moved, so it can be undone |
 
 ### 3.3 Service groups, events, families (`service`)

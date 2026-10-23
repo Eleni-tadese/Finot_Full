@@ -142,6 +142,14 @@ class Department(models.Model):
         default=5, validators=[MinValueValidator(3), MaxValueValidator(7)], help_text="Length of the program in years."
     )
     is_active = models.BooleanField(default=True, help_text="Untick to hide it from new choices (existing students keep it).")
+    is_stage = models.BooleanField(
+        default=False,
+        help_text="A division before the final department (Pre-Science, Pre-Engineering, a school). A student on a stage may choose again.",
+    )
+    leads_to = models.ManyToManyField(
+        "self", symmetrical=False, blank=True, related_name="reached_from",
+        help_text="What a student on this stage may choose next. Empty means any department.",
+    )
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:

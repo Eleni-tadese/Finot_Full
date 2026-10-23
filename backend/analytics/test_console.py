@@ -511,6 +511,36 @@ class TestProfileFactsAndDepartments:
         assert me.patch("/api/student/profiles/me/", {"batch_year": 1, "department": "Architecture"}, format="json").status_code == 200
         assert me.patch("/api/student/profiles/me/", {"status": "GRADUATED"}, format="json").status_code == 400
 
+    def test_a_student_on_a_stage_chooses_again_from_what_it_leads_to(self):
+        pre = Department.objects.create(name="Pre-Engineering", years=5, is_stage=True)
+        school = Department.objects.create(name="School of Electrical Engineering", years=5, is_stage=True)
+        ece = Department.objects.create(name="Electrical and Computer Engineering", years=5)
+        Department.objects.create(name="Pharmacy", years=5)
+        pre.leads_to.add(school)
+        school.leads_to.add(ece)
+        u = make_user("e@x.test", batch=None)
+        StudentProfile.objects.filter(user=u).update(batch_year=None)
+        me = client_for(u)
+        assert me.patch("/api/student/profiles/me/", {"batch_year": 1, "department": "Pre-Engineering"}, format="json").status_code == 200
+        wrong = me.patch("/api/student/profiles/me/", {"department": "Pharmacy"}, format="json")
+        assert wrong.status_code == 400 and "School of Electrical Engineering" in str(wrong.json())  # not where the stage leads
+        assert me.patch("/api/student/profiles/me/", {"department": "School of Electrical Engineering"}, format="json").status_code == 200
+        assert me.patch("/api/student/profiles/me/", {"department": "Electrical and Computer Engineering"}, format="json").status_code == 200
+        assert me.patch("/api/student/profiles/me/", {"department": "Pharmacy"}, format="json").status_code == 400  # final: locked
+        assert me.patch("/api/student/profiles/me/", {"batch_year": 3}, format="json").status_code == 400  # the year stays locked
+        row = next(d for d in me.get("/api/student/departments/").json() if d["name"] == "Pre-Engineering")
+        assert row["is_stage"] is True and row["leads_to"] == [school.id]
+
+    def test_super_admin_defines_stages(self):
+        a = self.c.post(f"{BASE}departments/", {"name": "Pre-Science", "years": 4, "is_stage": True}, format="json").json()
+        b = self.c.post(f"{BASE}departments/", {"name": "Biology", "years": 4}, format="json").json()
+        assert a["is_stage"] is True and a["leads_to"] == [] and b["is_stage"] is False
+        res = self.c.patch(f"{BASE}departments/{a['id']}/", {"leads_to": [b["id"]]}, format="json").json()
+        assert res["leads_to"] == [b["id"]] and res["leads_to_names"] == ["Biology"]
+        assert self.c.patch(f"{BASE}departments/{a['id']}/", {"leads_to": [a["id"]]}, format="json").status_code == 400
+        assert self.c.patch(f"{BASE}departments/{a['id']}/", {"leads_to": [999999]}, format="json").status_code == 400
+        assert self.c.patch(f"{BASE}departments/{a['id']}/", {"is_stage": "yes"}, format="json").status_code == 400
+
     def test_department_must_come_from_the_list_when_there_is_one(self):
         Department.objects.create(name="Architecture", years=5)
         u = make_user("a@x.test")

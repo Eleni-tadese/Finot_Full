@@ -79,6 +79,7 @@ class DepartmentListView(APIView):
 
     def get(self, request):
         return Response([
-            {"id": d.id, "name": d.name, "years": d.years}
-            for d in Department.objects.filter(is_active=True)
+            {"id": d.id, "name": d.name, "years": d.years, "is_stage": d.is_stage,
+             "leads_to": sorted(d.leads_to.values_list("id", flat=True))}
+            for d in Department.objects.filter(is_active=True).prefetch_related("leads_to")
         ])

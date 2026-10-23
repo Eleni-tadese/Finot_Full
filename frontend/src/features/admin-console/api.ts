@@ -127,9 +127,9 @@ export const adminApi = {
   sendEmailsNow: () => axiosInstance.post<{ started: boolean }>(`${C}/email/outbox/send/`).then((r) => r.data),
   // Departments and the yearly rollover
   departments: () => axiosInstance.get<Department[]>(`${C}/departments/`).then((r) => r.data),
-  createDepartment: (name: string, years: number) =>
-    axiosInstance.post<Department>(`${C}/departments/`, { name, years }).then((r) => r.data),
-  updateDepartment: (id: number, body: { name?: string; years?: number; is_active?: boolean }) =>
+  createDepartment: (body: { name: string; years: number; is_stage?: boolean; leads_to?: number[] }) =>
+    axiosInstance.post<Department>(`${C}/departments/`, body).then((r) => r.data),
+  updateDepartment: (id: number, body: { name?: string; years?: number; is_active?: boolean; is_stage?: boolean; leads_to?: number[] }) =>
     axiosInstance.patch<Department>(`${C}/departments/${id}/`, body).then((r) => r.data),
   deleteDepartment: (id: number) => axiosInstance.delete(`${C}/departments/${id}/`).then(() => undefined),
   academicYear: () => axiosInstance.get<AcademicYearData>(`${C}/academic-year/`).then((r) => r.data),

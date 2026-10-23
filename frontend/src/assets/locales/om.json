@@ -1873,5 +1873,14 @@
   "gender_male": "Dhiira",
   "gender_female": "Dhalaa",
   "usr_login_email": "Imeelii seensaa",
-  "usr_identity_hint": "Waan waraqaa irratti dogoggoraan barreeffame sirreessi. Imeeliin seensaa haaraan koodii malee battalumatti hojjeta; namichatti himi."
+  "usr_identity_hint": "Waan waraqaa irratti dogoggoraan barreeffame sirreessi. Imeeliin seensaa haaraan koodii malee battalumatti hojjeta; namichatti himi.",
+  "dep_stage": "Sadarkaa muummee xumuraa dura jiru",
+  "dep_stage_hint": "Pre-Science, Pre-Engineering yookiin mana barumsaa (school) tokkoof mallattoo godhi: barataan isa irra jiru booda irra deebi'ee filata. Dheerinni asii hamma muummeen xumuraa filatamutti fayyada.",
+  "dep_stage_chip": "Sadarkaa",
+  "dep_leads_to": "Gara",
+  "dep_leads_to_hint": "Barataan sadarkaa kana irra jiru itti aansee maal filachuu akka danda'u. Muummee kamiyyuu hayyamuuf hunda duwwaa dhiisi.",
+  "dep_leads_to_n": "Gara: {{names}}",
+  "dep_leads_to_any": "Gara: muummee kamiyyuu",
+  "prof_stage_pick": "Sadarkaa yookiin muummee itti aanu filadhu",
+  "prof_stage_hint": "{{stage}} keessa jirta. Sadarkaan yookiin muummeen kee itti aanu yeroo beekamu asitti filadhu; muummeen xumuraa al tokko qofa kaa'ama."
 }

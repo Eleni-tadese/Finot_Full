@@ -1873,5 +1873,14 @@
   "gender_male": "Male",
   "gender_female": "Female",
   "usr_login_email": "Login email",
-  "usr_identity_hint": "Fix what was typed wrongly on the slip. A new login email works at once, without a code; tell the person."
+  "usr_identity_hint": "Fix what was typed wrongly on the slip. A new login email works at once, without a code; tell the person.",
+  "dep_stage": "A stage before the final department",
+  "dep_stage_hint": "Tick for Pre-Science, Pre-Engineering or a school: a student on it chooses again later. The length here is used until the final department is chosen.",
+  "dep_stage_chip": "Stage",
+  "dep_leads_to": "Leads to",
+  "dep_leads_to_hint": "What a student on this stage may choose next. Leave all unticked to allow any department.",
+  "dep_leads_to_n": "Leads to: {{names}}",
+  "dep_leads_to_any": "Leads to: any department",
+  "prof_stage_pick": "Choose your next stage or department",
+  "prof_stage_hint": "You are in {{stage}}. When your next stage or department is known, choose it here; the final department is set once."
 }

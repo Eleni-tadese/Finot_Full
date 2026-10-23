@@ -49,13 +49,19 @@ const EditProfile = () => {
     confession_father: user?.profile?.confession_father || "",
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [departments, setDepartments] = useState<{ id: number; name: string; years: number }[]>([]);
+  const [departments, setDepartments] = useState<{ id: number; name: string; years: number; is_stage: boolean; leads_to: number[] }[]>([]);
   useEffect(() => {
     axiosInstance.get("/api/student/departments/").then((r) => setDepartments(r.data)).catch(() => setDepartments([]));
   }, []);
   // Year and department are set once; after that only the Super Admin changes them (the yearly rollover moves the year).
   const lockedBatch = Boolean(parsedBatch);
-  const lockedDepartment = Boolean(user?.profile?.department);
+  // A stage (Pre-Science, Pre-Engineering, a school) is not final: the student chooses again from what it leads to.
+  const currentDepartment = departments.find((d) => d.name === (user?.profile?.department || ""));
+  const onStage = Boolean(currentDepartment?.is_stage);
+  const lockedDepartment = Boolean(user?.profile?.department) && !onStage;
+  const departmentChoices = onStage && currentDepartment && currentDepartment.leads_to.length > 0
+    ? departments.filter((d) => d.id === currentDepartment.id || currentDepartment.leads_to.includes(d.id))
+    : departments;
   const [imagePreview, setImagePreview] = useState(user?.profile?.profile_image || "");
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
@@ -172,13 +178,13 @@ const EditProfile = () => {
               <label className={labelClass} htmlFor="f-department">{t("department")}</label>
               {departments.length > 0 ? (
                 <select id="f-department" name="department" value={formData.department} onChange={handleChange} disabled={lockedDepartment} className="input">
-                  <option value="">{t("prof_pick_department", "Choose your department")}</option>
-                  {departments.map((d) => <option key={d.id} value={d.name}>{d.name}</option>)}
+                  <option value="">{onStage ? t("prof_stage_pick", "Choose your next stage or department") : t("prof_pick_department", "Choose your department")}</option>
+                  {departmentChoices.map((d) => <option key={d.id} value={d.name}>{d.name}</option>)}
                 </select>
               ) : (
                 <input id="f-department" type="text" name="department" value={formData.department} onChange={handleChange} disabled={lockedDepartment} placeholder={t("prof_department_ph", "e.g. Computer Science")} className="input" />
               )}
-              <p className={hintClass}>{lockedDepartment ? fixedHint : t("prof_department_hint", "You can set it only once.")}</p>
+              <p className={hintClass}>{lockedDepartment ? fixedHint : onStage ? t("prof_stage_hint", "You are in {{stage}}. When your next stage or department is known, choose it here; the final department is set once.", { stage: currentDepartment?.name }) : t("prof_department_hint", "You can set it only once.")}</p>
             </div>
           </Section>
 

@@ -15,7 +15,7 @@ const DepartmentsPage = () => {
   const [items, setItems] = useState<Department[]>([]);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState<Department | "new" | null>(null);
-  const [form, setForm] = useState({ name: "", years: 5 });
+  const [form, setForm] = useState<{ name: string; years: number; is_stage: boolean; leads_to: number[] }>({ name: "", years: 5, is_stage: false, leads_to: [] });
   const [saving, setSaving] = useState(false);
 
   const load = useCallback(async () => {
@@ -33,7 +33,7 @@ const DepartmentsPage = () => {
   const fail = (e: any) => toast.error(firstApiError(e?.response?.data) || t("adm_save_failed", "Could not save."));
 
   const open = (d: Department | "new") => {
-    setForm(d === "new" ? { name: "", years: 5 } : { name: d.name, years: d.years });
+    setForm(d === "new" ? { name: "", years: 5, is_stage: false, leads_to: [] } : { name: d.name, years: d.years, is_stage: d.is_stage, leads_to: d.leads_to });
     setEditing(d);
   };
 
@@ -41,8 +41,9 @@ const DepartmentsPage = () => {
     if (!form.name.trim()) { toast.error(t("dep_name_required", "Give the department a name.")); return; }
     setSaving(true);
     try {
-      if (editing === "new") await adminApi.createDepartment(form.name.trim(), form.years);
-      else if (editing) await adminApi.updateDepartment(editing.id, { name: form.name.trim(), years: form.years });
+      const body = { name: form.name.trim(), years: form.years, is_stage: form.is_stage, leads_to: form.is_stage ? form.leads_to : [] };
+      if (editing === "new") await adminApi.createDepartment(body);
+      else if (editing) await adminApi.updateDepartment(editing.id, body);
       toast.success(t("adm_saved", "Saved."));
       setEditing(null);
       await load();
@@ -76,9 +77,10 @@ const DepartmentsPage = () => {
             <div key={d.id} className={`card ${d.is_active ? "" : "opacity-60"}`}>
               <div className="flex items-start justify-between gap-2">
                 <h3 className="font-semibold text-foreground">{d.name}</h3>
-                <Chip tone="primary">{t("dep_years_n", "{{n}} years", { n: d.years })}</Chip>
+                <span className="flex gap-1">{d.is_stage && <Chip tone="amber">{t("dep_stage_chip", "Stage")}</Chip>}<Chip tone="primary">{t("dep_years_n", "{{n}} years", { n: d.years })}</Chip></span>
               </div>
               <p className="mt-1 text-sm text-muted-foreground">{t("dep_students_n", "{{n}} student(s)", { n: d.student_count })}</p>
+              {d.is_stage && <p className="mt-1 text-xs text-muted-foreground">{d.leads_to_names.length ? t("dep_leads_to_n", "Leads to: {{names}}", { names: d.leads_to_names.join(", ") }) : t("dep_leads_to_any", "Leads to: any department")}</p>}
               <div className="mt-3 flex flex-wrap items-center gap-3 text-sm">
                 <button className="text-primary hover:underline" onClick={() => open(d)}>{t("edit", "Edit")}</button>
                 <button className="text-primary hover:underline" onClick={() => toggle(d)}>{d.is_active ? t("dep_hide", "Hide") : t("dep_show", "Show")}</button>
@@ -113,6 +115,23 @@ const DepartmentsPage = () => {
                 {YEARS.map((y) => <option key={y} value={y}>{y}</option>)}
               </select>
             </label>
+            <label className="flex items-start gap-2 text-sm font-medium">
+              <input type="checkbox" className="mt-1 h-4 w-4" checked={form.is_stage} onChange={(e) => setForm({ ...form, is_stage: e.target.checked })} />
+              <span>{t("dep_stage", "A stage before the final department")}<span className="block text-xs font-normal text-muted-foreground">{t("dep_stage_hint", "Tick for Pre-Science, Pre-Engineering or a school: a student on it chooses again later. The length here is used until the final department is chosen.")}</span></span>
+            </label>
+            {form.is_stage && (
+              <div className="text-sm font-medium">{t("dep_leads_to", "Leads to")}
+                <p className="text-xs font-normal text-muted-foreground">{t("dep_leads_to_hint", "What a student on this stage may choose next. Leave all unticked to allow any department.")}</p>
+                <div className="mt-1 max-h-48 space-y-1 overflow-y-auto rounded-lg border border-border p-2">
+                  {items.filter((d) => editing === "new" || d.id !== editing.id).map((d) => (
+                    <label key={d.id} className="flex items-center gap-2 text-sm font-normal">
+                      <input type="checkbox" className="h-4 w-4" checked={form.leads_to.includes(d.id)} onChange={(e) => setForm({ ...form, leads_to: e.target.checked ? [...form.leads_to, d.id] : form.leads_to.filter((i) => i !== d.id) })} />
+                      {d.name}{d.is_stage ? ` (${t("dep_stage_chip", "Stage")})` : ""}
+                    </label>
+                  ))}
+                </div>
+              </div>
+            )}
             {editing !== "new" && <p className="text-xs text-muted-foreground">{t("dep_rename_hint", "Renaming also renames it for every student who has it.")}</p>}
           </div>
         </Modal>

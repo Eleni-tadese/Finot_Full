@@ -62,6 +62,16 @@ class StudentProfileSerializer(serializers.ModelSerializer):
             )
         return attrs
 
+    @staticmethod
+    def _stage(department_name):
+        """The Department row when the name is a stage (Pre-Engineering, a school), else None."""
+        from .models import Department
+
+        if not department_name:
+            return None
+        dept = Department.objects.filter(name__iexact=str(department_name).strip()).first()
+        return dept if dept and dept.is_stage else None
+
     def _check_academic_facts(self, attrs):
         """
         Year and department are set once by the student; after that only the Super Admin changes them
@@ -76,12 +86,20 @@ class StudentProfileSerializer(serializers.ModelSerializer):
         def same(a, b):
             return str(a if a is not None else '').strip().lower() == str(b if b is not None else '').strip().lower()
 
+        stage = self._stage(getattr(current, 'department', None)) if current is not None else None
         if current is not None and not is_admin:
             for field in ('batch_year', 'department'):
                 if field in attrs and getattr(current, field) not in (None, '') and not same(attrs[field], getattr(current, field)):
+                    if field == 'department' and stage is not None:
+                        continue  # a stage is left for the next stage or the final department
                     raise serializers.ValidationError(
                         {field: 'This was set earlier and is now locked. Ask the Super Admin to change it.'}
                     )
+            if stage is not None and 'department' in attrs and attrs['department'] and not same(attrs['department'], stage.name):
+                allowed = stage.leads_to.filter(is_active=True)
+                if allowed.exists() and not allowed.filter(name__iexact=str(attrs['department']).strip()).exists():
+                    names = ', '.join(allowed.values_list('name', flat=True))
+                    raise serializers.ValidationError({'department': f'After {stage.name} you can choose: {names}.'})
             if 'status' in attrs and attrs['status'] != current.status:
                 raise serializers.ValidationError({'status': 'Only the Super Admin can change this.'})
 

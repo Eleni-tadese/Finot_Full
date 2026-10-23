@@ -1097,10 +1097,31 @@ class EmailOutboxSendView(ConsoleView):
 # ── Departments and the yearly rollover ─────────────────────────────────────
 
 def _department_json(d):
+    nxt = list(d.leads_to.order_by("name").values_list("id", "name"))
     return {
         "id": d.id, "name": d.name, "years": d.years, "is_active": d.is_active,
+        "is_stage": d.is_stage, "leads_to": [i for i, _ in nxt], "leads_to_names": [n for _, n in nxt],
         "student_count": StudentProfile.objects.filter(department__iexact=d.name).count(),
     }
+
+
+def _apply_stage_fields(dept, data):
+    """is_stage and leads_to (ids of other departments) from the request."""
+    if "is_stage" in data:
+        if not isinstance(data["is_stage"], bool):
+            raise ValidationError({"is_stage": "Must be true or false."})
+        dept.is_stage = data["is_stage"]
+        dept.save(update_fields=["is_stage"])
+    if "leads_to" in data:
+        ids = data["leads_to"]
+        if not isinstance(ids, list) or not all(isinstance(i, int) and not isinstance(i, bool) for i in ids):
+            raise ValidationError({"leads_to": "Must be a list of department ids."})
+        if dept.pk in ids:
+            raise ValidationError({"leads_to": "A stage cannot lead to itself."})
+        targets = list(Department.objects.filter(pk__in=ids))
+        if len(targets) != len(set(ids)):
+            raise ValidationError({"leads_to": "Unknown department in the list."})
+        dept.leads_to.set(targets)
 
 
 def _clean_years(raw):
@@ -1126,6 +1147,7 @@ class DepartmentsView(ConsoleView):
         if Department.objects.filter(name__iexact=name).exists():
             raise ValidationError({"name": "This department already exists."})
         dept = Department.objects.create(name=name, years=_clean_years(request.data.get("years", 5)))
+        _apply_stage_fields(dept, request.data)
         return Response(_department_json(dept), status=status.HTTP_201_CREATED)
 
 
@@ -1160,6 +1182,7 @@ class DepartmentDetailView(ConsoleView):
                 raise ValidationError({"is_active": "Must be true or false."})
             dept.is_active = request.data["is_active"]
         dept.save()
+        _apply_stage_fields(dept, request.data)
         return Response(_department_json(dept))
 
     def delete(self, request, pk):
