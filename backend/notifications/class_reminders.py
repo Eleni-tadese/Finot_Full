@@ -12,6 +12,7 @@ from django.utils import timezone
 from course.models import CourseEnrollment, CourseSession
 from notifications.channels.push import _initialize_firebase, _send_fcm_multicast
 from notifications.models import FCMDeviceToken, Notification
+from student.participation import participating_q
 
 ETHIOPIA = dt_timezone(timedelta(hours=3))
 
@@ -43,7 +44,7 @@ def send_class_reminders(today=None, force=False):
     firebase_ready = False
     for session in sessions:
         user_ids = list(
-            CourseEnrollment.objects.filter(semester_course=session.semester_course, student__is_active=True)
+            CourseEnrollment.objects.filter(participating_q("student__"), semester_course=session.semester_course)
             .values_list("student_id", flat=True)
         )
         title = f"Class tomorrow: {session.semester_course.course.title}"

@@ -8,6 +8,7 @@ from django.utils import timezone
 from student.models import StudentProfile
 from notifications.models import Notification, FCMDeviceToken
 from notifications.channels.push import _send_fcm_multicast, _initialize_firebase
+from student.participation import participating_q
 
 User = get_user_model()
 logger = logging.getLogger(__name__)
@@ -124,7 +125,7 @@ def send_weekly_reminders(force=False, background_email=False):
         return {"status": "skipped", "users": 0, "devices": 0, "emails": 0, "emails_sent": 0, "emails_waiting": 0, "reason": "already sent in the last 6 days"}
 
     active = User.objects.filter(
-        is_active=True, student_profile__status__in=[StudentProfile.IN_CAMPUS, StudentProfile.GRADUATED]
+        participating_q(), student_profile__status__in=[StudentProfile.IN_CAMPUS, StudentProfile.GRADUATED]
     ).order_by("id")
     if not active.exists():
         return {"status": "no_users", "users": 0, "devices": 0, "emails": 0, "emails_sent": 0, "emails_waiting": 0, "reason": "no active students or graduates"}

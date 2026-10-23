@@ -18,6 +18,7 @@ from student.models import StudentProfile
 from .reports import course_attendance_report, student_attendance_summary
 from .permissions import IsSuperAdmin, IsCourseCoordinator, IsEnrolledStudentOrCoordinator
 from .access import is_super_admin, has_coordinator_role, can_manage_semester_course, assert_not_completed, courses_as_student
+from student.participation import participating_q
 
 
 # a student sees a course once the coordinator has started it (and keeps it after it is completed)
@@ -104,7 +105,7 @@ class CourseEnrollmentViewSet(viewsets.ModelViewSet):
     serializer_class = CourseEnrollmentSerializer
 
     def get_queryset(self):
-        qs = CourseEnrollment.objects.filter(student__is_active=True).select_related('student', 'semester_course', 'semester_course__course').prefetch_related('semester_course__coordinators', 'semester_course__coordinators__roles')
+        qs = CourseEnrollment.objects.filter(participating_q("student__")).select_related('student', 'semester_course', 'semester_course__course').prefetch_related('semester_course__coordinators', 'semester_course__coordinators__roles')
         user = self.request.user
         if not user.is_authenticated:
             return qs.none()
@@ -245,7 +246,7 @@ class CourseSessionViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=['get'])
     def roster(self, request, pk=None):
         session = self.get_object()
-        enrollments = CourseEnrollment.objects.filter(semester_course=session.semester_course, student__is_active=True).select_related('student')  # deactivated accounts are not listed
+        enrollments = CourseEnrollment.objects.filter(participating_q("student__"), semester_course=session.semester_course).select_related('student')  # no deactivated accounts, no unused slips
         attendances = AttendanceRecord.objects.filter(session=session)
         attendance_map = {att.student_id: att.status for att in attendances}
         

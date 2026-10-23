@@ -3,6 +3,7 @@ from django.db.models import Q
 from core.models import User
 from student.models import StudentProfile
 from .models import Family, FamilyMembership
+from student.participation import participating_q
 
 
 # Students per family. The father and mother are extra, so a family is about 11-12 people with its parents.
@@ -46,6 +47,7 @@ def get_unassigned_freshers(gender=None, dorm_block=None, dorm_room=None, sectio
     All filter parameters are optional — omit to skip that filter.
     """
     qs = User.objects.filter(
+        participating_q(),  # a slip nobody has used is not a person to put in a family
         student_profile__batch_year=1,
         student_profile__status=StudentProfile.IN_CAMPUS,
     ).exclude(

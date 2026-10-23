@@ -43,6 +43,7 @@ from core.role_rules import MIN_YEAR, check_family_leader, check_role_eligibilit
 from student import rollover
 from student.cards import profile_card
 from student.models import Department, StudentProfile, YearRollover
+from student.participation import participating_q
 
 User = get_user_model()
 
@@ -706,7 +707,7 @@ class FamilyPeopleView(FamilyConsoleView):
         term = request.query_params.get("search", "").strip()
         if len(term) < 2:
             return Response({"results": []})
-        qs = User.objects.filter(is_active=True).filter(
+        qs = User.objects.filter(participating_q()).filter(
             Q(first_name__icontains=term) | Q(middle_name__icontains=term) | Q(last_name__icontains=term) | Q(email__icontains=term)
         ).order_by("first_name", "last_name", "id")[:20]
         return Response({"results": [
@@ -719,7 +720,7 @@ def _family_json(f):
         return {"id": u.id, "full_name": full_name(u), "email": u.email} if u else None
 
     return {
-        "id": f.id, "name": f.name, "gender": f.gender or None, "member_count": f.members.filter(student__is_active=True).count(),
+        "id": f.id, "name": f.name, "gender": f.gender or None, "member_count": f.members.filter(participating_q('student__')).count(),
         "father": person(f.father), "mother": person(f.mother), "religious_father": f.religious_father or "",
     }
 

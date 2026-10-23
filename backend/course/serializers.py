@@ -8,6 +8,7 @@ from .models import (
     AttendanceRecord,
 )
 from core.serializers import UserSerializer
+from student.participation import participating_q
 
 
 class CourseSerializer(serializers.ModelSerializer):
@@ -30,7 +31,7 @@ class SemesterCourseSerializer(serializers.ModelSerializer):
     enrollment_count = serializers.SerializerMethodField()
 
     def get_enrollment_count(self, obj):
-        return obj.enrollments.filter(student__is_active=True).count()
+        return obj.enrollments.filter(participating_q("student__")).count()
 
     class Meta:
         model = SemesterCourse

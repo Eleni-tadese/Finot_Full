@@ -18,6 +18,7 @@ from core.models import Role
 from notifications.models import FCMDeviceToken, Notification
 
 from .models import Family, FamilyMessage, ServiceAttendance, ServiceGroupMembership
+from student.participation import participating_q
 
 MESSAGE_MAX_LENGTH = 1000
 MESSAGES_PER_DAY = 20
@@ -101,7 +102,7 @@ def messages_for(user, family, limit=50):
 
 def my_family_payload(user, family):
     """Everything the Family tab shows to this person."""
-    members = [m.student for m in family.members.filter(student__is_active=True).select_related("student__student_profile").order_by("student__first_name")]
+    members = [m.student for m in family.members.filter(participating_q("student__")).select_related("student__student_profile").order_by("student__first_name")]
     parent = is_parent(user, family)
     manager = is_family_manager(user)
     data = {

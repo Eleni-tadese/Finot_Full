@@ -2,6 +2,7 @@ from .i18n import TRANSLATABLE, group_name, localized, request_language
 from rest_framework import serializers
 from .models import ServiceGroup, AgeglotSelection, Family, FamilyMembership, Event, ServiceConfiguration, ServiceGroupMembership, ServiceAttendance
 from django.contrib.auth import get_user_model
+from student.participation import participating_q
 
 User = get_user_model()
 
@@ -54,7 +55,7 @@ class ServiceGroupSerializer(serializers.ModelSerializer):
     def get_member_count(self, obj):
         if hasattr(obj, 'member_count_db'):
             return obj.member_count_db
-        return obj.members.filter(status='ACTIVE', student__is_active=True).count()
+        return obj.members.filter(participating_q('student__'), status='ACTIVE').count()
 
     def to_representation(self, instance):
         """
@@ -146,7 +147,7 @@ class FamilySerializer(serializers.ModelSerializer):
         fields = ['id', 'name', 'father', 'mother', 'religious_father', 'member_count', 'siblings']
 
     def get_member_count(self, obj):
-        return obj.members.filter(student__is_active=True).count()
+        return obj.members.filter(participating_q('student__')).count()
     
     def get_siblings(self, obj):
         # We want to return other members of the family.
@@ -155,7 +156,7 @@ class FamilySerializer(serializers.ModelSerializer):
         current_user = request.user if request and request.user.is_authenticated else None
         
         # Get all students in this family
-        memberships = obj.members.filter(student__is_active=True).select_related('student')
+        memberships = obj.members.filter(participating_q('student__')).select_related('student')
         # Extract users
         users = [m.student for m in memberships]
         

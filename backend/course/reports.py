@@ -9,6 +9,7 @@ from django.db.models import Count, Q
 
 from .access import courses_as_student
 from .models import AttendanceRecord, CourseEnrollment, CourseSession
+from student.participation import participating_q
 
 
 def _percentage(present, held):
@@ -38,7 +39,7 @@ def course_attendance_report(semester_course):
         .order_by("date")
     )
     enrollments = (
-        CourseEnrollment.objects.filter(semester_course=semester_course, student__is_active=True)  # deactivated accounts drop out
+        CourseEnrollment.objects.filter(participating_q("student__"), semester_course=semester_course)  # no deactivated accounts, no unused slips
         .select_related("student")
         .order_by("student__first_name", "student__middle_name", "student__last_name")
     )

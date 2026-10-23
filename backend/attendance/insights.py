@@ -18,6 +18,7 @@ from django.utils import timezone
 from course.models import AttendanceRecord, CourseEnrollment, CourseSession
 from service.event_rules import attendance_roster, can_manage_event_attendance, person_name
 from service.models import Event, ServiceAttendance
+from student.participation import participating_q
 
 LAST_N = 3
 MAX_EVENTS = 12
@@ -106,7 +107,7 @@ def course_insights(semester_course, limit=MAX_EVENTS):
     """Rows per marked class day (last `limit`), the at-risk list and the next planned day's estimate."""
     today = timezone.localdate()
     enrolled = list(
-        CourseEnrollment.objects.filter(semester_course=semester_course, student__is_active=True)
+        CourseEnrollment.objects.filter(participating_q("student__"), semester_course=semester_course)
         .select_related("student__student_profile")
         .order_by("student__first_name", "student__last_name", "student_id")
     )

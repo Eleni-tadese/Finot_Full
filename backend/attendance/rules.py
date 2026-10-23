@@ -18,6 +18,7 @@ from service.event_rules import attendance_roster, can_manage_event_attendance
 from service.models import ServiceAttendance
 
 from .models import AttendanceSession, CheckIn
+from student.participation import participating_q
 
 
 class AttendanceError(Exception):
@@ -53,7 +54,7 @@ def roster(session):
     from django.contrib.auth import get_user_model
 
     enrolled = CourseEnrollment.objects.filter(semester_course=session.course_session.semester_course_id).values("student_id")
-    return get_user_model().objects.filter(pk__in=enrolled, is_active=True).select_related("student_profile")
+    return get_user_model().objects.filter(participating_q(), pk__in=enrolled).select_related("student_profile")
 
 
 def on_roster(session, user):

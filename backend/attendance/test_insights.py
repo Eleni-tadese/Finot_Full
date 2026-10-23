@@ -85,6 +85,35 @@ class TestCourseInsights:
         ids = [r.get("student_id") or r.get("id") for r in (roster if isinstance(roster, list) else roster.get("roster", roster.get("students", [])))]
         assert w.s2.id not in ids and w.s1.id in ids
 
+    def test_an_unused_slip_is_nobody_but_a_used_slip_counts(self, w):
+        from django.utils import timezone as tz
+
+        from attendance.rules import roster
+        from attendance.models import AttendanceSession
+        from course.models import CourseEnrollment
+        from service.event_rules import attendance_roster, notification_audience
+        from service.services import get_unassigned_freshers
+        from student.models import StudentProfile
+
+        unused = make_user("f00001@temp.finot")
+        used = make_user("f00002@temp.finot")
+        type(used).objects.filter(pk=used.pk).update(last_login=tz.now())
+        StudentProfile.objects.filter(user__in=[unused, used]).update(batch_year=1)
+        for u in (unused, used):
+            CourseEnrollment.objects.create(semester_course=w.course, student=u)
+        ids = {u.id for u in attendance_roster(w.general)}
+        assert used.id in ids and unused.id not in ids
+        told = {u.id for u in notification_audience(w.general)}
+        assert used.id in told and unused.id not in told
+        session = AttendanceSession.objects.create(course_session=w.day, opened_by=w.coord, auto_close_at=tz.now())
+        class_ids = {u.id for u in roster(session)}
+        assert used.id in class_ids and unused.id not in class_ids
+        freshers = {u.id for u in get_unassigned_freshers()}
+        assert used.id in freshers and unused.id not in freshers
+        report = client_for(w.coord).get(f"/api/course/semester-courses/{w.course.id}/attendance-report/").json()
+        names = {r["student_id"] for r in report["students"]}
+        assert used.id in names and unused.id not in names
+
     def test_endpoint_permissions(self, w):
         url = I + f"courses/{w.course.id}/"
         assert client_for(w.coord).get(url).status_code == 200

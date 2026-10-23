@@ -1,6 +1,7 @@
 import logging
 from .base import NotificationChannel
 from notifications.models import Notification
+from student.participation import participating_q
 
 logger = logging.getLogger(__name__)
 
@@ -42,7 +43,7 @@ class InAppChannel(NotificationChannel):
         from service.event_rules import format_when
         from service.models import ServiceGroupMembership
 
-        users_qs = User.objects.filter(is_active=True)
+        users_qs = User.objects.filter(participating_q())  # no alert for a slip nobody has used
 
         if event.service_group:
             users_qs = users_qs.filter(

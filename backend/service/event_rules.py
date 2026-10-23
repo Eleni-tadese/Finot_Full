@@ -17,6 +17,7 @@ from core.models import Role
 from student.models import StudentProfile
 
 from .models import ServiceGroupMembership
+from student.participation import participating_q
 
 User = get_user_model()
 
@@ -89,19 +90,19 @@ def attendance_roster(event):
     """The people whose attendance can be taken: active in-campus students (general) or active members (group)."""
     if event.service_group_id:
         qs = User.objects.filter(
-            is_active=True,
+            participating_q(),
             service_memberships__service_group_id=event.service_group_id,
             service_memberships__status=ServiceGroupMembership.ACTIVE,
         ).exclude(student_profile__status=StudentProfile.GRADUATED)
     else:
-        qs = User.objects.filter(is_active=True, student_profile__status=StudentProfile.IN_CAMPUS)
+        qs = User.objects.filter(participating_q(), student_profile__status=StudentProfile.IN_CAMPUS)
     qs = qs.filter(audience_q(event))
     return qs.select_related("student_profile").distinct().order_by("first_name", "middle_name", "last_name", "id")
 
 
 def notification_audience(event):
-    """Everyone who should be told about a new event: all active users, or only the group's active members."""
-    qs = User.objects.filter(is_active=True)
+    """Everyone who should be told about a new event: all active users (unused slips excluded), or the group's active members."""
+    qs = User.objects.filter(participating_q())
     if event.service_group_id:
         qs = qs.filter(
             service_memberships__service_group_id=event.service_group_id,
