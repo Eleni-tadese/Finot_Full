@@ -66,7 +66,9 @@ def w():
     w.course.coordinators.add(w.coord)
     CourseEnrollment.objects.create(semester_course=w.course, student=w.s1)
     CourseEnrollment.objects.create(semester_course=w.course, student=w.s2)
-    w.day = CourseSession.objects.create(semester_course=w.course, date=tz.now().date())
+    from attendance.rules import today_in_ethiopia
+
+    w.day = CourseSession.objects.create(semester_course=w.course, date=today_in_ethiopia())
     return w
 
 
@@ -128,6 +130,19 @@ class TestOpening:
         assert AttendanceSession.objects.get(pk=sid).auto_close_at == w.general.end_date + timedelta(hours=2)
         day = AttendanceSession.default_auto_close(course_session=w.day)
         assert day.hour == 18 and day.tzinfo is not None  # 21:00 Ethiopia
+
+    def test_only_the_day_itself_can_be_scanned_and_a_future_day_cannot_be_marked(self, w):
+        from attendance.rules import today_in_ethiopia
+
+        tomorrow = CourseSession.objects.create(semester_course=w.course, date=today_in_ethiopia() + timedelta(days=1))
+        yesterday = CourseSession.objects.create(semester_course=w.course, date=today_in_ethiopia() - timedelta(days=1))
+        for day in (tomorrow, yesterday):
+            res = client_for(w.coord).post(A + "sessions/open/", {"course_session_id": str(day.id)}, format="json")
+            assert res.status_code == 400 and res.json()["code"] == "not_today"
+        assert client_for(w.coord).post(A + "sessions/open/", {"course_session_id": str(w.day.id)}, format="json").status_code in (200, 201)
+        body = {"records": [{"student_id": w.s1.id, "status": "PRESENT"}]}
+        assert client_for(w.coord).post(f"/api/course/attendance/bulk-mark/{tomorrow.id}/", body, format="json").status_code == 400
+        assert client_for(w.coord).post(f"/api/course/attendance/bulk-mark/{yesterday.id}/", body, format="json").status_code in (200, 201)
 
     def test_completed_course_cannot_open(self, w):
         w.course.status = "COMPLETED"

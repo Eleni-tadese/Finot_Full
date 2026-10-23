@@ -1900,5 +1900,17 @@
   "ev_aud_no_departments": "Ammatti muummeen tarree keessa hin jiru.",
   "ev_aud_year_n": "Waggaa {{n}}",
   "ev_aud_summary": "Sagantaan kun kan: {{who}}",
-  "ev_aud_for": "Kan: {{who}}"
+  "ev_aud_for": "Kan: {{who}}",
+  "att_err_not_today": "Saaniin guyyaa barnootaa qofa hojjeta. Guyyaa darbeef «Argama mallatteessi» fayyadami.",
+  "att_future_day": "Guyyaan barnootaa kun ammas fuulduratti jira; argamni guyyaa sana yookiin booda galmaa'a.",
+  "att_past_day": "Guyyaa darbe: barattoota gadii mallatteessi. Saaniin guyyaa sana qofa hojjeta.",
+  "rep_slip": "waraqaa",
+  "rep_slip_no_name": "waraqaa, maqaan ammas hin barreeffamne",
+  "rep_never": "Gonkumaa hin dhufne",
+  "rep_at_risk": "Balaa irra ({{n}}% gadi)",
+  "rep_regular": "Idilee ({{n}}% yookiin ol)",
+  "rep_standing": "Haala",
+  "rep_standing_all": "Hunda",
+  "rep_standing_summary": "{{r}} idilee · {{a}} balaa irra · {{n}} gonkumaa hin dhufne",
+  "att_slip_no_name": "waraqaa, maqaan ammas hin barreeffamne"
 }

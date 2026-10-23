@@ -5,7 +5,8 @@ Automatic enrolment: a course made for year N appears for every in-campus studen
   * a student's year or stage changes -> they are enrolled in the latest semester course of each active
                                          curriculum made for their year (this also covers the yearly rollover)
 
-Old enrolments are never removed (they are the student's history). Graduates and inactive accounts are not enrolled.
+An enrolment in a running course of ANOTHER year is removed when the student's year changes, unless attendance was
+already taken for them there (that is history and stays). Graduates and inactive accounts are not enrolled.
 """
 from django.contrib.auth import get_user_model
 
@@ -48,4 +49,23 @@ def enrol_student(user):
     for semester_course in latest_semester_courses(profile.batch_year):
         _, created = CourseEnrollment.objects.get_or_create(semester_course=semester_course, student=user)
         made += int(created)
+    leave_other_years(user, profile.batch_year)
     return made
+
+
+def leave_other_years(user, batch_year):
+    """Drop enrolments in running courses of other years where nothing was ever recorded. Returns how many."""
+    from .models import AttendanceRecord, SemesterCourse
+
+    stale = (
+        CourseEnrollment.objects.filter(student=user)
+        .exclude(semester_course__course__batch_year=batch_year)
+        .exclude(semester_course__status=SemesterCourse.COMPLETED)
+    )
+    gone = 0
+    for enrolment in stale:
+        if AttendanceRecord.objects.filter(student=user, session__semester_course=enrolment.semester_course).exists():
+            continue  # attendance was taken: keep the history
+        enrolment.delete()
+        gone += 1
+    return gone

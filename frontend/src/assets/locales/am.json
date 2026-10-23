@@ -1900,5 +1900,17 @@
   "ev_aud_no_departments": "እስካሁን በዝርዝሩ ውስጥ ክፍል የለም።",
   "ev_aud_year_n": "{{n}}ኛ ዓመት",
   "ev_aud_summary": "ይህ ዝግጅት የ፦ {{who}}",
-  "ev_aud_for": "ለ፦ {{who}}"
+  "ev_aud_for": "ለ፦ {{who}}",
+  "att_err_not_today": "መቃኘት የሚሰራው በትምህርቱ ቀን ብቻ ነው። ላለፈ ቀን «መገኘት ምልክት አድርግ»ን ይጠቀሙ።",
+  "att_future_day": "ይህ የትምህርት ቀን ገና ወደፊት ነው፤ መገኘት በቀኑ ወይም ከዚያ በኋላ ይመዘገባል።",
+  "att_past_day": "ያለፈ ቀን፦ ከታች ተማሪዎቹን ምልክት ያድርጉ። መቃኘት የሚሰራው በቀኑ ብቻ ነው።",
+  "rep_slip": "ወረቀት",
+  "rep_slip_no_name": "ወረቀት፣ ስም ገና አልተጻፈም",
+  "rep_never": "በፍጹም አልመጣም",
+  "rep_at_risk": "ስጋት ላይ (ከ{{n}}% በታች)",
+  "rep_regular": "መደበኛ ({{n}}% ወይም በላይ)",
+  "rep_standing": "ሁኔታ",
+  "rep_standing_all": "ሁሉም",
+  "rep_standing_summary": "{{r}} መደበኛ · {{a}} ስጋት ላይ · {{n}} በፍጹም ያልመጡ",
+  "att_slip_no_name": "ወረቀት፣ ስም ገና አልተጻፈም"
 }

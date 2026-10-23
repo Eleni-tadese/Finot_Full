@@ -11,6 +11,33 @@ from .access import courses_as_student
 from .models import AttendanceRecord, CourseEnrollment, CourseSession
 from student.participation import participating_q
 
+REGULAR_FROM = 50  # attendance % from which a student counts as regular
+
+
+def person_facts(user):
+    """Name (or the slip id while the name is not written), login email, phone, and whether it is still a slip."""
+    from student.account_setup import is_slip_email
+
+    name = " ".join(p for p in (user.first_name, getattr(user, "middle_name", ""), user.last_name) if p)
+    slip = is_slip_email(user.email or "")
+    profile = getattr(user, "student_profile", None)
+    return {
+        "display_name": name or (f"Slip {user.email.split('@')[0]}" if slip else user.email),
+        "name_missing": not name,
+        "is_slip": slip,
+        "email": user.email,
+        "phone": (getattr(profile, "personal_phone", "") or "") if profile else "",
+    }
+
+
+def standing(present, held):
+    """'regular' (>= 50 %), 'at_risk' (below), 'never' (no Present at all), 'no_data' (nothing held yet)."""
+    if not held:
+        return "no_data"
+    if present == 0:
+        return "never"
+    return "regular" if _percentage(present, held) >= REGULAR_FROM else "at_risk"
+
 
 def _percentage(present, held):
     return round(present * 100 / held, 1) if held else 0.0
@@ -40,7 +67,7 @@ def course_attendance_report(semester_course):
     )
     enrollments = (
         CourseEnrollment.objects.filter(participating_q("student__"), semester_course=semester_course)  # no deactivated accounts, no unused slips
-        .select_related("student")
+        .select_related("student", "student__student_profile")
         .order_by("student__first_name", "student__middle_name", "student__last_name")
     )
     days = {}
@@ -65,9 +92,12 @@ def course_attendance_report(semester_course):
             "absent": absent,
             "unmarked": max(held - present - absent, 0),
             "percentage": _percentage(present, held),
+            "standing": standing(present, held),
+            **person_facts(student),
             "days": mine,
         })
     average = round(sum(s["percentage"] for s in students) / len(students), 1) if students else 0.0
+    counts = {key: sum(1 for s in students if s["standing"] == key) for key in ("regular", "at_risk", "never", "no_data")}
     return {
         "semester_course": str(semester_course.id),
         "course_title": semester_course.course.title,
@@ -78,6 +108,8 @@ def course_attendance_report(semester_course):
         "sessions_total": len(sessions),
         "sessions_held": held,
         "student_count": len(students),
+        "standing_counts": counts,
+        "regular_from": REGULAR_FROM,
         "average_percentage": average,
         "sessions": [
             {"id": str(s.id), "date": s.date.isoformat(), "topic": s.topic or "", "marked": s.n > 0}

@@ -19,15 +19,17 @@ const AttendanceReportPage = () => {
   const [view, setView] = useState<View>("summary");
   const [search, setSearch] = useState("");
   const [lowestFirst, setLowestFirst] = useState(false);
+  const [standingFilter, setStandingFilter] = useState("");
 
   const students = useMemo(() => {
     if (!report) return [];
     const q = search.trim().toLowerCase();
     const rows = report.students.filter((s) =>
-      !q || [s.first_name, s.middle_name, s.last_name, s.username].filter(Boolean).join(" ").toLowerCase().includes(q)
+      (!q || [s.first_name, s.middle_name, s.last_name, s.username, s.email, s.phone, s.display_name].filter(Boolean).join(" ").toLowerCase().includes(q))
+      && (!standingFilter || s.standing === standingFilter)
     );
     return lowestFirst ? [...rows].sort((a, b) => a.percentage - b.percentage) : rows;
-  }, [report, search, lowestFirst]);
+  }, [report, search, lowestFirst, standingFilter]);
 
   if (loading) {
     return (
@@ -89,6 +91,7 @@ const AttendanceReportPage = () => {
         <div className="card text-center">
           <p className="text-2xl font-bold text-foreground">{report.average_percentage}%</p>
           <p className="text-xs text-muted-foreground">{t("average_attendance")}</p>
+          {report.standing_counts && <p className="mt-1 text-[11px] text-muted-foreground">{t("rep_standing_summary", "{{r}} regular · {{a}} at risk · {{n}} never came", { r: report.standing_counts.regular, a: report.standing_counts.at_risk, n: report.standing_counts.never })}</p>}
         </div>
       </div>
 
@@ -101,6 +104,12 @@ const AttendanceReportPage = () => {
           <div className="flex flex-wrap items-center gap-2">
             {tab("summary", t("rep_summary", "Summary"))}
             {tab("days", t("rep_by_day", "By class day"))}
+            <select className="input w-44" value={standingFilter} onChange={(e) => setStandingFilter(e.target.value)} aria-label={t("rep_standing", "Standing")}>
+              <option value="">{t("rep_standing_all", "Everyone")}</option>
+              <option value="regular">{t("rep_regular", "Regular ({{n}}% or more)", { n: report.regular_from ?? 50 })}</option>
+              <option value="at_risk">{t("rep_at_risk", "At risk (below {{n}}%)", { n: report.regular_from ?? 50 })}</option>
+              <option value="never">{t("rep_never", "Never came")}</option>
+            </select>
             <input
               type="search"
               value={search}
@@ -131,7 +140,12 @@ const AttendanceReportPage = () => {
                 <tbody className="divide-y divide-border">
                   {students.map((s) => (
                     <tr key={s.student_id}>
-                      <td className="px-4 py-3 font-medium text-foreground">{name(s)}</td>
+                      <td className="px-4 py-3">
+                        <p className="font-medium text-foreground">{s.display_name || name(s)}{s.is_slip && <span className="ml-2 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-medium text-amber-800">{s.name_missing ? t("rep_slip_no_name", "slip, no name yet") : t("rep_slip", "slip")}</span>}</p>
+                        {(s.email || s.phone) && <p className="text-xs text-muted-foreground">{[s.email, s.phone].filter(Boolean).join(" · ")}</p>}
+                        {s.standing === "never" && <span className="text-xs font-medium text-red-700">{t("rep_never", "Never came")}</span>}
+                        {s.standing === "at_risk" && <span className="text-xs font-medium text-amber-700">{t("rep_at_risk", "At risk (below {{n}}%)", { n: report.regular_from ?? 50 })}</span>}
+                      </td>
                       <td className="px-4 py-3">{s.present}</td>
                       <td className="px-4 py-3">{s.absent}</td>
                       <td className="px-4 py-3">{s.unmarked}</td>

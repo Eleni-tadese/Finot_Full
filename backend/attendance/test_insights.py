@@ -75,6 +75,35 @@ class TestCourseInsights:
         assert [p["id"] for p in data["at_risk"]] == [w.s2.id]
         assert data["next"]["date"] == tomorrow and data["next"]["expected_present"] == 1 and data["next"]["expected_rate"] == 50.0
 
+    def test_report_knows_who_the_student_is_and_their_standing(self, w):
+        from django.contrib.auth import get_user_model
+
+        from course.enrollment import enrol_student
+        from course.models import AttendanceRecord, CourseEnrollment, CourseSession
+        from student.models import StudentProfile
+
+        User = get_user_model()
+        slip = User.objects.create_user(username="f00077@temp.finot", email="f00077@temp.finot", password="x")
+        User.objects.filter(pk=slip.pk).update(last_login=tz.now())
+        StudentProfile.objects.update_or_create(user=slip, defaults={"batch_year": 1, "personal_phone": "0911000000"})
+        CourseEnrollment.objects.get_or_create(semester_course=w.course, student=slip)  # the profile save already enrolled year 1
+        for i, present in enumerate((w.s1, w.s1, w.s2)):
+            day = CourseSession.objects.create(semester_course=w.course, date=w.day.date - timedelta(days=i + 1))
+            AttendanceRecord.objects.create(session=day, student=present, status="PRESENT")
+        report = client_for(w.coord).get(f"/api/course/semester-courses/{w.course.id}/attendance-report/").json()
+        rows = {r["email"]: r for r in report["students"]}
+        assert rows["f00077@temp.finot"]["display_name"] == "Slip f00077" and rows["f00077@temp.finot"]["is_slip"] is True
+        assert rows["f00077@temp.finot"]["phone"] == "0911000000" and rows["f00077@temp.finot"]["standing"] == "never"
+        assert rows[w.s1.email]["standing"] == "regular" and rows[w.s2.email]["standing"] == "at_risk"
+        assert report["standing_counts"] == {"regular": 1, "at_risk": 1, "never": 1, "no_data": 0}
+        # the year changes: the student leaves the running course of the old year (no attendance there)
+        StudentProfile.objects.filter(user=slip).update(batch_year=3)
+        enrol_student(User.objects.get(pk=slip.pk))
+        assert not CourseEnrollment.objects.filter(student=slip, semester_course=w.course).exists()
+        StudentProfile.objects.filter(user=w.s2).update(batch_year=3)
+        enrol_student(User.objects.get(pk=w.s2.pk))
+        assert CourseEnrollment.objects.filter(student=w.s2, semester_course=w.course).exists()  # attendance taken: history stays
+
     def test_a_deactivated_student_drops_out_of_the_class_lists(self, w):
         from django.contrib.auth import get_user_model
 

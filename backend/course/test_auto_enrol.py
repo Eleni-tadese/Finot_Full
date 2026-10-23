@@ -50,15 +50,24 @@ class TestStudentChangingYear:
         p.save()
         assert enrolled(new) == {"late@x.test"} and enrolled(old) == set()  # only the current run
 
-    def test_moving_up_adds_the_next_course_and_keeps_the_old_one(self):
+    def test_moving_up_adds_the_next_course_and_leaves_the_old_one_unless_attendance_was_taken(self):
+        from datetime import date
+
+        from .models import AttendanceRecord, CourseSession
+
         first = baker.make(SemesterCourse, course=baker.make(Course, batch_year=1), academic_year=2026, semester=1)
         second = baker.make(SemesterCourse, course=baker.make(Course, batch_year=2), academic_year=2026, semester=1)
         s = student("s@x.test", 1)
-        assert enrolled(first) == {"s@x.test"}
-        p = StudentProfile.objects.get(user=s)
-        p.batch_year = 2
-        p.save()
-        assert enrolled(second) == {"s@x.test"} and enrolled(first) == {"s@x.test"}
+        t = student("t@x.test", 1)
+        assert enrolled(first) == {"s@x.test", "t@x.test"}
+        day = CourseSession.objects.create(semester_course=first, date=date(2026, 1, 5))
+        AttendanceRecord.objects.create(session=day, student=t, status="PRESENT")  # t has history in the old course
+        for u in (s, t):
+            p = StudentProfile.objects.get(user=u)
+            p.batch_year = 2
+            p.save()
+        assert enrolled(second) == {"s@x.test", "t@x.test"}
+        assert enrolled(first) == {"t@x.test"}  # a wrong year is corrected; real history stays
 
     def test_the_yearly_rollover_enrols_the_new_year(self):
         from student import rollover

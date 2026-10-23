@@ -141,9 +141,13 @@ class CourseAttendanceExportView(ExportView):
         def full_name(s):
             return " ".join(p for p in (s["first_name"], s["middle_name"], s["last_name"]) if p) or s["username"]
 
-        headers = ["Student", "Username", "Present", "Absent", "Not marked", "Attendance %"]
+        STANDING = {"regular": "Regular", "at_risk": "At risk (below 50%)", "never": "Never came", "no_data": ""}
+        headers = ["Student", "Login email", "Phone", "Account", "Present", "Absent", "Not marked", "Attendance %", "Standing"]
         rows = [
-            [full_name(s), s["username"], s["present"], s["absent"], s["unmarked"], s["percentage"]]
+            [
+                s["display_name"], s["email"], s["phone"], "Slip" if s["is_slip"] else "Real email",
+                s["present"], s["absent"], s["unmarked"], s["percentage"], STANDING[s["standing"]],
+            ]
             for s in report["students"]
         ]
         # one column per class day: P = present, A = absent, empty = not marked

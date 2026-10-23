@@ -123,7 +123,8 @@ class TestExportContents:
         session = CourseSession.objects.create(semester_course=sc, date=datetime.date(2026, 1, 1))
         AttendanceRecord.objects.create(session=session, student=stu, status="PRESENT")
         res = get(coord, f"/api/analytics/export/course-attendance/{sc.id}/")
-        assert sheet_rows(res, 0)[1][5] == 100.0
+        row = sheet_rows(res, 0)[1]
+        assert row[7] == 100.0 and row[1] == "stu@finot.test" and row[3] == "Real email" and row[8] == "Regular"
         by_day = sheet_rows(res, 1)
         assert by_day[0] == ["Student", "Username", "2026-01-01"] and by_day[1][1:] == ["stu@finot.test", "P"]
         summary = dict(sheet_rows(res, 2)[1:])

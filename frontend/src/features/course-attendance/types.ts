@@ -8,6 +8,12 @@ export interface ReportStudentRow {
   absent: number;
   unmarked: number;
   percentage: number;
+  standing?: "regular" | "at_risk" | "never" | "no_data";
+  display_name?: string; // the name, or "Slip f00012" while the student has not written it
+  name_missing?: boolean;
+  is_slip?: boolean;
+  email?: string;
+  phone?: string;
   /** status on each class day, by session id; a missing day was not marked */
   days: Record<string, "PRESENT" | "ABSENT">;
 }
@@ -30,6 +36,8 @@ export interface CourseAttendanceReport {
   sessions_held: number;
   student_count: number;
   average_percentage: number;
+  standing_counts?: { regular: number; at_risk: number; never: number; no_data: number };
+  regular_from?: number;
   sessions: ReportSession[];
   students: ReportStudentRow[];
 }

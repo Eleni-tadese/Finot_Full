@@ -1900,5 +1900,17 @@
   "ev_aud_no_departments": "No departments in the list yet.",
   "ev_aud_year_n": "Year {{n}}",
   "ev_aud_summary": "This event is for: {{who}}",
-  "ev_aud_for": "For: {{who}}"
+  "ev_aud_for": "For: {{who}}",
+  "att_err_not_today": "Scanning works only on the class day itself. For a past day use Mark attendance.",
+  "att_future_day": "This class day is still in the future: attendance can be marked on the day or after it.",
+  "att_past_day": "A past day: tick the students below. Scanning works only on the day itself.",
+  "rep_slip": "slip",
+  "rep_slip_no_name": "slip, no name yet",
+  "rep_never": "Never came",
+  "rep_at_risk": "At risk (below {{n}}%)",
+  "rep_regular": "Regular ({{n}}% or more)",
+  "rep_standing": "Standing",
+  "rep_standing_all": "Everyone",
+  "rep_standing_summary": "{{r}} regular · {{a}} at risk · {{n}} never came",
+  "att_slip_no_name": "slip, no name yet"
 }

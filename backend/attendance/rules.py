@@ -9,7 +9,9 @@ Business rules of smart attendance, reusing the existing event and course rules.
 
 All Present/Absent rows go into the existing attendance tables (mark_present / close_session).
 """
-from django.db import transaction
+from datetime import datetime, timedelta, timezone as dt_timezone
+
+from django.db import IntegrityError, transaction
 from django.utils import timezone
 
 from course.access import can_manage_semester_course
@@ -19,6 +21,13 @@ from service.models import ServiceAttendance
 
 from .models import AttendanceSession, CheckIn
 from student.participation import participating_q
+
+
+ETHIOPIA = dt_timezone(timedelta(hours=3))
+
+
+def today_in_ethiopia():
+    return datetime.now(ETHIOPIA).date()
 
 
 class AttendanceError(Exception):
@@ -73,15 +82,22 @@ def open_session(user, event=None, course_session=None):
         from course.access import assert_not_completed
 
         assert_not_completed(course_session.semester_course)
-    with transaction.atomic():
-        existing = AttendanceSession.objects.filter(event=event, course_session=course_session, closed_at__isnull=True).first()
-        if existing:
-            return existing, False
-        session = AttendanceSession.objects.create(
-            event=event, course_session=course_session, opened_by=user,
-            auto_close_at=AttendanceSession.default_auto_close(event, course_session),
-        )
-        return session, True
+        if course_session.date != today_in_ethiopia():
+            # scanning and the room code are for the day itself; a past day is corrected with Mark attendance
+            raise AttendanceError("not_today", "Scanning works only on the class day itself. For a past day use Mark attendance.")
+    existing = AttendanceSession.objects.filter(event=event, course_session=course_session, closed_at__isnull=True).first()
+    if existing:
+        return existing, False
+    try:
+        with transaction.atomic():
+            session = AttendanceSession.objects.create(
+                event=event, course_session=course_session, opened_by=user,
+                auto_close_at=AttendanceSession.default_auto_close(event, course_session),
+            )
+    except IntegrityError:
+        # two taps at the same moment: the other one won, hand back its session
+        return AttendanceSession.objects.filter(event=event, course_session=course_session, closed_at__isnull=True).first(), False
+    return session, True
 
 
 def close_session(session, user=None):

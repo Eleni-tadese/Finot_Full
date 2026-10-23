@@ -121,6 +121,7 @@ export const ERROR_KEYS: Record<string, string> = {
   wrong_code: "att_err_wrong_code",
   forbidden: "att_err_forbidden",
   another_open: "att_err_another_open",
+  not_today: "att_err_not_today",
 };
 
 /** Text of the organizer's big QR: "FS1.<session id>.<6 digits>". Returns null for anything else. */

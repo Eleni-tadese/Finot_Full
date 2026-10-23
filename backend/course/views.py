@@ -246,7 +246,9 @@ class CourseSessionViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=['get'])
     def roster(self, request, pk=None):
         session = self.get_object()
-        enrollments = CourseEnrollment.objects.filter(participating_q("student__"), semester_course=session.semester_course).select_related('student')  # no deactivated accounts, no unused slips
+        from .reports import person_facts
+
+        enrollments = CourseEnrollment.objects.filter(participating_q("student__"), semester_course=session.semester_course).select_related('student', 'student__student_profile')  # no deactivated accounts, no unused slips
         attendances = AttendanceRecord.objects.filter(session=session)
         attendance_map = {att.student_id: att.status for att in attendances}
         
@@ -259,6 +261,7 @@ class CourseSessionViewSet(viewsets.ModelViewSet):
                 "last_name": student.last_name,
                 "username": student.username,
                 "status": attendance_map.get(student.id, None),
+                **person_facts(student),
             })
             
         return Response({"roster": roster_data}, status=status.HTTP_200_OK)
@@ -336,6 +339,10 @@ class AttendanceRecordViewSet(viewsets.ModelViewSet):
         if not can_manage_semester_course(request.user, session.semester_course):
             return Response({"error": "Permission denied."}, status=status.HTTP_403_FORBIDDEN)
         assert_not_completed(session.semester_course)
+        from attendance.rules import today_in_ethiopia
+
+        if session.date > today_in_ethiopia():
+            return Response({"error": "This class day is still in the future. Mark attendance on the day or after it."}, status=status.HTTP_400_BAD_REQUEST)
         serializer = BulkAttendanceRequestSerializer(data=request.data)
         if not serializer.is_valid():
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

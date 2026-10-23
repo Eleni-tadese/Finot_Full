@@ -137,7 +137,9 @@ const CourseSchedule = ({ sessions, mode, attendance = {}, readOnly = false, onM
                           <>
                             <button onClick={() => onEdit?.(s)} className="text-sm text-primary hover:underline">{t("edit", "Edit")}</button>
                             <button onClick={() => onDelete?.(s)} className="text-sm text-destructive hover:underline">{t("delete", "Delete")}</button>
-                            <button onClick={() => onMark?.(s)} className="btn-outline px-3 py-1.5 text-xs">{t("mark_attendance", "Mark attendance")}</button>
+                            {s.date <= today && (
+                              <button onClick={() => onMark?.(s)} className="btn-outline px-3 py-1.5 text-xs">{t("mark_attendance", "Mark attendance")}</button>
+                            )}
                           </>
                         )}
                       </div>

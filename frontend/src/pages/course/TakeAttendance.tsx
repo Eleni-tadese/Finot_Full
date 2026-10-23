@@ -11,6 +11,12 @@ import { useAuth } from "../../context/AuthContext";
 import { sanitizeUuid } from "../../lib/utils";
 import { formatDay } from "../../lib/dates";
 
+/** Today's date on this computer as YYYY-MM-DD (the class-day dates are plain dates). */
+function localYmd(): string {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
 const fadeIn = {
   hidden: { opacity: 0, y: 20 },
   visible: { opacity: 1, y: 0, transition: { duration: 0.4 } },
@@ -20,6 +26,9 @@ interface Student {
   id: string;
   full_name: string;
   email?: string;
+  phone?: string;
+  is_slip?: boolean;
+  name_missing?: boolean;
 }
 
 interface SemesterCourse {
@@ -114,8 +123,11 @@ const TakeAttendance = () => {
           const rosterData = await api.getSessionRoster(selectedSessionId);
           const studentList = rosterData.roster.map((student: any) => ({
             id: student.student_id,
-            full_name: `${student.first_name} ${student.last_name}`,
-            email: "", // Add placeholder email since roster doesn't provide it
+            full_name: student.display_name || `${student.first_name} ${student.last_name}`.trim(),
+            email: student.email || "",
+            phone: student.phone || "",
+            is_slip: Boolean(student.is_slip),
+            name_missing: Boolean(student.name_missing),
           }));
           setStudents(studentList);
           
@@ -276,7 +288,11 @@ const TakeAttendance = () => {
               <p className="text-sm">
                 <span className="font-medium">{t("date")}:</span> {formatDay(selectedSessionDetails.date, i18n.language)}
               </p>
-              <Link to={`/dashboard/attendance-scan?class_day=${selectedSessionDetails.id}`} className="btn-primary mt-2 inline-block px-3 py-1.5 text-xs">{t("att_scan_title", "Scan attendance")}</Link>
+              {selectedSessionDetails.date === localYmd() ? (
+                <Link to={`/dashboard/attendance-scan?class_day=${selectedSessionDetails.id}`} className="btn-primary mt-2 inline-block px-3 py-1.5 text-xs">{t("att_scan_title", "Scan attendance")}</Link>
+              ) : (
+                <p className="mt-2 text-xs text-muted-foreground">{selectedSessionDetails.date > localYmd() ? t("att_future_day", "This class day is still in the future: attendance can be marked on the day or after it.") : t("att_past_day", "A past day: tick the students below. Scanning works only on the day itself.")}</p>
+              )}
               {selectedSessionDetails.topic && (
                 <p className="text-sm mt-1">
                   <span className="font-medium">{t("topic")}:</span> {selectedSessionDetails.topic}
@@ -317,6 +333,8 @@ const TakeAttendance = () => {
                 >
                   <div className="flex-1">
                     <span className="font-medium text-foreground">{student.full_name}</span>
+                    {student.is_slip && <span className="ml-2 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-medium text-amber-800">{student.name_missing ? t("att_slip_no_name", "slip, no name yet") : t("rep_slip", "slip")}</span>}
+                    {(student.email || student.phone) && <p className="text-xs text-muted-foreground">{[student.email, student.phone].filter(Boolean).join(" · ")}</p>}
                   </div>
                   
                   <div className="flex flex-wrap gap-2">
