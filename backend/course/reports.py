@@ -38,7 +38,7 @@ def course_attendance_report(semester_course):
         .order_by("date")
     )
     enrollments = (
-        CourseEnrollment.objects.filter(semester_course=semester_course)
+        CourseEnrollment.objects.filter(semester_course=semester_course, student__is_active=True)  # deactivated accounts drop out
         .select_related("student")
         .order_by("student__first_name", "student__middle_name", "student__last_name")
     )

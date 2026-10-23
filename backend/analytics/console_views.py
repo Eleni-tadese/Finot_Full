@@ -719,7 +719,7 @@ def _family_json(f):
         return {"id": u.id, "full_name": full_name(u), "email": u.email} if u else None
 
     return {
-        "id": f.id, "name": f.name, "gender": f.gender or None, "member_count": f.members.count(),
+        "id": f.id, "name": f.name, "gender": f.gender or None, "member_count": f.members.filter(student__is_active=True).count(),
         "father": person(f.father), "mother": person(f.mother), "religious_father": f.religious_father or "",
     }
 

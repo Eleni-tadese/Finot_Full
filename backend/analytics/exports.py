@@ -205,7 +205,7 @@ def courses_sheets():
          ", ".join(full_name(c) for c in s.coordinators.all()), s.created_at]
         for s in semesters
     ]
-    enrol = CourseEnrollment.objects.select_related("semester_course__course", "student").order_by(
+    enrol = CourseEnrollment.objects.filter(student__is_active=True).select_related("semester_course__course", "student").order_by(
         "semester_course__course__title", "student__first_name"
     )
     enrol_rows = [

@@ -89,7 +89,7 @@ class ServiceGroupViewSet(
         group = self._manage_group(request)
         full = lambda u: " ".join(p for p in (u.first_name, u.middle_name, u.last_name) if p) or u.username
         members = (
-            ServiceGroupMembership.objects.filter(service_group=group)
+            ServiceGroupMembership.objects.filter(service_group=group, student__is_active=True)
             .select_related('student', 'student__student_profile').order_by('student__first_name')
         )
         member_ids = {m.student_id for m in members}
@@ -418,7 +418,7 @@ class FamilyViewSet(viewsets.ReadOnlyModelViewSet):
         family = self.get_object()
         if not (family_hub.is_parent(request.user, family) or family_hub.is_family_manager(request.user)):
             raise PermissionDenied("Only the father or mother of the family can list its members.")
-        memberships = family.members.select_related('student__student_profile').all()
+        memberships = family.members.filter(student__is_active=True).select_related('student__student_profile')
         users = [m.student for m in memberships]
         serializer = FamilyMemberSerializer(users, many=True)
         return Response(serializer.data)

@@ -54,7 +54,7 @@ class ServiceGroupSerializer(serializers.ModelSerializer):
     def get_member_count(self, obj):
         if hasattr(obj, 'member_count_db'):
             return obj.member_count_db
-        return obj.members.filter(status='ACTIVE').count()
+        return obj.members.filter(status='ACTIVE', student__is_active=True).count()
 
     def to_representation(self, instance):
         """
@@ -146,7 +146,7 @@ class FamilySerializer(serializers.ModelSerializer):
         fields = ['id', 'name', 'father', 'mother', 'religious_father', 'member_count', 'siblings']
 
     def get_member_count(self, obj):
-        return obj.members.count()
+        return obj.members.filter(student__is_active=True).count()
     
     def get_siblings(self, obj):
         # We want to return other members of the family.
@@ -155,7 +155,7 @@ class FamilySerializer(serializers.ModelSerializer):
         current_user = request.user if request and request.user.is_authenticated else None
         
         # Get all students in this family
-        memberships = obj.members.select_related('student').all()
+        memberships = obj.members.filter(student__is_active=True).select_related('student')
         # Extract users
         users = [m.student for m in memberships]
         

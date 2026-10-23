@@ -30,7 +30,7 @@ class SemesterCourseSerializer(serializers.ModelSerializer):
     enrollment_count = serializers.SerializerMethodField()
 
     def get_enrollment_count(self, obj):
-        return obj.enrollments.count()
+        return obj.enrollments.filter(student__is_active=True).count()
 
     class Meta:
         model = SemesterCourse

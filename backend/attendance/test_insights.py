@@ -75,6 +75,16 @@ class TestCourseInsights:
         assert [p["id"] for p in data["at_risk"]] == [w.s2.id]
         assert data["next"]["date"] == tomorrow and data["next"]["expected_present"] == 1 and data["next"]["expected_rate"] == 50.0
 
+    def test_a_deactivated_student_drops_out_of_the_class_lists(self, w):
+        from django.contrib.auth import get_user_model
+
+        get_user_model().objects.filter(pk=w.s2.pk).update(is_active=False)
+        report = client_for(w.coord).get(f"/api/course/semester-courses/{w.course.id}/attendance-report/").json()
+        assert [r["student_id"] for r in report["students"]] == [w.s1.id]
+        roster = client_for(w.coord).get(f"/api/course/sessions/{w.day.id}/roster/").json()
+        ids = [r.get("student_id") or r.get("id") for r in (roster if isinstance(roster, list) else roster.get("roster", roster.get("students", [])))]
+        assert w.s2.id not in ids and w.s1.id in ids
+
     def test_endpoint_permissions(self, w):
         url = I + f"courses/{w.course.id}/"
         assert client_for(w.coord).get(url).status_code == 200
