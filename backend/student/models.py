@@ -158,6 +158,14 @@ class Department(models.Model):
     def __str__(self):
         return f"{self.name} ({self.years} years)"
 
+    def program_length(self, _seen=None):
+        """Years until graduation. A stage has no length of its own: the longest of what it leads to (5 when nothing)."""
+        if not self.is_stage:
+            return self.years
+        seen = set(_seen or ()) | {self.pk}
+        lengths = [d.program_length(seen) for d in self.leads_to.all() if d.pk not in seen]
+        return max(lengths) if lengths else 5
+
 
 class YearRollover(models.Model):
     """

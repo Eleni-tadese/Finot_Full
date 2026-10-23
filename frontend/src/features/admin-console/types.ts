@@ -275,6 +275,7 @@ export interface Department {
   is_stage: boolean; // Pre-Science, Pre-Engineering, a school: students on it choose again later
   leads_to: number[]; // ids a student on this stage may choose next (empty = any)
   leads_to_names: string[];
+  effective_years: number; // for a stage: the longest program it leads to
   student_count: number;
 }
 

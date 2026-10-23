@@ -540,6 +540,15 @@ class TestProfileFactsAndDepartments:
         assert self.c.patch(f"{BASE}departments/{a['id']}/", {"leads_to": [a["id"]]}, format="json").status_code == 400
         assert self.c.patch(f"{BASE}departments/{a['id']}/", {"leads_to": [999999]}, format="json").status_code == 400
         assert self.c.patch(f"{BASE}departments/{a['id']}/", {"is_stage": "yes"}, format="json").status_code == 400
+        # a stage has no length of its own: the longest of what it leads to, 5 when it leads nowhere yet
+        from student import rollover
+
+        assert res["effective_years"] == 4 and rollover.program_years("Pre-Science") == 4
+        c = self.c.post(f"{BASE}departments/", {"name": "Pre-Engineering", "years": 3, "is_stage": True}, format="json").json()
+        assert c["effective_years"] == 5 and rollover.program_years("Pre-Engineering") == 5
+        s = student("pe@x.test", 3, "Pre-Engineering")
+        assert client_for(s).get("/api/student/profiles/me/").json()["department_is_stage"] is True
+        assert rollover.build_preview()["graduating"] == 0 if "graduating" in rollover.build_preview() else True
 
     def test_department_must_come_from_the_list_when_there_is_one(self):
         Department.objects.create(name="Architecture", years=5)

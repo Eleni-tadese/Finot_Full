@@ -77,7 +77,7 @@ const DepartmentsPage = () => {
             <div key={d.id} className={`card ${d.is_active ? "" : "opacity-60"}`}>
               <div className="flex items-start justify-between gap-2">
                 <h3 className="font-semibold text-foreground">{d.name}</h3>
-                <span className="flex gap-1">{d.is_stage && <Chip tone="amber">{t("dep_stage_chip", "Stage")}</Chip>}<Chip tone="primary">{t("dep_years_n", "{{n}} years", { n: d.years })}</Chip></span>
+                <span className="flex gap-1">{d.is_stage ? <Chip tone="amber">{t("dep_stage_chip", "Stage")}</Chip> : <Chip tone="primary">{t("dep_years_n", "{{n}} years", { n: d.years })}</Chip>}</span>
               </div>
               <p className="mt-1 text-sm text-muted-foreground">{t("dep_students_n", "{{n}} student(s)", { n: d.student_count })}</p>
               {d.is_stage && <p className="mt-1 text-xs text-muted-foreground">{d.leads_to_names.length ? t("dep_leads_to_n", "Leads to: {{names}}", { names: d.leads_to_names.join(", ") }) : t("dep_leads_to_any", "Leads to: any department")}</p>}
@@ -110,14 +110,16 @@ const DepartmentsPage = () => {
             <label className="block text-sm font-medium">{t("dep_name", "Department name")}
               <input className="input mt-1 w-full" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
             </label>
-            <label className="block text-sm font-medium">{t("dep_years", "Program length (years)")}
-              <select className="input mt-1 w-full" value={form.years} onChange={(e) => setForm({ ...form, years: Number(e.target.value) })}>
-                {YEARS.map((y) => <option key={y} value={y}>{y}</option>)}
-              </select>
-            </label>
+            {!form.is_stage && (
+              <label className="block text-sm font-medium">{t("dep_years", "Program length (years)")}
+                <select className="input mt-1 w-full" value={form.years} onChange={(e) => setForm({ ...form, years: Number(e.target.value) })}>
+                  {YEARS.map((y) => <option key={y} value={y}>{y}</option>)}
+                </select>
+              </label>
+            )}
             <label className="flex items-start gap-2 text-sm font-medium">
               <input type="checkbox" className="mt-1 h-4 w-4" checked={form.is_stage} onChange={(e) => setForm({ ...form, is_stage: e.target.checked })} />
-              <span>{t("dep_stage", "A stage before the final department")}<span className="block text-xs font-normal text-muted-foreground">{t("dep_stage_hint", "Tick for Pre-Science, Pre-Engineering or a school: a student on it chooses again later. The length here is used until the final department is chosen.")}</span></span>
+              <span>{t("dep_stage", "A stage before the final department")}<span className="block text-xs font-normal text-muted-foreground">{t("dep_stage_hint", "Tick for Pre-Science, Pre-Engineering or a school: a student on it chooses again later. A stage has no length of its own: the longest program it leads to counts.")}</span></span>
             </label>
             {form.is_stage && (
               <div className="text-sm font-medium">{t("dep_leads_to", "Leads to")}

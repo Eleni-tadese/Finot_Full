@@ -127,6 +127,12 @@ const DashboardLayout = () => {
                 <Link to="/dashboard/account" className="btn-primary px-3 py-1.5 text-xs">{t("acc_banner_btn", "Finish my account")}</Link>
               </div>
             )}
+            {user.profile?.department_is_stage && (user.profile.batch_year ?? 0) >= 2 && pathname !== "/dashboard/profile/edit" && (
+              <div className="mb-4 flex flex-wrap items-center gap-3 rounded-xl border border-border bg-primary/5 px-4 py-3 text-sm text-foreground">
+                <span className="flex-1">{t("prof_stage_banner", "You are in {{stage}}. Once your next stage or department is known, choose it on your profile.", { stage: user.profile.department })}</span>
+                <Link to="/dashboard/profile/edit" className="btn-outline px-3 py-1.5 text-xs">{t("prof_stage_banner_btn", "Choose now")}</Link>
+              </div>
+            )}
             <Outlet />
           </div>
         </main>

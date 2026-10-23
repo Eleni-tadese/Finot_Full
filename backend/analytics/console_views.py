@@ -1101,6 +1101,7 @@ def _department_json(d):
     return {
         "id": d.id, "name": d.name, "years": d.years, "is_active": d.is_active,
         "is_stage": d.is_stage, "leads_to": [i for i, _ in nxt], "leads_to_names": [n for _, n in nxt],
+        "effective_years": d.program_length(),
         "student_count": StudentProfile.objects.filter(department__iexact=d.name).count(),
     }
 

@@ -17,7 +17,7 @@ MIN_DAYS_BETWEEN = 180  # a second run this soon is almost certainly a mistake
 
 
 def _years_by_department():
-    return {d.name.strip().lower(): d.years for d in Department.objects.all()}
+    return {d.name.strip().lower(): d.program_length() for d in Department.objects.prefetch_related("leads_to")}
 
 
 def program_years(department, table=None):

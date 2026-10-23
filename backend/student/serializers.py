@@ -16,6 +16,11 @@ class StudentProfileSerializer(serializers.ModelSerializer):
     middle_name = serializers.CharField(source='user.middle_name', read_only=True)
     last_name = serializers.CharField(source='user.last_name', read_only=True)
     gender = serializers.CharField(source='user.gender', read_only=True)
+    # True while the department is a stage (Pre-Engineering, a school): the student will choose again
+    department_is_stage = serializers.SerializerMethodField()
+
+    def get_department_is_stage(self, obj):
+        return self._stage(obj.department) is not None
 
     class Meta:
         model = StudentProfile
@@ -30,6 +35,7 @@ class StudentProfileSerializer(serializers.ModelSerializer):
             'profile_image',
             'batch_year',
             'department',
+            'department_is_stage',
             'telegram_username',
             'personal_phone',
             'sms_opt_in',
@@ -117,5 +123,5 @@ class StudentProfileSerializer(serializers.ModelSerializer):
         dept_name = attrs.get('department', getattr(current, 'department', None))
         batch = attrs.get('batch_year', getattr(current, 'batch_year', None))
         dept = Department.objects.filter(name__iexact=(dept_name or '').strip()).first() if dept_name else None
-        if dept and batch and batch > dept.years:
-            raise serializers.ValidationError({'batch_year': f'{dept.name} is a {dept.years}-year program.'})
+        if dept and batch and batch > dept.program_length():
+            raise serializers.ValidationError({'batch_year': f'{dept.name} is a {dept.program_length()}-year program.'})

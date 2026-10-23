@@ -24,6 +24,7 @@ gender?: "M" | "F";
 profile_image?: string | null;
 batch_year?: number;
 department?: string;
+department_is_stage?: boolean; // Pre-Engineering, a school: the student still has to choose the final department
 telegram_username?: string;
 personal_phone?: string;
 sms_opt_in?: boolean;
@@ -177,7 +178,9 @@ export interface AuthUserProfile {
 baptismal_name: string;
 profile_image: string | null;
 batch: string;
+batch_year: number | null;
 department: string;
+department_is_stage: boolean; // Pre-Engineering, a school: the final department is still to be chosen
 telegram: string;
 personal_phone: string;
 sms_opt_in?: boolean;
