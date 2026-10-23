@@ -28,6 +28,7 @@ const EmailOutboxPanel = () => {
   const [status, setStatus] = useState("");
   const [rowsLoading, setRowsLoading] = useState(true);
   const [refresh, setRefresh] = useState(0);
+  const [failed, setFailed] = useState(false);
 
   const loadSettings = useCallback(async () => {
     try {
@@ -35,7 +36,9 @@ const EmailOutboxPanel = () => {
       setSettings(s);
       setLimit(String(s.daily_limit));
       setNotice(s.test_notice);
+      setFailed(false);
     } catch {
+      setFailed(true);
       toast.error(t("adm_load_failed", "Could not load this page. Please try again."));
     }
   }, [t]);
@@ -50,7 +53,15 @@ const EmailOutboxPanel = () => {
       .finally(() => setRowsLoading(false));
   }, [status, page, refresh, t]);
 
-  if (!settings) return <Loading />;
+  if (!settings) {
+    if (!failed) return <Loading />;
+    return (
+      <Card>
+        <p className="py-6 text-center text-sm text-muted-foreground">{t("adm_load_failed", "Could not load this page. Please try again.")}</p>
+        <div className="flex justify-center"><button onClick={loadSettings} className="btn-outline px-4 py-2 text-sm">{t("m_try_again", "Try again")}</button></div>
+      </Card>
+    );
+  }
 
   const run = async (work: () => Promise<void>) => {
     setBusy(true);
