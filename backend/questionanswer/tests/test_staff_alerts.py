@@ -31,11 +31,38 @@ def titles(user):
     return list(Notification.objects.filter(user=user, notification_type=Notification.TYPE_QA).values_list("title", flat=True))
 
 
-def ask_private(asker, category="Academic"):
-    body = {"display_name": "S", "category": category, "question_body": "Help me?", "visibility": "PRIVATE"}
+def ask_private(asker, category="Academic", **extra):
+    body = {"display_name": "S", "category": category, "question_body": "Help me?", "visibility": "PRIVATE", **extra}
     res = client_for(asker).post(ASK, body, format="json")
     assert res.status_code == 201
     return Question.objects.get(pk=res.json()["id"])
+
+
+@pytest.mark.django_db
+class TestAnonymity:
+    def setup_method(self):
+        self.asker = make_user("asker@x.test")
+        self.academic = make_user("a@x.test", Role.QA_COUNSELOR, TeacherSpecialization.ACADEMIC)
+        self.boss = make_user("boss@x.test", Role.SUPER_ADMIN)
+
+    def test_the_counselor_sees_only_the_nickname_but_the_super_admin_sees_who_asked(self):
+        q = ask_private(self.asker, "Academic", display_name="Night owl")
+        assert q.anonymous is True and q.email_on_answer is True  # the defaults
+        mine = client_for(self.academic).get(f"{ASK}counselor-queue/").json()
+        row = next(r for r in mine if r["id"] == str(q.id))
+        assert row["asker_name"] == "Night owl" and row["user"] is None
+        boss_row = next(r for r in client_for(self.boss).get(f"{ASK}counselor-queue/").json() if r["id"] == str(q.id))
+        assert boss_row["asker_name"].startswith("asker") and boss_row["user"] == self.asker.id
+
+    def test_the_student_may_show_their_name_and_refuse_the_email(self, mailoutbox):
+        from notifications.channels.email import EmailChannel
+
+        q = ask_private(self.asker, "Academic", anonymous=False, email_on_answer=False)
+        row = next(r for r in client_for(self.academic).get(f"{ASK}counselor-queue/").json() if r["id"] == str(q.id))
+        assert row["asker_name"].startswith("asker") and row["user"] == self.asker.id
+        before = len(mailoutbox)  # the counselor's own "new question" alert is already there
+        EmailChannel().on_question_answered(baker.make(Answer, question=q, is_approved=True))
+        assert len(mailoutbox) == before and not any(m.to == ["asker@x.test"] for m in mailoutbox)  # the student said no email
 
 
 @pytest.mark.django_db

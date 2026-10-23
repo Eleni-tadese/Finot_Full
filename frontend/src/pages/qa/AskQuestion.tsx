@@ -37,6 +37,9 @@ const AskQuestion = () => {
   const [category, setCategory] = useState<Question["category"] | "">("");
   const [question, setQuestion] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  // Private questions: stay anonymous to the counselor (default) and get an email when answered (default).
+  const [anonymous, setAnonymous] = useState(true);
+  const [emailOnAnswer, setEmailOnAnswer] = useState(true);
 
   // Detect if we're inside the dashboard
   const isDashboard = location.pathname.startsWith("/dashboard");
@@ -79,10 +82,12 @@ const AskQuestion = () => {
     try {
       await api.postQuestion({
         user: user?.id || null,
-        display_name: questionType === "public" ? (nickname.trim() || "Anonymous") : user?.full_name,
+        display_name: questionType === "public" || anonymous ? (nickname.trim() || "Anonymous") : user?.full_name,
         category: category as Question["category"],
         question_body: question,
         visibility: questionType === "public" ? "PUBLIC" : "PRIVATE",  // KEY FIELD
+        anonymous: questionType === "private" ? anonymous : true,
+        email_on_answer: questionType === "private" ? emailOnAnswer : true,
       });
       
       Swal.fire({
@@ -146,7 +151,19 @@ const AskQuestion = () => {
                 <Link to="/login" className="font-semibold underline">{t("sign_in", "Sign in")}</Link>
               </div>
             )}
-            {questionType === "public" && (
+            {questionType === "private" && (
+              <div className="space-y-2 rounded-xl border border-border bg-muted/30 p-3">
+                <label className="flex items-start gap-2 text-sm text-foreground">
+                  <input type="checkbox" className="mt-1 h-4 w-4" checked={anonymous} onChange={(e) => setAnonymous(e.target.checked)} />
+                  <span>{t("qa_anonymous", "Stay anonymous")}<span className="block text-xs text-muted-foreground">{t("qa_anonymous_hint", "The counselor sees only the nickname you type below, never your name or account. Untick it if you want the counselor to know who you are.")}</span></span>
+                </label>
+                <label className="flex items-start gap-2 text-sm text-foreground">
+                  <input type="checkbox" className="mt-1 h-4 w-4" checked={emailOnAnswer} onChange={(e) => setEmailOnAnswer(e.target.checked)} />
+                  <span>{t("qa_email_me", "Email me when it is answered")}<span className="block text-xs text-muted-foreground">{t("qa_email_me_hint", "The email goes only to you and never contains your question or the answer; you read those in your private inbox.")}</span></span>
+                </label>
+              </div>
+            )}
+            {(questionType === "public" || anonymous) && (
             <div>
               <label className="block text-sm font-medium text-foreground mb-1.5">{t("nickname_optional")}</label>
               <input 

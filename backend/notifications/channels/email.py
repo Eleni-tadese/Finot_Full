@@ -187,7 +187,7 @@ class EmailChannel(NotificationChannel):
 
         question = answer.question
         asker = question.user
-        if asker is None or not asker.email:
+        if asker is None or not asker.email or not question.email_on_answer:
             return
         private = question.visibility == "PRIVATE"
         page = "/dashboard/questions" if private else "/anonymous/questions"

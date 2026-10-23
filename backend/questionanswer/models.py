@@ -50,6 +50,10 @@ class Question(models.Model):
     )
     
     is_approved = models.BooleanField(default=False, help_text="Moderation flag")
+    anonymous = models.BooleanField(
+        default=True, help_text="Private: the counselor sees only the nickname. The Super Admin can always see who asked."
+    )
+    email_on_answer = models.BooleanField(default=True, help_text="Email the asker when an answer is published (never with the text).")
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):

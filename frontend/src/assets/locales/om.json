@@ -1884,5 +1884,9 @@
   "prof_stage_pick": "Sadarkaa yookiin muummee itti aanu filadhu",
   "prof_stage_hint": "{{stage}} keessa jirta. Sadarkaan yookiin muummeen kee itti aanu yeroo beekamu asitti filadhu; muummeen xumuraa al tokko qofa kaa'ama.",
   "prof_stage_banner": "{{stage}} keessa jirta. Sadarkaan yookiin muummeen kee itti aanu yeroo beekamu piroofaayilii kee irratti filadhu.",
-  "prof_stage_banner_btn": "Amma filadhu"
+  "prof_stage_banner_btn": "Amma filadhu",
+  "qa_anonymous": "Eenyummaan koo hin beekamin",
+  "qa_anonymous_hint": "Gorsaan maqaa moggaasaa gaditti barreessitu qofa arga; maqaa kee yookiin akkaawuntii kee gonkumaa hin argu. Gorsaan eenyu akka taate akka beeku yoo barbaadde mallattoo kaasi.",
+  "qa_email_me": "Yeroo deebi'u imeeliin natti himi",
+  "qa_email_me_hint": "Imeeliin siif qofa ergama; gaaffii kee yookiin deebii gonkumaa of keessaa hin qabu. Isaan saanduqa dhuunfaa kee keessatti dubbifta."
 }

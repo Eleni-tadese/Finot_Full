@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from .models import Question, Answer
-from .visibility import SENSITIVE_SPECIALIZATIONS, specialization_for
+from .visibility import is_super_admin, SENSITIVE_SPECIALIZATIONS, specialization_for
 
 
 class AnswerSerializer(serializers.ModelSerializer):
@@ -31,6 +31,7 @@ class QuestionSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'user', 'display_name', 'category', 'question_body',
             'visibility', 'answer_count', 'created_at', 'is_approved', 'answers',
+            'anonymous', 'email_on_answer',
         ]
         read_only_fields = ['id', 'user', 'created_at', 'is_approved']
 
@@ -77,8 +78,8 @@ class QuestionSerializer(serializers.ModelSerializer):
 class PrivateQuestionSerializer(QuestionSerializer):
     """
     Extended serializer for the counselor queue.
-    Includes the asker's real name so the counselor knows who they're helping.
-    Only used in counselor-restricted views — never exposed to the public API.
+    Includes the asker's real name only when the student chose not to stay anonymous; the Super Admin always sees
+    it (safety). Only used in counselor-restricted views, never exposed to the public API.
     """
     asker_name = serializers.SerializerMethodField()
     specialization = serializers.SerializerMethodField()
@@ -118,9 +119,27 @@ class PrivateQuestionSerializer(QuestionSerializer):
         spec = specialization_for(obj.category)
         return spec in SENSITIVE_SPECIALIZATIONS or spec not in self._handled_specializations()
 
+    def _viewer_sees_identity(self, obj):
+        """The Super Admin, the asker, or anyone when the student did not ask to stay anonymous."""
+        if not obj.anonymous:
+            return True
+        request = self.context.get("request")
+        viewer = getattr(request, "user", None)
+        if viewer is None or not viewer.is_authenticated:
+            return False
+        return viewer.pk == obj.user_id or is_super_admin(viewer)
+
     def get_asker_name(self, obj):
         if obj.user is None:
             return None
+        if not self._viewer_sees_identity(obj):
+            return obj.display_name  # the nickname
         parts = [obj.user.first_name, obj.user.middle_name, obj.user.last_name]
         full_name = " ".join(p for p in parts if p)
         return full_name or obj.user.username
+
+    def to_representation(self, obj):
+        data = super().to_representation(obj)
+        if not self._viewer_sees_identity(obj):
+            data["user"] = None  # not even the account id
+        return data

@@ -219,7 +219,7 @@ class QuestionViewSet(viewsets.ModelViewSet):
             .annotate(answer_count_db=Count("answers"))
             .order_by("answer_count_db", "-created_at")  # Unanswered first
         )
-        serializer = PrivateQuestionSerializer(private_questions, many=True)
+        serializer = PrivateQuestionSerializer(private_questions, many=True, context={"request": request})
         return Response(serializer.data)
 
     @action(detail=True, methods=["POST"], url_path="assign", permission_classes=[permissions.IsAuthenticated])
@@ -245,7 +245,7 @@ class QuestionViewSet(viewsets.ModelViewSet):
             PrivateQuestionAssignment.objects.get_or_create(
                 question=question, counselor=counselor, defaults={"assigned_by": request.user}
             )
-        return Response(PrivateQuestionSerializer(question).data)
+        return Response(PrivateQuestionSerializer(question, context={"request": request}).data)
 
     @action(detail=False, methods=["GET"], url_path="my-work")
     def my_work(self, request):
@@ -273,7 +273,7 @@ class QuestionViewSet(viewsets.ModelViewSet):
                 "unanswered": private_questions_for(user).filter(answers__isnull=True).distinct().count(),
             }
         if is_boss:
-            serializer = PrivateQuestionSerializer()
+            serializer = PrivateQuestionSerializer(context={"request": request})
             waiting = (
                 Question.objects.filter(visibility=Question.VISIBILITY_PRIVATE, answers__isnull=True)
                 .prefetch_related("assignments")

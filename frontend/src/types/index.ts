@@ -148,6 +148,8 @@ question_body: string;
 is_approved: boolean;
 is_verified?: boolean; // Frontend flag
 visibility: "PUBLIC" | "PRIVATE";  // NEW
+anonymous?: boolean; // private: the counselor sees only the nickname
+email_on_answer?: boolean; // email the asker when answered (never with the text)
 answer_count: number;
 created_at: string;
 answers?: Answer[];

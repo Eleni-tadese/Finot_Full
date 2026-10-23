@@ -118,7 +118,7 @@ def private_qa_sheets():
     ]
     rows = []
     for q in questions:
-        asker = full_name(q.user) if q.user else q.display_name
+        asker = full_name(q.user) if q.user and not q.anonymous else q.display_name  # anonymous: the nickname only
         assigned = ", ".join(full_name(a.counselor) or a.counselor.username for a in q.assignments.all())
         specialization = specialization_for(q.category) or "Any counselor"
         answers = list(q.answers.all())
@@ -245,7 +245,7 @@ def public_qa_sheets():
     headers = ["Asked on", "Asker", "Category", "Question", "Approved", "Answered by", "Answer", "Answer approved", "Answered on"]
     rows = []
     for q in questions:
-        asker = full_name(q.user) if q.user else q.display_name
+        asker = full_name(q.user) if q.user and not q.anonymous else q.display_name  # anonymous: the nickname only
         approved = "Yes" if q.is_approved else "No"
         answers = list(q.answers.all())
         if not answers:

@@ -1884,5 +1884,9 @@
   "prof_stage_pick": "Choose your next stage or department",
   "prof_stage_hint": "You are in {{stage}}. When your next stage or department is known, choose it here; the final department is set once.",
   "prof_stage_banner": "You are in {{stage}}. Once your next stage or department is known, choose it on your profile.",
-  "prof_stage_banner_btn": "Choose now"
+  "prof_stage_banner_btn": "Choose now",
+  "qa_anonymous": "Stay anonymous",
+  "qa_anonymous_hint": "The counselor sees only the nickname you type below, never your name or account. Untick it if you want the counselor to know who you are.",
+  "qa_email_me": "Email me when it is answered",
+  "qa_email_me_hint": "The email goes only to you and never contains your question or the answer; you read those in your private inbox."
 }
