@@ -6,7 +6,8 @@ Quick alerts for the Q&A staff.
                                          (sensitive Personal question, or a category no counselor handles)
   * private question assigned         -> that counselor
 
-Each alert is an in-app notification (the bell) plus a phone push where Firebase is set up.
+Each alert is an in-app notification (the bell), a phone push where Firebase is set up, and an email through the
+outbox (notifications/outbox.py) with a button to the page where the person acts.
 """
 import logging
 
@@ -29,8 +30,28 @@ def _people_who_approve():
     return moderators if moderators.exists() else _super_admins()
 
 
-def _notify(user_ids, title, message):
-    """In-app notification and push for these people. Returns how many were told."""
+def _email(user_ids, title, message, link):
+    """One outbox row per person who can receive mail, sent right away (daily limit and retries apply)."""
+    from django.conf import settings
+    from django.utils.html import escape
+
+    from notifications.models import EmailOutbox
+    from notifications.outbox import queue_emails, send_outbox_soon
+
+    url = f"{getattr(settings, 'FRONTEND_URL', '')}{link}"
+    body = (
+        f'<p style="font-size: 16px;">{escape(message)}</p>'
+        f'<p style="margin: 24px 0;"><a href="{escape(url)}" style="background-color: #fbbf24; color: #1e3a8a; '
+        f'padding: 12px 22px; border-radius: 8px; text-decoration: none; font-weight: bold;">Open it on Finot</a></p>'
+    )
+    queued = queue_emails(EmailOutbox.KIND_QA_ALERT, title, User.objects.filter(pk__in=user_ids), lambda user: body)
+    if queued:
+        send_outbox_soon()
+    return queued
+
+
+def _notify(user_ids, title, message, link="/dashboard/counselor/queue"):
+    """In-app notification, push and email for these people. Returns how many were told."""
     user_ids = list(dict.fromkeys(user_ids))
     if not user_ids:
         return 0
@@ -46,11 +67,15 @@ def _notify(user_ids, title, message):
             _send_fcm_multicast(title=title, body=message, notification_type=Notification.TYPE_QA, device_tokens=tokens)
         except Exception:  # a broken push channel must never block a question being posted
             logger.exception("Could not push the Q&A alert")
+    try:
+        _email(user_ids, title, message, link)
+    except Exception:  # nor may a mail problem
+        logger.exception("Could not email the Q&A alert")
     return len(user_ids)
 
 
 def notify_moderators(title, message):
-    return _notify(_people_who_approve().values_list("id", flat=True), title, message)
+    return _notify(_people_who_approve().values_list("id", flat=True), title, message, link="/dashboard/counselor/approve")
 
 
 def notify_counselors_of_private_question(question):
@@ -66,6 +91,7 @@ def notify_counselors_of_private_question(question):
         _super_admins().values_list("id", flat=True),
         "A private question needs a counselor",
         f"{body}. Nobody can see it yet: assign a counselor in Private Q&A.",
+        link="/dashboard/admin/qa",
     )
 
 

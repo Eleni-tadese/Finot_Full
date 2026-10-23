@@ -47,10 +47,16 @@ class TestCounselorAlerts:
         self.boss = make_user("boss@x.test", Role.SUPER_ADMIN)
         self.mod = make_user("m@x.test", Role.QA_MODERATOR)
 
-    def test_only_the_counselor_who_handles_the_category_is_told(self):
+    def test_only_the_counselor_who_handles_the_category_is_told(self, mailoutbox):
         ask_private(self.asker, "Academic")
         assert titles(self.academic) == ["New private question"]
         assert titles(self.spiritual) == [] and titles(self.boss) == [] and titles(self.mod) == []
+        # the same people get an email with a button to their queue
+        from notifications.models import EmailOutbox
+
+        rows = EmailOutbox.objects.filter(kind=EmailOutbox.KIND_QA_ALERT)
+        assert [r.email for r in rows] == ["a@x.test"] and rows[0].status == EmailOutbox.SENT
+        assert [m.to for m in mailoutbox] == [["a@x.test"]] and "dashboard/counselor/queue" in mailoutbox[0].alternatives[0][0]
 
     def test_a_personal_question_goes_to_the_super_admin_to_assign(self):
         question = ask_private(self.asker, "Personal")

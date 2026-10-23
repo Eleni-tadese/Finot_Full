@@ -222,6 +222,24 @@ def send_outbox(now=None):
     return result
 
 
+def send_outbox_soon():
+    """Send in a background thread so a web request does not wait for the mail server (synchronous in tests)."""
+    if getattr(settings, "OUTBOX_SEND_SYNC", False):
+        return send_outbox()
+    import threading
+
+    from django.db import close_old_connections
+
+    def _run():
+        try:
+            send_outbox()
+        finally:
+            close_old_connections()
+
+    threading.Thread(target=_run, daemon=True).start()
+    return None
+
+
 def retry_failed():
     """Failed rows go back to the queue with a fresh count. Returns how many."""
     return EmailOutbox.objects.filter(status=EmailOutbox.FAILED).update(status=EmailOutbox.WAITING, attempts=0, error="")

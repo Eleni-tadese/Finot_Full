@@ -21,6 +21,9 @@ REST_FRAMEWORK = {
     "DEFAULT_THROTTLE_RATES": {**REST_FRAMEWORK["DEFAULT_THROTTLE_RATES"], "login_ip": "100000/minute", "login_user": "100000/minute"},
 }
 
+# The outbox sends inside the request in tests (no background thread), so mailoutbox is filled at once.
+OUTBOX_SEND_SYNC = True
+
 # Tests use made-up addresses such as s1@finot.test; keep them deliverable here (real runs skip such addresses).
 REMINDER_EMAIL_SKIP_UNDELIVERABLE = False
 

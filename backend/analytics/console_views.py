@@ -108,8 +108,8 @@ class OverviewView(ConsoleView):
         sensitive_categories = [
             c for c in dict(Question.CATEGORY_CHOICES) if specialization_for(c) in SENSITIVE_SPECIALIZATIONS
         ]
-        by_role = dict(
-            UserRole.objects.values_list("role__name").annotate(n=Count("id")).order_by("role__name")
+        by_role = dict(  # disabled accounts (old sample data) do not count
+            UserRole.objects.filter(user__is_active=True).values_list("role__name").annotate(n=Count("id")).order_by("role__name")
         )
         from notifications.outbox import counts as email_counts
 

@@ -58,6 +58,9 @@ class TestOverview:
         assert data["qa"]["public_pending"] == 1
         assert data["users"]["by_role"][Role.SUPER_ADMIN] == 1
         assert data["sms"]["enabled"] is False
+        gone = make_user("gone@finot.test", Role.EVENT_MANAGER)
+        User.objects.filter(pk=gone.pk).update(is_active=False)
+        assert Role.EVENT_MANAGER not in client_for(boss).get(BASE + "overview/").json()["users"]["by_role"]
 
     def test_real_accounts_and_slips_are_counted_apart(self, boss):
         used = make_user("f00001@temp.finot")
