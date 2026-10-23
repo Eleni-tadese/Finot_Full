@@ -248,7 +248,9 @@ class CourseSessionViewSet(viewsets.ModelViewSet):
         session = self.get_object()
         from .reports import person_facts
 
-        enrollments = CourseEnrollment.objects.filter(participating_q("student__"), semester_course=session.semester_course).select_related('student', 'student__student_profile')  # no deactivated accounts, no unused slips
+        from django.db.models.functions import Lower
+
+        enrollments = CourseEnrollment.objects.filter(participating_q("student__"), semester_course=session.semester_course).select_related('student', 'student__student_profile').order_by(Lower('student__first_name'), Lower('student__last_name'))  # no deactivated accounts, no unused slips; A and a sort together
         attendances = AttendanceRecord.objects.filter(session=session)
         attendance_map = {att.student_id: att.status for att in attendances}
         

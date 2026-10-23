@@ -6,6 +6,7 @@ once attendance was marked for at least one student. Sessions that were created
 but never marked do not lower anyone's percentage.
 """
 from django.db.models import Count, Q
+from django.db.models.functions import Lower
 
 from .access import courses_as_student
 from .models import AttendanceRecord, CourseEnrollment, CourseSession
@@ -68,7 +69,7 @@ def course_attendance_report(semester_course):
     enrollments = (
         CourseEnrollment.objects.filter(participating_q("student__"), semester_course=semester_course)  # no deactivated accounts, no unused slips
         .select_related("student", "student__student_profile")
-        .order_by("student__first_name", "student__middle_name", "student__last_name")
+        .order_by(Lower("student__first_name"), Lower("student__middle_name"), Lower("student__last_name"))  # case does not change the order
     )
     days = {}
     for student_id, session_id, status in AttendanceRecord.objects.filter(
