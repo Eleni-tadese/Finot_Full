@@ -1912,5 +1912,7 @@
   "rep_standing": "Haala",
   "rep_standing_all": "Hunda",
   "rep_standing_summary": "{{r}} idilee · {{a}} balaa irra · {{n}} gonkumaa hin dhufne",
-  "att_slip_no_name": "waraqaa, maqaan ammas hin barreeffamne"
+  "att_slip_no_name": "waraqaa, maqaan ammas hin barreeffamne",
+  "att_future_short": "fuulduraa",
+  "today": "har'a"
 }

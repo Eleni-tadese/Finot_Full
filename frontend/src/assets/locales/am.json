@@ -1912,5 +1912,7 @@
   "rep_standing": "ሁኔታ",
   "rep_standing_all": "ሁሉም",
   "rep_standing_summary": "{{r}} መደበኛ · {{a}} ስጋት ላይ · {{n}} በፍጹም ያልመጡ",
-  "att_slip_no_name": "ወረቀት፣ ስም ገና አልተጻፈም"
+  "att_slip_no_name": "ወረቀት፣ ስም ገና አልተጻፈም",
+  "att_future_short": "ወደፊት",
+  "today": "ዛሬ"
 }

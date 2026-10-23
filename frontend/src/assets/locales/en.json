@@ -1912,5 +1912,7 @@
   "rep_standing": "Standing",
   "rep_standing_all": "Everyone",
   "rep_standing_summary": "{{r}} regular · {{a}} at risk · {{n}} never came",
-  "att_slip_no_name": "slip, no name yet"
+  "att_slip_no_name": "slip, no name yet",
+  "att_future_short": "future",
+  "today": "today"
 }

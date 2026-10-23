@@ -159,7 +159,7 @@ class CourseSessionViewSet(viewsets.ModelViewSet):
     serializer_class = CourseSessionSerializer
 
     def get_queryset(self):
-        qs = CourseSession.objects.select_related('semester_course', 'semester_course__course')
+        qs = CourseSession.objects.select_related('semester_course', 'semester_course__course').order_by('date')
         semester_course_id = self.request.query_params.get('semester_course')
         if semester_course_id:
             try:

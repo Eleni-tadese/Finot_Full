@@ -274,11 +274,15 @@ const TakeAttendance = () => {
               required
             >
               <option value="">{t("select_session_option")}</option>
-              {sessions.map((session) => (
-                <option key={session.id} value={session.id}>
-                  {formatDay(session.date, i18n.language)} - {session.topic || t("no_topic")}
-                </option>
-              ))}
+              {/* today and past days first (newest first); future days are listed but cannot be chosen yet */}
+              {[...sessions].sort((a, b) => (a.date < b.date ? 1 : -1)).map((session) => {
+                const future = session.date > localYmd();
+                return (
+                  <option key={session.id} value={session.id} disabled={future}>
+                    {formatDay(session.date, i18n.language)} - {session.topic || t("no_topic")}{session.date === localYmd() ? ` (${t("today", "today")})` : future ? ` (${t("att_future_short", "future")})` : ""}
+                  </option>
+                );
+              })}
             </select>
           </div>
           
