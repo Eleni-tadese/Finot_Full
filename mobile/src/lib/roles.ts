@@ -73,6 +73,7 @@ export const MANAGE_SECTIONS: ManageSection[] = [
     icon: 'dashboard',
     roles: [ROLES.superAdmin],
     step: 'R4',
+    href: '/manage/overview',
   },
   {
     key: 'email-status',
@@ -80,6 +81,7 @@ export const MANAGE_SECTIONS: ManageSection[] = [
     icon: 'mail',
     roles: [ROLES.superAdmin],
     step: 'R4',
+    href: '/manage/email',
   },
   {
     key: 'questions',

@@ -278,3 +278,25 @@ export type ClassDay = {
   teacher_name: string | null;
   marked_count: number;
 };
+
+// GET /api/admin-console/overview/  (Super Admin only; the same numbers as the website's Overview)
+export type AdminOverview = {
+  users: { total: number; active: number; real: number; real_active: number; slips_used: number; slips_unused: number; students: number };
+  events: { upcoming: number; total: number };
+  families: { total: number; unassigned_freshers: number };
+  qa: { public_pending: number; private_total: number; private_unanswered: number; needs_assignment: number };
+  email: { waiting: number; failed: number; sent_today: number; daily_limit: number };
+  donations?: { collected: number | string; completed: number; pending: number; failed: number };
+};
+
+// GET /api/admin-console/email/settings/  (the email outbox: limit and how many emails are in each state)
+export type EmailStatus = {
+  daily_limit: number;
+  sent_today: number;
+  remaining_today: number;
+  test_notice: string;
+  waiting: number;
+  sent: number;
+  failed: number;
+  skipped: number;
+};
