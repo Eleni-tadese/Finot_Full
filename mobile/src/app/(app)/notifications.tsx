@@ -116,7 +116,7 @@ export default function NotificationsScreen() {
           onEndReached={loadMore}
           onEndReachedThreshold={0.5}
           ListEmptyComponent={<EmptyView icon="notifications-none" message={t('m_no_notifications')} />}
-          ListFooterComponent={loadingMore ? <ActivityIndicator style={styles.footer} color={brand.primary} /> : null}
+          ListFooterComponent={loadingMore ? <ActivityIndicator style={styles.footer} color={brand.primary} /> : undefined}
         />
       )}
     </SafeAreaView>

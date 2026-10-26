@@ -123,7 +123,7 @@ export default function EventsScreen() {
             />
           }
           ListFooterComponent={
-            events.loadingMore ? <ActivityIndicator style={styles.footer} color={brand.primary} /> : null
+            events.loadingMore ? <ActivityIndicator style={styles.footer} color={brand.primary} /> : undefined
           }
         />
       )}

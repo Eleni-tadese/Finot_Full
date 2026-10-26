@@ -81,7 +81,7 @@ export default function DonationHistoryScreen() {
         );
       }}
       ListEmptyComponent={<EmptyView icon="volunteer-activism" message={t('m_no_donations')} />}
-      ListFooterComponent={loadingMore ? <ActivityIndicator style={styles.footer} color={brand.primary} /> : null}
+      ListFooterComponent={loadingMore ? <ActivityIndicator style={styles.footer} color={brand.primary} /> : undefined}
     />
   );
 }
