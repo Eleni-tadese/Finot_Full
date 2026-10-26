@@ -32,6 +32,11 @@ const ERROR_KEYS: Record<string, string> = {
 };
 
 type Result = { ok: boolean; text: string };
+const TABS = [
+  { key: 'scan', label: 'mng_tab_scan', icon: 'qr-code-scanner' },
+  { key: 'code', label: 'mng_tab_code', icon: 'pin' },
+  { key: 'people', label: 'mng_tab_people', icon: 'groups' },
+] as const;
 type Filter = 'all' | 'present' | 'not_yet';
 const PAGE = 40; // rows shown at a time, so a long list stays fast
 
@@ -54,6 +59,7 @@ export default function ManageRoom() {
   const [query, setQuery] = useState('');
   const [filter, setFilter] = useState<Filter>('all');
   const [limit, setLimit] = useState(PAGE);
+  const [tab, setTab] = useState<'scan' | 'code' | 'people'>('scan');
   const [permission, requestPermission] = useCameraPermissions();
   const lastScan = useRef({ data: '', at: 0 }); // the camera reports one QR many times a second: act once per few seconds
 
@@ -248,6 +254,7 @@ export default function ManageRoom() {
   if (event.loading && !event.data) return <LoadingView />;
   if (event.error && !event.data) return <ErrorView message={event.error.message} onRetry={event.retry} />;
   const ev = event.data;
+  const activeTab = open ? tab : 'people';
   const needle = query.trim().toLowerCase();
   const matches = people.filter(
     (p) =>
@@ -295,7 +302,22 @@ export default function ManageRoom() {
           ) : null}
 
           {open ? (
-            <>
+            <View style={styles.tabs}>
+              {TABS.map((item) => {
+                const active = activeTab === item.key;
+                return (
+                  <Pressable key={item.key} onPress={() => setTab(item.key)} style={[styles.tabItem, active && styles.tabItemActive]}>
+                    <MaterialIcons name={item.icon} size={20} color={active ? '#ffffff' : brand.primary} />
+                    <AppText variant="caption" color={active ? '#ffffff' : brand.primary}>
+                      {t(item.label)}
+                    </AppText>
+                  </Pressable>
+                );
+              })}
+            </View>
+          ) : null}
+
+          {open && activeTab === 'scan' ? (
               <Card style={styles.cameraCard}>
                 <AppText variant="label" color={brand.muted}>
                   {t('mng_scan_title')}
@@ -333,7 +355,9 @@ export default function ManageRoom() {
                   {t('mng_scan_auto')}
                 </AppText>
               </Card>
+          ) : null}
 
+          {open && activeTab === 'code' ? (
               <Card style={styles.centerCard}>
                 <AppText variant="label" color={brand.muted}>
                   {t('mng_room_code')}
@@ -341,7 +365,7 @@ export default function ManageRoom() {
                 {code ? (
                   <>
                     <View style={styles.qrBox}>
-                      <QRCode value={code.qr} size={200} backgroundColor="#ffffff" color="#000000" />
+                      <QRCode value={code.qr} size={240} backgroundColor="#ffffff" color="#000000" />
                     </View>
                     <AppText style={styles.digits} color={brand.primary}>
                       {code.code}
@@ -354,15 +378,17 @@ export default function ManageRoom() {
                   {t('mng_room_code_hint')}
                 </AppText>
               </Card>
-            </>
-          ) : (
+          ) : null}
+
+          {!open ? (
             <Card style={styles.centerCard}>
               <MaterialIcons name="lock" size={32} color={brand.muted} />
               <AppText variant="bodyStrong">{t('mng_closed_state')}</AppText>
             </Card>
-          )}
+          ) : null}
 
           {/* The people invited to this event: who came, who not yet, and a button to mark by hand */}
+          {activeTab === 'people' ? (
           <Card style={styles.gap}>
             <AppText variant="heading">{t('mng_roster_title')}</AppText>
             <AppText variant="caption" color={brand.muted}>
@@ -434,6 +460,7 @@ export default function ManageRoom() {
               </Pressable>
             ) : null}
           </Card>
+          ) : null}
 
           {open ? (
             <Pressable style={[styles.dangerButton, busy && styles.disabled]} disabled={busy} onPress={confirmClose}>
@@ -472,6 +499,17 @@ const styles = StyleSheet.create({
   camera: { width: '100%', height: '100%' },
   frameWrap: { ...StyleSheet.absoluteFill, alignItems: 'center', justifyContent: 'center' },
   frame: { width: '62%', aspectRatio: 1, borderRadius: 16, borderWidth: 4, borderColor: brand.accent },
+  tabs: { flexDirection: 'row', gap: 8 },
+  tabItem: {
+    flex: 1,
+    alignItems: 'center',
+    gap: 2,
+    paddingVertical: 10,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: brand.primary,
+  },
+  tabItemActive: { backgroundColor: brand.primary },
   search: {
     borderWidth: 1,
     borderColor: brand.border,
@@ -493,7 +531,8 @@ const styles = StyleSheet.create({
   showMore: { alignItems: 'center', paddingVertical: 10 },
   permission: { alignItems: 'center', gap: 12, paddingVertical: 28 },
   qrBox: { padding: 12, backgroundColor: '#ffffff', borderRadius: 12 },
-  digits: { fontFamily: font.bold, fontSize: 40, letterSpacing: 8 },
+  // lineHeight larger than the font size, otherwise the bottom of the digits is cut off
+  digits: { fontFamily: font.bold, fontSize: 44, lineHeight: 60, letterSpacing: 8, textAlign: 'center' },
   button: {
     alignItems: 'center',
     justifyContent: 'center',
