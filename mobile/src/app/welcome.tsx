@@ -4,7 +4,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useRef, useState } from 'react';
-import { FlatList, Linking, Pressable, StyleSheet, useWindowDimensions, View } from 'react-native';
+import { FlatList, Linking, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import Animated, {
   FadeInDown,
   FadeInUp,
@@ -19,6 +19,7 @@ import { AppText } from '@/components/ui/app-text';
 import { LanguagePicker } from '@/components/ui/language-picker';
 import { brand } from '@/constants/brand';
 import { useApi } from '@/hooks/use-api';
+import { useLayout } from '@/hooks/use-layout';
 import type { PublicOverview } from '@/lib/types';
 import { useTranslation } from 'react-i18next';
 
@@ -76,11 +77,15 @@ export default function WelcomeScreen() {
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { width, height } = useWindowDimensions();
+  const { width, height, landscape } = useLayout();
   const overview = useApi<PublicOverview>('/api/public/overview/');
   const stats = overview.data?.stats;
 
-  const photoHeight = Math.round(height * 0.46);
+  // Portrait: photo on top, actions below. Landscape (phone or tablet): photo on the left half, actions on the right.
+  const photoWidth = landscape ? Math.round(width * 0.5) : width;
+  const photoHeight = landscape ? height : Math.round(height * 0.46);
+  const sheetWidth = landscape ? width - photoWidth : width;
+  const sheetSide = Math.max(22, Math.round((sheetWidth - 560) / 2)); // keeps the actions in a column of 560 at most
 
   // The photos change by themselves every 4 seconds. The timer restarts when the index changes.
   const listRef = useRef<FlatList>(null);
@@ -102,12 +107,12 @@ export default function WelcomeScreen() {
   const zoomStyle = useAnimatedStyle(() => ({ transform: [{ scale: zoom.value }] }));
 
   return (
-    <View style={styles.root}>
+    <View style={[styles.root, landscape && styles.rootRow]}>
       {/* White status-bar icons, because the photo is dark */}
       <StatusBar style="light" />
 
       {/* ---- Photo with the name over it ---- */}
-      <View style={{ height: photoHeight, overflow: 'hidden' }}>
+      <View style={{ width: photoWidth, height: photoHeight, overflow: 'hidden' }}>
         <Animated.View style={[{ height: photoHeight }, zoomStyle]}>
           <FlatList
             ref={listRef}
@@ -117,8 +122,8 @@ export default function WelcomeScreen() {
             scrollEnabled={false}
             showsHorizontalScrollIndicator={false}
             keyExtractor={(_, i) => String(i)}
-            getItemLayout={(_, i) => ({ length: width, offset: width * i, index: i })}
-            renderItem={({ item }) => <Image source={item} style={{ width, height: photoHeight }} contentFit="cover" />}
+            getItemLayout={(_, i) => ({ length: photoWidth, offset: photoWidth * i, index: i })}
+            renderItem={({ item }) => <Image source={item} style={{ width: photoWidth, height: photoHeight }} contentFit="cover" />}
           />
         </Animated.View>
 
@@ -155,7 +160,10 @@ export default function WelcomeScreen() {
       </View>
 
       {/* ---- Bottom sheet ---- */}
-      <View style={styles.sheet}>
+      <ScrollView
+        style={[styles.sheet, landscape && styles.sheetSide]}
+        contentContainerStyle={[styles.sheetContent, { paddingHorizontal: sheetSide }, landscape && styles.sheetContentCentered]}
+        showsVerticalScrollIndicator={false}>
         {/* Live numbers */}
         <Animated.View entering={FadeInUp.delay(150).duration(500)} style={styles.statsCard}>
           <Stat icon="school" value={stats?.active_students} label={t('students')} />
@@ -217,13 +225,14 @@ export default function WelcomeScreen() {
             </Pressable>
           </View>
         </Animated.View>
-      </View>
+      </ScrollView>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: brand.primary },
+  rootRow: { flexDirection: 'row' },
   overlay: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, justifyContent: 'center', alignItems: 'center' },
   brand: { alignItems: 'center', gap: 4, paddingBottom: 26 },
   logo: { width: 88, height: 88, borderRadius: 24, backgroundColor: '#ffffff', marginBottom: 10 },
@@ -251,11 +260,12 @@ const styles = StyleSheet.create({
     backgroundColor: brand.background,
     borderTopLeftRadius: 30,
     borderTopRightRadius: 30,
-    paddingHorizontal: 22,
-    paddingTop: 22,
-    paddingBottom: 16,
-    gap: 18,
+    overflow: 'hidden',
   },
+  // Landscape: the sheet slides in from the right instead of up from the bottom.
+  sheetSide: { marginTop: 0, marginLeft: -30, borderTopRightRadius: 0, borderBottomLeftRadius: 30 },
+  sheetContent: { flexGrow: 1, paddingTop: 22, paddingBottom: 16, gap: 18 },
+  sheetContentCentered: { justifyContent: 'center', paddingLeft: 52 },
   statsCard: {
     flexDirection: 'row',
     alignItems: 'center',

@@ -55,7 +55,8 @@ export function PageHeader({ title, subtitle, right }: { title: string; subtitle
 
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: brand.background },
-  content: { padding: 20, gap: 14, flexGrow: 1, paddingBottom: 32 },
+  // width + maxWidth + alignSelf: on a tablet the content is a centred column, not stretched edge to edge
+  content: { padding: 20, gap: 14, flexGrow: 1, paddingBottom: 32, width: '100%', maxWidth: 760, alignSelf: 'center' },
   header: { flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between', gap: 12, marginBottom: 4 },
   headerText: { flex: 1, gap: 2 },
 });
