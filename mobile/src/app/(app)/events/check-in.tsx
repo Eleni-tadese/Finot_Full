@@ -152,7 +152,21 @@ export default function CheckInScreen() {
             })}
           </Card>
 
-          {chosen && !checkedIn ? (
+          {chosen && checkedIn ? (
+            <Card style={[styles.message, { borderColor: brand.success }]}>
+              <MaterialIcons name="check-circle" size={28} color={brand.success} />
+              <View style={styles.messageText}>
+                <AppText variant="bodyStrong" color={brand.success}>
+                  {t('checkin_recorded')}
+                </AppText>
+                <AppText variant="caption" color={brand.muted}>
+                  {t('checkin_recorded_desc')}
+                </AppText>
+              </View>
+            </Card>
+          ) : null}
+
+          {chosen && !checkedIn && chosen.status === 'OPEN' ? (
             <>
               <Card style={styles.cameraCard}>
                 {permission?.granted ? (

@@ -100,7 +100,7 @@ Generated from the code (`manage.py spectacular`). For request and response shap
 | GET | `/api/attendance/insights/events/` | Rows for the last events the caller may take attendance for; the server decides which (event_rules). |
 | GET | `/api/attendance/insights/me/` | api_attendance_insights_me_retrieve |
 | GET | `/api/attendance/sessions/current/` | api_attendance_sessions_current_retrieve |
-| GET | `/api/attendance/sessions/open-for-me/` | Open sessions this student belongs to, so the app can offer 'Check in' without the student typing an id. |
+| GET | `/api/attendance/sessions/open-for-me/` | Open sessions, plus sessions closed in the last 12 hours where this student is already marked Present, so the |
 | POST | `/api/attendance/sessions/open/` | api_attendance_sessions_open_create |
 | GET | `/api/attendance/sessions/{id}/` | api_attendance_sessions_retrieve |
 | POST | `/api/attendance/sessions/{id}/close/` | api_attendance_sessions_close_create |

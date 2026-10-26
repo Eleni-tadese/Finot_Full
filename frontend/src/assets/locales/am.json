@@ -1799,6 +1799,8 @@
   "checkin_badge_hint": "ባጅዎን በበሩ ላይ ማሳየትም ይችላሉ።",
   "checkin_choose": "አሁን ክፍት",
   "checkin_present": "ተገኝቷል",
+  "checkin_recorded": "መገኘትዎ ተመዝግቧል።",
+  "checkin_recorded_desc": "ተገኝተው ተመዝግበዋል። ተጨማሪ የሚሰሩት የለም።",
   "checkin_camera_failed": "ካሜራው መጀመር አልቻለም። በምትኩ 6ቱን አሃዞች ይጻፉ።",
   "checkin_code_label": "በስክሪኑ ላይ ያለው ባለ6 አሃዝ ኮድ",
   "checkin_submit": "እዚህ ነኝ",

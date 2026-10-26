@@ -26,6 +26,8 @@
   "checkin_none": "አሁን የሚገቡበት ነገር የለም",
   "checkin_none_desc": "አዘጋጅ ከዝግጅቶችዎ ወይም ከክፍሎችዎ ለአንዱ መገኘት ሲከፍት እዚህ ይታያል።",
   "checkin_present": "ተገኝቷል",
+  "checkin_recorded": "መገኘትዎ ተመዝግቧል።",
+  "checkin_recorded_desc": "ተገኝተው ተመዝግበዋል። ተጨማሪ የሚሰሩት የለም።",
   "checkin_sending": "እየተላከ ነው...",
   "checkin_submit": "እዚህ ነኝ",
   "checkin_title": "መግባት",

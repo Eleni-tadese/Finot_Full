@@ -69,6 +69,13 @@ def roster(session):
     return get_user_model().objects.filter(participating_q(), pk__in=enrolled).select_related("student_profile")
 
 
+def marked_present(session, user):
+    """Is this person recorded Present for the session's event or class day (by a scan, the code, or by hand)?"""
+    if session.event_id:
+        return ServiceAttendance.objects.filter(event_id=session.event_id, student=user, status=ServiceAttendance.PRESENT).exists()
+    return AttendanceRecord.objects.filter(session_id=session.course_session_id, student=user, status="PRESENT").exists()
+
+
 def on_roster(session, user):
     return roster(session).filter(pk=user.pk).exists()
 

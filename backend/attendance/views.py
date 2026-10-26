@@ -24,6 +24,8 @@ Charts and simple predictions (insights.py):
 """
 from django.contrib.auth import get_user_model
 from django.shortcuts import get_object_or_404
+from datetime import timedelta
+
 from django.utils import timezone
 from django.utils.dateparse import parse_datetime
 from rest_framework import serializers, status
@@ -284,13 +286,25 @@ class OpenForMeView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
+        """
+        Open sessions, plus sessions closed in the last 12 hours where this student is already marked Present, so the
+        app can say "your attendance is recorded" instead of showing a scan box. `checked_in` = recorded as Present
+        (a scan, the room code, or marked by hand).
+        """
+        from django.db.models import Q
+
+        recent = timezone.now() - timedelta(hours=12)
         mine = []
-        for session in AttendanceSession.objects.filter(closed_at__isnull=True).select_related(
+        for session in AttendanceSession.objects.filter(Q(closed_at__isnull=True) | Q(closed_at__gte=recent)).select_related(
                 "event", "course_session__semester_course__course"):
-            if rules.on_roster(session, request.user):
-                data = _session_json(session)
-                data["checked_in"] = session.check_ins.filter(student=request.user).exists()
-                mine.append(data)
+            if not rules.on_roster(session, request.user):
+                continue
+            recorded = session.check_ins.filter(student=request.user).exists() or rules.marked_present(session, request.user)
+            if not session.is_open and not recorded:
+                continue  # a closed session is only worth showing to someone it recorded
+            data = _session_json(session)
+            data["checked_in"] = recorded
+            mine.append(data)
         return Response(mine)
 
 

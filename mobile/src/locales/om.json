@@ -26,6 +26,8 @@
   "checkin_none": "Amma wanti itti galmooftu hin jiru",
   "checkin_none_desc": "Yeroo qopheessaan taatee yookiin kutaa kee keessaa tokkoof argamuu banu, asitti mul'ata.",
   "checkin_present": "Argameera",
+  "checkin_recorded": "Argamni kee galmaa’eera.",
+  "checkin_recorded_desc": "Dhufteetta jedhamtee galmaa’teerta. Wanti biraa hin jiru.",
   "checkin_sending": "Ergamaa jira...",
   "checkin_submit": "Ani asan jira",
   "checkin_title": "Galmaa'i",

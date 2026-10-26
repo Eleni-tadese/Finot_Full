@@ -144,6 +144,19 @@ class TestOpening:
         res = client.post(A + f"sessions/{sid}/reopen/")
         assert res.status_code == 400 and res.json()["code"] == "ended"
 
+    def test_check_in_page_knows_who_is_already_recorded(self, w):
+        sid = open_event(w)
+        mine = lambda user: {s["id"]: s for s in client_for(user).get(A + "sessions/open-for-me/").json()}
+        assert mine(w.s1)[sid]["checked_in"] is False
+        # marked by hand (no scan, no code) still counts as recorded
+        ServiceAttendance.objects.create(event=w.general, student=w.s1, status="PRESENT")
+        assert mine(w.s1)[sid]["checked_in"] is True
+        # after closing, only people the session recorded as Present still see it
+        Event.objects.filter(pk=w.general.pk).update(end_date=tz.now() - timedelta(minutes=5))
+        client_for(w.manager).post(A + f"sessions/{sid}/close/")
+        assert mine(w.s1)[sid]["checked_in"] is True and mine(w.s1)[sid]["status"] == "CLOSED"
+        assert sid not in mine(w.s3)  # marked Absent by the close: nothing to show
+
     def test_opening_twice_returns_the_same_open_session(self, w):
         first = open_event(w)
         res = client_for(w.manager).post(A + "sessions/open/", {"event_id": w.general.id}, format="json")

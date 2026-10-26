@@ -1799,6 +1799,8 @@
   "checkin_badge_hint": "Baajii kee balbala irratti agarsiisuus ni dandeessa.",
   "checkin_choose": "Amma banaa",
   "checkin_present": "Argameera",
+  "checkin_recorded": "Argamni kee galmaa’eera.",
+  "checkin_recorded_desc": "Dhufteetta jedhamtee galmaa’teerta. Wanti biraa hin jiru.",
   "checkin_camera_failed": "Kaameraan jalqabuu hin dandeenye. Bakka isaa lakkoofsa 6 barreessi.",
   "checkin_code_label": "Koodii lakkoofsa 6 iskiriinii irra jiru",
   "checkin_submit": "Ani asan jira",

@@ -1799,6 +1799,8 @@
   "checkin_badge_hint": "You can also show your badge at the door.",
   "checkin_choose": "Open now",
   "checkin_present": "Present",
+  "checkin_recorded": "Your attendance is recorded.",
+  "checkin_recorded_desc": "You are marked present. Nothing more to do.",
   "checkin_camera_failed": "The camera could not start. Type the 6 digits instead.",
   "checkin_code_label": "6-digit code on the screen",
   "checkin_submit": "I am here",

@@ -110,7 +110,17 @@ export default function CheckInPage() {
             </div>
           </Card>
 
-          {chosen && !chosen.checked_in && (
+          {chosen && chosen.checked_in && (
+            <div className="card flex items-center gap-3 border-success/40 bg-success/5">
+              <FiCheckCircle className="h-8 w-8 shrink-0 text-success" />
+              <div>
+                <p className="font-semibold text-foreground">{t("checkin_recorded", "Your attendance is recorded.")}</p>
+                <p className="text-sm text-muted-foreground">{t("checkin_recorded_desc", "You are marked present. Nothing more to do.")}</p>
+              </div>
+            </div>
+          )}
+
+          {chosen && !chosen.checked_in && chosen.status === "OPEN" && (
             <div className="grid gap-4 lg:grid-cols-2">
               <Card>
                 {cameraError ? (

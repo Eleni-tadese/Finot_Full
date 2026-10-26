@@ -26,6 +26,8 @@
   "checkin_none": "Nothing to check in to right now",
   "checkin_none_desc": "When an organizer opens attendance for one of your events or classes, it appears here.",
   "checkin_present": "Present",
+  "checkin_recorded": "Your attendance is recorded.",
+  "checkin_recorded_desc": "You are marked present. Nothing more to do.",
   "checkin_sending": "Sending...",
   "checkin_submit": "I am here",
   "checkin_title": "Check in",
