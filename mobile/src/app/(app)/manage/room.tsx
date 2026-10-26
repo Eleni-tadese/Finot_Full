@@ -255,6 +255,8 @@ export default function ManageRoom() {
   if (event.error && !event.data) return <ErrorView message={event.error.message} onRetry={event.retry} />;
   const ev = event.data;
   const activeTab = open ? tab : 'people';
+  // Reopening has the server's time limit: until 2 hours after the event ends (OPEN_BEFORE/auto-close in backend attendance/rules.py)
+  const eventOver = !!ev && Date.now() > new Date(ev.end_date).getTime() + 2 * 60 * 60 * 1000;
   const needle = query.trim().toLowerCase();
   const matches = people.filter(
     (p) =>
@@ -468,6 +470,10 @@ export default function ManageRoom() {
                 {t('mng_close')}
               </AppText>
             </Pressable>
+          ) : eventOver ? (
+            <AppText variant="caption" color={brand.muted} style={styles.center}>
+              {t('mng_over_note')}
+            </AppText>
           ) : (
             <Pressable style={[styles.button, busy && styles.disabled]} disabled={busy} onPress={reopenSession}>
               <AppText variant="bodyStrong" color="#ffffff">

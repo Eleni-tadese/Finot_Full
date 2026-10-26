@@ -126,9 +126,18 @@ def close_session(session, user=None):
 
 
 def reopen_session(session):
-    """Open it again (late students, corrections). The Absent rows stay until someone is marked Present."""
+    """
+    Open it again (late students, corrections). The Absent rows stay until someone is marked Present.
+    Same time limits as opening: an event until its auto-close time (2 hours after it ends), a class day only on its date.
+    After that, corrections are made by hand (Mark attendance).
+    """
     if session.is_open:
         return
+    if session.event_id:
+        if timezone.now() > AttendanceSession.default_auto_close(event=session.event):
+            raise AttendanceError("ended", "This event has ended. Correct it with Mark attendance.")
+    elif session.course_session.date != today_in_ethiopia():
+        raise AttendanceError("not_today", "A class day can be reopened only on its own date. Use Mark attendance for a past day.")
     session.closed_at = None
     session.closed_by = None
     session.save(update_fields=["closed_at", "closed_by"])

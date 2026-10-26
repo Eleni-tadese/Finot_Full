@@ -133,6 +133,17 @@ class TestOpening:
         res = client.post(A + "sessions/open/", {"event_id": old.id}, format="json")
         assert res.status_code == 400 and res.json()["code"] == "ended"
 
+    def test_a_session_cannot_be_reopened_after_the_event_is_over(self, w):
+        sid = open_event(w)
+        client = client_for(w.manager)
+        assert client.post(A + f"sessions/{sid}/close/").status_code == 200
+        assert client.post(A + f"sessions/{sid}/reopen/").status_code == 200  # still within the window
+        client.post(A + f"sessions/{sid}/close/")
+        past = tz.now() - timedelta(days=3)
+        Event.objects.filter(pk=w.general.pk).update(start_date=past, end_date=past + timedelta(hours=2))
+        res = client.post(A + f"sessions/{sid}/reopen/")
+        assert res.status_code == 400 and res.json()["code"] == "ended"
+
     def test_opening_twice_returns_the_same_open_session(self, w):
         first = open_event(w)
         res = client_for(w.manager).post(A + "sessions/open/", {"event_id": w.general.id}, format="json")

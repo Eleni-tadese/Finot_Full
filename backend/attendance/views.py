@@ -180,7 +180,10 @@ class ReopenSessionView(APIView):
         if AttendanceSession.objects.filter(event=session.event, course_session=session.course_session,
                                             closed_at__isnull=True).exclude(pk=session.pk).exists():
             return Response({"code": "another_open", "detail": "Another session is already open for this."}, status=409)
-        rules.reopen_session(session)
+        try:
+            rules.reopen_session(session)
+        except rules.AttendanceError as exc:
+            return _error(exc)
         return Response(_session_json(session))
 
 
