@@ -20,6 +20,8 @@ export default function ManageLayout() {
       <Stack.Screen name="room" options={{ title: t('mng_room_title') }} />
       <Stack.Screen name="courses" options={{ title: t('mng_sec_class_attendance') }} />
       <Stack.Screen name="days" options={{ title: t('mng_days_title') }} />
+      <Stack.Screen name="day-form" options={{ title: t('mng_day_form_title') }} />
+      <Stack.Screen name="plan" options={{ title: t('mng_plan_title') }} />
       <Stack.Screen name="overview" options={{ title: t('mng_sec_overview') }} />
       <Stack.Screen name="email" options={{ title: t('mng_sec_email') }} />
       <Stack.Screen name="questions" options={{ title: t('mng_sec_questions') }} />

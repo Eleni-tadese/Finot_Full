@@ -79,6 +79,22 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
   return data as T;
 }
 
+// A failed call as ONE sentence for the screen. The server answers either {detail: "..."} or field errors such as
+// {date: ["Already exists."]}; both become text, so a form can show what is wrong instead of a generic message.
+export function friendlyError(e: unknown, fallback: string): string {
+  if (!(e instanceof ApiError)) return fallback;
+  const body = e.body;
+  if (body && typeof body === 'object') {
+    const parts: string[] = [];
+    for (const value of Object.values(body as Record<string, unknown>)) {
+      if (typeof value === 'string') parts.push(value);
+      else if (Array.isArray(value)) parts.push(...value.filter((v): v is string => typeof v === 'string'));
+    }
+    if (parts.length > 0) return parts.join(' ');
+  }
+  return e.message || fallback;
+}
+
 // Turn the server's error answer into one sentence a person can read.
 function errorMessage(status: number, data: unknown): string {
   if (data && typeof data === 'object') {

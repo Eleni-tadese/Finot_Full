@@ -39,7 +39,8 @@
         {
           "cameraPermission": "Finot uses the camera to scan the attendance code on the organizer's screen."
         }
-      ]
+      ],
+      "@react-native-community/datetimepicker"
     ],
     "experiments": {
       "typedRoutes": true,
