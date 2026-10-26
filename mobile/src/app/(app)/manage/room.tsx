@@ -2,20 +2,21 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Alert, Pressable, StyleSheet, View } from 'react-native';
+import { Alert, Pressable, StyleSheet, TextInput, Vibration, View } from 'react-native';
 import QRCode from 'react-native-qrcode-svg';
 
 import { Screen } from '@/components/screen';
 import { ErrorView, LoadingView } from '@/components/status-views';
 import { AppText } from '@/components/ui/app-text';
 import { Card } from '@/components/ui/card';
+import { Chip } from '@/components/ui/chip';
 import { ProgressBar } from '@/components/ui/progress-bar';
 import { brand, font } from '@/constants/brand';
 import { useApi } from '@/hooks/use-api';
 import { ApiError, apiRequest } from '@/lib/api';
 import { etDate, etTime } from '@/lib/ethiopia-time';
 import { useSession } from '@/lib/session';
-import type { OrganizerSession, RoomCode, ScanResult, ServiceEvent } from '@/lib/types';
+import type { OrganizerSession, RoomCode, RosterPerson, ScanResult, ServiceEvent } from '@/lib/types';
 import { useTranslation } from 'react-i18next';
 
 // The server's short error codes -> translation keys (the same list as the website).
@@ -31,6 +32,8 @@ const ERROR_KEYS: Record<string, string> = {
 };
 
 type Result = { ok: boolean; text: string };
+type Filter = 'all' | 'present' | 'not_yet';
+const PAGE = 40; // rows shown at a time, so a long list stays fast
 
 // Step R2: take attendance for ONE event. Open the room, show the room code, scan student badges, close.
 // Manual marking and the offline queue come in R2c; the server decides who may do all of this.
@@ -47,6 +50,10 @@ export default function ManageRoom() {
   const [code, setCode] = useState<RoomCode | null>(null);
   const [result, setResult] = useState<Result | null>(null);
   const [busy, setBusy] = useState(false);
+  const [people, setPeople] = useState<RosterPerson[]>([]);
+  const [query, setQuery] = useState('');
+  const [filter, setFilter] = useState<Filter>('all');
+  const [limit, setLimit] = useState(PAGE);
   const [permission, requestPermission] = useCameraPermissions();
   const lastScan = useRef({ data: '', at: 0 }); // the camera reports one QR many times a second: act once per few seconds
 
@@ -110,6 +117,44 @@ export default function ManageRoom() {
     };
   }, [open, sessionId, accessToken]);
 
+  // The people invited to this event and what is marked for each, from the same list the website uses.
+  const loadRoster = useCallback(async () => {
+    try {
+      const res = await apiRequest<{ students: RosterPerson[] }>(`/api/service/events/${eventId}/roster/`, { token: accessToken });
+      setPeople(res.students);
+    } catch {
+      // keep the list we already have; the count above still works
+    }
+  }, [eventId, accessToken]);
+  useEffect(() => {
+    if (stage !== 'ready') return;
+    loadRoster();
+    if (!open) return;
+    const timer = setInterval(loadRoster, 15000); // picks up students who checked in with the room code
+    return () => clearInterval(timer);
+  }, [stage, open, loadRoster]);
+
+  // Mark one person by hand (the same save as the website's Mark attendance).
+  // `previous` makes the server keep a newer mark instead of overwriting it.
+  async function mark(person: RosterPerson, status: 'PRESENT' | 'ABSENT') {
+    setBusy(true);
+    try {
+      const res = await apiRequest<{ conflicts?: number[] }>('/api/service/attendance/mark/', {
+        method: 'POST',
+        body: { event_id: eventId, attendances: [{ student_id: person.id, status, remark: '', previous: person.status }] },
+        token: accessToken,
+      });
+      if (res.conflicts && res.conflicts.length > 0) {
+        setResult({ ok: false, text: t('mng_changed_meanwhile', { name: person.name }) });
+      }
+      await loadRoster();
+    } catch (e) {
+      setResult({ ok: false, text: explain(e) });
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function startSession() {
     setBusy(true);
     setResult(null);
@@ -141,17 +186,20 @@ export default function ManageRoom() {
         token: accessToken,
       });
       const name = res.student?.name ?? '';
+      Vibration.vibrate(120); // a short buzz: the scan was read
       if (res.already) {
         setResult({ ok: true, text: t('mng_scan_already', { name }) });
       } else {
         setResult({ ok: true, text: t('mng_scan_ok', { name }) });
         setSession((s) => (s ? { ...s, present: s.present + 1 } : s));
+        loadRoster();
       }
     } catch (e) {
       // a refused badge comes back as 400 with {code, detail, student?}
       const body: Partial<ScanResult> = e instanceof ApiError ? ((e.body ?? {}) as ScanResult) : {};
       const name = body.student?.name;
       const reason = body.code && ERROR_KEYS[body.code] ? t(ERROR_KEYS[body.code]) : explain(e);
+      Vibration.vibrate([0, 150, 100, 150]); // two buzzes: refused
       setResult({ ok: false, text: name ? `${name}: ${reason}` : reason });
     } finally {
       setBusy(false);
@@ -200,6 +248,13 @@ export default function ManageRoom() {
   if (event.loading && !event.data) return <LoadingView />;
   if (event.error && !event.data) return <ErrorView message={event.error.message} onRetry={event.retry} />;
   const ev = event.data;
+  const needle = query.trim().toLowerCase();
+  const matches = people.filter(
+    (p) =>
+      (filter === 'all' || (filter === 'present' ? p.status === 'PRESENT' : p.status !== 'PRESENT')) &&
+      (!needle || p.name.toLowerCase().includes(needle) || (p.email ?? '').toLowerCase().includes(needle)),
+  );
+  const presentCount = people.filter((p) => p.status === 'PRESENT').length;
   const percent = session && session.roster > 0 ? Math.round((session.present / session.roster) * 100) : 0;
 
   return (
@@ -230,6 +285,15 @@ export default function ManageRoom() {
             <ProgressBar percent={percent} />
           </Card>
 
+          {result ? (
+            <Card style={[styles.message, { borderColor: result.ok ? brand.success : brand.danger }]}>
+              <MaterialIcons name={result.ok ? 'check-circle' : 'error-outline'} size={24} color={result.ok ? brand.success : brand.danger} />
+              <AppText variant="bodyStrong" color={result.ok ? brand.success : brand.danger} style={styles.messageText}>
+                {result.text}
+              </AppText>
+            </Card>
+          ) : null}
+
           {open ? (
             <>
               <Card style={styles.cameraCard}>
@@ -237,12 +301,18 @@ export default function ManageRoom() {
                   {t('mng_scan_title')}
                 </AppText>
                 {permission?.granted ? (
-                  <CameraView
-                    style={styles.camera}
-                    facing="back"
-                    barcodeScannerSettings={{ barcodeTypes: ['qr'] }}
-                    onBarcodeScanned={busy ? undefined : ({ data }) => scan(data)}
-                  />
+                  <View style={styles.cameraBox}>
+                    <CameraView
+                      style={styles.camera}
+                      facing="back"
+                      barcodeScannerSettings={{ barcodeTypes: ['qr'] }}
+                      onBarcodeScanned={busy ? undefined : ({ data }) => scan(data)}
+                    />
+                    {/* A frame to aim with: the scan is automatic, there is nothing to tap */}
+                    <View pointerEvents="none" style={styles.frameWrap}>
+                      <View style={styles.frame} />
+                    </View>
+                  </View>
                 ) : (
                   <View style={styles.permission}>
                     <MaterialIcons name="photo-camera" size={36} color={brand.primary} />
@@ -258,6 +328,9 @@ export default function ManageRoom() {
                 )}
                 <AppText variant="caption" color={brand.muted} style={styles.center}>
                   {t('mng_scan_hint')}
+                </AppText>
+                <AppText variant="caption" color={brand.muted} style={styles.center}>
+                  {t('mng_scan_auto')}
                 </AppText>
               </Card>
 
@@ -289,14 +362,78 @@ export default function ManageRoom() {
             </Card>
           )}
 
-          {result ? (
-            <Card style={[styles.message, { borderColor: result.ok ? brand.success : brand.danger }]}>
-              <MaterialIcons name={result.ok ? 'check-circle' : 'error-outline'} size={24} color={result.ok ? brand.success : brand.danger} />
-              <AppText variant="bodyStrong" color={result.ok ? brand.success : brand.danger} style={styles.messageText}>
-                {result.text}
+          {/* The people invited to this event: who came, who not yet, and a button to mark by hand */}
+          <Card style={styles.gap}>
+            <AppText variant="heading">{t('mng_roster_title')}</AppText>
+            <AppText variant="caption" color={brand.muted}>
+              {t('mng_roster_hint')}
+            </AppText>
+            <TextInput
+              value={query}
+              onChangeText={(v) => {
+                setQuery(v);
+                setLimit(PAGE);
+              }}
+              placeholder={t('mng_search')}
+              placeholderTextColor={brand.muted}
+              style={styles.search}
+            />
+            <View style={styles.filters}>
+              {(['all', 'present', 'not_yet'] as Filter[]).map((f) => {
+                const n = f === 'all' ? people.length : f === 'present' ? presentCount : people.length - presentCount;
+                return (
+                  <Pressable
+                    key={f}
+                    onPress={() => {
+                      setFilter(f);
+                      setLimit(PAGE);
+                    }}
+                    style={[styles.filterChip, filter === f && styles.filterChipActive]}>
+                    <AppText variant="caption" color={filter === f ? '#ffffff' : brand.primary}>
+                      {t(f === 'all' ? 'mng_filter_all' : f === 'present' ? 'mng_filter_present' : 'mng_filter_not_yet')} ({n})
+                    </AppText>
+                  </Pressable>
+                );
+              })}
+            </View>
+            {matches.slice(0, limit).map((p) => (
+              <View key={p.id} style={styles.person}>
+                <View style={styles.personText}>
+                  <AppText variant="bodyStrong" numberOfLines={1}>
+                    {p.name}
+                  </AppText>
+                  <AppText variant="caption" color={brand.muted} numberOfLines={1}>
+                    {[p.batch_year ? t('evatt_year', { n: p.batch_year }) : '', p.department].filter(Boolean).join(' · ')}
+                  </AppText>
+                  <View style={styles.chips}>
+                    <Chip text={p.status === 'PRESENT' ? t('mng_filter_present') : t('mng_filter_not_yet')} tone={p.status === 'PRESENT' ? 'green' : 'grey'} />
+                    {p.status === 'PRESENT' && p.method === 'BADGE' ? <Chip text={t('mng_scanned')} tone="blue" /> : null}
+                    {p.status === 'PRESENT' && p.method === 'CODE' ? <Chip text={t('mng_code')} tone="blue" /> : null}
+                  </View>
+                </View>
+                <Pressable
+                  disabled={busy}
+                  onPress={() => mark(p, p.status === 'PRESENT' ? 'ABSENT' : 'PRESENT')}
+                  style={[styles.markButton, p.status === 'PRESENT' && styles.markButtonUndo, busy && styles.disabled]}>
+                  <AppText variant="caption" color={p.status === 'PRESENT' ? brand.danger : '#ffffff'}>
+                    {p.status === 'PRESENT' ? t('mng_mark_absent') : t('mng_mark_present')}
+                  </AppText>
+                </Pressable>
+              </View>
+            ))}
+            {matches.length === 0 ? (
+              <AppText color={brand.muted} style={styles.center}>
+                {t('mng_no_people')}
               </AppText>
-            </Card>
-          ) : null}
+            ) : null}
+            {matches.length > limit ? (
+              <Pressable style={styles.showMore} onPress={() => setLimit((n) => n + PAGE)}>
+                <AppText variant="bodyStrong" color={brand.primary}>
+                  {t('mng_show_more')}
+                </AppText>
+              </Pressable>
+            ) : null}
+          </Card>
 
           {open ? (
             <Pressable style={[styles.dangerButton, busy && styles.disabled]} disabled={busy} onPress={confirmClose}>
@@ -331,7 +468,29 @@ const styles = StyleSheet.create({
   gap: { gap: 10 },
   centerCard: { alignItems: 'center', gap: 12 },
   cameraCard: { gap: 10, padding: 10 },
-  camera: { width: '100%', aspectRatio: 1, borderRadius: 12, overflow: 'hidden' },
+  cameraBox: { width: '100%', aspectRatio: 1, borderRadius: 12, overflow: 'hidden' },
+  camera: { width: '100%', height: '100%' },
+  frameWrap: { ...StyleSheet.absoluteFill, alignItems: 'center', justifyContent: 'center' },
+  frame: { width: '62%', aspectRatio: 1, borderRadius: 16, borderWidth: 4, borderColor: brand.accent },
+  search: {
+    borderWidth: 1,
+    borderColor: brand.border,
+    borderRadius: 12,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    fontFamily: font.regular,
+    color: brand.text,
+    backgroundColor: brand.background,
+  },
+  filters: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  filterChip: { paddingVertical: 6, paddingHorizontal: 12, borderRadius: 999, borderWidth: 1, borderColor: brand.primary },
+  filterChipActive: { backgroundColor: brand.primary },
+  person: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 10, borderTopWidth: 1, borderTopColor: brand.border },
+  personText: { flex: 1, gap: 2 },
+  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 2 },
+  markButton: { backgroundColor: brand.primary, paddingVertical: 8, paddingHorizontal: 12, borderRadius: 10 },
+  markButtonUndo: { backgroundColor: 'transparent', borderWidth: 1, borderColor: brand.danger },
+  showMore: { alignItems: 'center', paddingVertical: 10 },
   permission: { alignItems: 'center', gap: 12, paddingVertical: 28 },
   qrBox: { padding: 12, backgroundColor: '#ffffff', borderRadius: 12 },
   digits: { fontFamily: font.bold, fontSize: 40, letterSpacing: 8 },

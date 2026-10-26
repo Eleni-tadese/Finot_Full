@@ -90,7 +90,8 @@ def _queue(event, kind, subject, intro, users):
     return queue_emails(
         kind, subject, [user for user in users if user.id not in already],
         lambda user: f'<p style="font-size: 16px;">Dear <strong>{escape(user.first_name or "friend")}</strong>,</p><p>{intro}</p>{box}',
-        not_after=event.start_date, event=event,
+        # skipped only once the event is OVER (not when it starts): an announcement still goes out while it is running
+        not_after=event.end_date, event=event,
     )
 
 
@@ -167,7 +168,7 @@ def send_outbox(now=None):
         status=EmailOutbox.WAITING
     )
     skipped = EmailOutbox.objects.filter(status=EmailOutbox.WAITING, not_after__lte=now).update(
-        status=EmailOutbox.SKIPPED, error="The event had already started."
+        status=EmailOutbox.SKIPPED, error="The event was already over."
     )
     result = {"sent": 0, "skipped": skipped, "failed": 0, "left": 0, "stopped": ""}
     allowance = max(EmailConfiguration.get().daily_limit - sent_today(), 0)

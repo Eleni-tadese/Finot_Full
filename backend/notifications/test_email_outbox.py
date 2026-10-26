@@ -93,13 +93,17 @@ class TestSending:
         limit(5)
         assert send_outbox()["sent"] == 1 and len(mailoutbox) == 2
 
-    def test_rows_whose_event_already_started_are_skipped(self, mailoutbox):
+    def test_rows_are_skipped_only_when_the_event_is_over(self, mailoutbox):
         person("p@x.test")
         queue_event_announcement(event("Late", 1))
-        result = send_outbox(now=tz.now() + timedelta(hours=2))
-        assert result["skipped"] == 1 and result["sent"] == 0 and mailoutbox == []
-        row = EmailOutbox.objects.get()
-        assert row.status == EmailOutbox.SKIPPED and row.error
+        # while the event is running (it started 30 minutes ago) the announcement still goes out
+        running = send_outbox(now=tz.now() + timedelta(minutes=90))
+        assert running["sent"] == 1 and running["skipped"] == 0
+        person("q@x.test")
+        queue_event_announcement(event("Over", 1))
+        over = send_outbox(now=tz.now() + timedelta(days=2))
+        assert over["skipped"] >= 1 and over["sent"] == 0
+        assert EmailOutbox.objects.filter(status=EmailOutbox.SKIPPED).exclude(error="").exists()
 
     def test_a_failure_is_retried_three_times_then_kept_with_its_error(self, mailoutbox):
         person("p@x.test")
@@ -161,7 +165,7 @@ class TestReminders:
         assert queue_event_reminders() == {"events": 1, "queued": 1}
         assert Notification.objects.filter(user=p, notification_type=Notification.TYPE_REMINDER, title="Tomorrow: Picnic").count() == 1
         row = EmailOutbox.objects.get()
-        assert row.kind == EmailOutbox.KIND_EVENT_TOMORROW and row.not_after == tomorrow
+        assert row.kind == EmailOutbox.KIND_EVENT_TOMORROW and row.not_after == tomorrow + timedelta(hours=2)
         assert queue_event_reminders() == {"events": 0, "queued": 0}
 
 

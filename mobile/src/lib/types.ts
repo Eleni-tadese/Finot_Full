@@ -245,3 +245,14 @@ export type ScanResult = {
   detail?: string;
   student?: { id: number; name: string; photo: string | null; batch_year: number | null; department: string | null };
 };
+
+// GET /api/service/events/{id}/roster/  (the people invited to the event, with their mark so far)
+export type RosterPerson = {
+  id: number;
+  name: string;
+  email: string;
+  batch_year: number | null;
+  department: string | null;
+  status: 'PRESENT' | 'ABSENT' | null; // null = not marked yet
+  method?: 'BADGE' | 'CODE' | 'MANUAL' | null; // how live attendance marked them; null = by hand
+};
