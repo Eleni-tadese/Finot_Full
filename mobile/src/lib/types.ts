@@ -255,4 +255,26 @@ export type RosterPerson = {
   department: string | null;
   status: 'PRESENT' | 'ABSENT' | null; // null = not marked yet
   method?: 'BADGE' | 'CODE' | 'MANUAL' | null; // how live attendance marked them; null = by hand
+  standing?: string; // class days only: regular, at_risk, never, no_data
+};
+
+// GET /api/course/semester-courses/  (a coordinator sees the courses where they are named, plus any they study in)
+export type CoordinatedCourse = {
+  id: string;
+  course_details: { id: string; title: string; batch_year: number };
+  academic_year: number;
+  semester: number;
+  status: 'PLANNED' | 'OPEN' | 'COMPLETED' | string;
+  coordinators: number[]; // user ids
+  enrollment_count: number;
+};
+
+// GET /api/course/sessions/?semester_course={id}  (a class day, with how many students are marked)
+export type ClassDay = {
+  id: string;
+  semester_course: string;
+  date: string; // "2026-10-14"
+  topic: string | null;
+  teacher_name: string | null;
+  marked_count: number;
 };

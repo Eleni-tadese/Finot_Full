@@ -14,7 +14,7 @@ import { ProgressBar } from '@/components/ui/progress-bar';
 import { brand, font } from '@/constants/brand';
 import { useApi } from '@/hooks/use-api';
 import { ApiError, apiRequest } from '@/lib/api';
-import { etDate, etTime } from '@/lib/ethiopia-time';
+import { etDate, etTime, etToday, plainDate } from '@/lib/ethiopia-time';
 import { hasRole, ROLES } from '@/lib/roles';
 import { useSession } from '@/lib/session';
 import type { OrganizerSession, RoomCode, RosterPerson, ScanResult, ServiceEvent } from '@/lib/types';
@@ -30,6 +30,7 @@ const ERROR_KEYS: Record<string, string> = {
   another_open: 'att_err_another_open',
   not_yet: 'att_err_not_yet',
   ended: 'att_err_ended',
+  not_today: 'att_err_not_today',
 };
 
 type Result = { ok: boolean; text: string };
@@ -41,14 +42,22 @@ const TABS = [
 type Filter = 'all' | 'present' | 'not_yet';
 const PAGE = 40; // rows shown at a time, so a long list stays fast
 
-// Step R2: take attendance for ONE event. Open the room, show the room code, scan student badges, close.
-// Manual marking and the offline queue come in R2c; the server decides who may do all of this.
+// Take attendance for ONE event (?event=<id>) or ONE class day (?session=<uuid>&title=&date=&course=).
+// Open the room, show the room code, scan student badges, mark by hand, close. The server decides who may do all of this.
 export default function ManageRoom() {
   const { t } = useTranslation();
   const { accessToken, user } = useSession();
-  const { event: eventParam } = useLocalSearchParams<{ event?: string }>();
+  const { event: eventParam, session: classParam, title: titleParam, date: dateParam, course: courseParam } = useLocalSearchParams<{
+    event?: string;
+    session?: string;
+    title?: string;
+    date?: string;
+    course?: string;
+  }>();
+  const isClass = !!classParam;
   const eventId = Number(eventParam);
-  const event = useApi<ServiceEvent>(`/api/service/events/${eventId}/`);
+  const target = isClass ? `course_session_id=${classParam}` : `event_id=${eventId}`; // what the attendance API is asked about
+  const event = useApi<ServiceEvent>(isClass ? null : `/api/service/events/${eventId}/`);
 
   const [session, setSession] = useState<OrganizerSession | null>(null);
   const [stage, setStage] = useState<'loading' | 'none' | 'ready' | 'error'>('loading');
@@ -81,7 +90,7 @@ export default function ManageRoom() {
   const loadSession = useCallback(async () => {
     setStage('loading');
     try {
-      const current = await apiRequest<OrganizerSession>(`/api/attendance/sessions/current/?event_id=${eventId}`, { token: accessToken });
+      const current = await apiRequest<OrganizerSession>(`/api/attendance/sessions/current/?${target}`, { token: accessToken });
       setSession(current);
       setStage('ready');
     } catch (e) {
@@ -92,7 +101,7 @@ export default function ManageRoom() {
         setStage('error');
       }
     }
-  }, [eventId, accessToken, explain]);
+  }, [target, accessToken, explain]);
   useEffect(() => {
     loadSession();
   }, [loadSession]);
@@ -127,12 +136,36 @@ export default function ManageRoom() {
   // The people invited to this event and what is marked for each, from the same list the website uses.
   const loadRoster = useCallback(async () => {
     try {
-      const res = await apiRequest<{ students: RosterPerson[] }>(`/api/service/events/${eventId}/roster/`, { token: accessToken });
-      setPeople(res.students);
+      if (!isClass) {
+        const res = await apiRequest<{ students: RosterPerson[] }>(`/api/service/events/${eventId}/roster/`, { token: accessToken });
+        setPeople(res.students);
+        return;
+      }
+      // a class day: the roster has today's mark; the course report has each student's standing (regular / at risk / never)
+      type ClassRow = { student_id: number; display_name: string; email: string; status: 'PRESENT' | 'ABSENT' | null };
+      const [roster, report] = await Promise.all([
+        apiRequest<{ roster: ClassRow[] }>(`/api/course/sessions/${classParam}/roster/`, { token: accessToken }),
+        courseParam
+          ? apiRequest<{ students: { student_id: number; standing: string }[] }>(`/api/course/semester-courses/${courseParam}/attendance-report/`, { token: accessToken }).catch(() => null)
+          : Promise.resolve(null),
+      ]);
+      const standing = new Map((report?.students ?? []).map((r) => [r.student_id, r.standing]));
+      setPeople(
+        roster.roster.map((r) => ({
+          id: r.student_id,
+          name: r.display_name,
+          email: r.email,
+          batch_year: null,
+          department: null,
+          status: r.status,
+          method: null,
+          standing: standing.get(r.student_id),
+        })),
+      );
     } catch {
       // keep the list we already have; the count above still works
     }
-  }, [eventId, accessToken]);
+  }, [eventId, isClass, classParam, courseParam, accessToken]);
   useEffect(() => {
     if (stage !== 'ready' && stage !== 'none') return;
     loadRoster();
@@ -146,6 +179,15 @@ export default function ManageRoom() {
   async function mark(person: RosterPerson, status: 'PRESENT' | 'ABSENT') {
     setBusy(true);
     try {
+      if (isClass) {
+        await apiRequest(`/api/course/attendance/bulk-mark/${classParam}/`, {
+          method: 'POST',
+          body: { records: [{ student_id: person.id, status }] },
+          token: accessToken,
+        });
+        await loadRoster();
+        return;
+      }
       const res = await apiRequest<{ conflicts?: number[] }>('/api/service/attendance/mark/', {
         method: 'POST',
         body: { event_id: eventId, attendances: [{ student_id: person.id, status, remark: '', previous: person.status }] },
@@ -168,7 +210,7 @@ export default function ManageRoom() {
     try {
       const opened = await apiRequest<OrganizerSession>('/api/attendance/sessions/open/', {
         method: 'POST',
-        body: { event_id: eventId },
+        body: isClass ? { course_session_id: classParam } : { event_id: eventId },
         token: accessToken,
       });
       setSession(opened);
@@ -253,13 +295,16 @@ export default function ManageRoom() {
     }
   }
 
-  if (event.loading && !event.data) return <LoadingView />;
-  if (event.error && !event.data) return <ErrorView message={event.error.message} onRetry={event.retry} />;
-  const ev = event.data;
+  if (!isClass && event.loading && !event.data) return <LoadingView />;
+  if (!isClass && event.error && !event.data) return <ErrorView message={event.error.message} onRetry={event.retry} />;
+  const ev = isClass ? null : event.data;
+  const today = etToday();
+  const liveToday = !isClass || dateParam === today; // a class day goes live only on its own date (the server says the same)
   const activeTab = open ? tab : 'people';
   // Reopening has the server's time limit: until 2 hours after the event ends (OPEN_BEFORE/auto-close in backend attendance/rules.py)
   // The Super Admin is not limited by it (same as the server).
-  const eventOver = !!ev && !hasRole(user, ROLES.superAdmin) && Date.now() > new Date(ev.end_date).getTime() + 2 * 60 * 60 * 1000;
+  const eventOver = !isClass && !!ev && !hasRole(user, ROLES.superAdmin) && Date.now() > new Date(ev.end_date).getTime() + 2 * 60 * 60 * 1000;
+  const reopenBlocked = eventOver || (isClass && !liveToday); // the server's limits, hidden here to keep the screen honest
   const needle = query.trim().toLowerCase();
   const matches = people.filter(
     (p) =>
@@ -310,10 +355,13 @@ export default function ManageRoom() {
                     {p.name}
                   </AppText>
                   <AppText variant="caption" color={brand.muted} numberOfLines={1}>
-                    {[p.batch_year ? t('evatt_year', { n: p.batch_year }) : '', p.department].filter(Boolean).join(' · ')}
+                    {isClass ? p.email : [p.batch_year ? t('evatt_year', { n: p.batch_year }) : '', p.department].filter(Boolean).join(' · ')}
                   </AppText>
                   <View style={styles.chips}>
                     <Chip text={p.status === 'PRESENT' ? t('mng_filter_present') : t('mng_filter_not_yet')} tone={p.status === 'PRESENT' ? 'green' : 'grey'} />
+                    {p.standing === 'regular' ? <Chip text={t('mng_standing_regular')} tone="green" /> : null}
+                    {p.standing === 'at_risk' ? <Chip text={t('mng_standing_at_risk')} tone="amber" /> : null}
+                    {p.standing === 'never' ? <Chip text={t('mng_standing_never')} tone="red" /> : null}
                     {p.status === 'PRESENT' && p.method === 'BADGE' ? <Chip text={t('mng_scanned')} tone="blue" /> : null}
                     {p.status === 'PRESENT' && p.method === 'CODE' ? <Chip text={t('mng_code')} tone="blue" /> : null}
                   </View>
@@ -344,7 +392,9 @@ export default function ManageRoom() {
   );
 
   return (
-    <Screen title={ev?.title ?? t('mng_room_title')} subtitle={ev ? `${etDate(ev.start_date)} · ${etTime(ev.start_date)}` : undefined}>
+    <Screen
+      title={isClass ? (titleParam ?? t('mng_room_title')) : (ev?.title ?? t('mng_room_title'))}
+      subtitle={isClass ? (dateParam ? plainDate(dateParam) : undefined) : ev ? `${etDate(ev.start_date)} · ${etTime(ev.start_date)}` : undefined}>
       {stage === 'loading' ? <LoadingView /> : null}
       {stage === 'error' ? <ErrorView message={problem} onRetry={loadSession} /> : null}
 
@@ -354,11 +404,17 @@ export default function ManageRoom() {
           <AppText color={brand.muted} style={styles.center}>
             {t('mng_not_started')}
           </AppText>
-          <Pressable style={[styles.button, busy && styles.disabled]} disabled={busy} onPress={startSession}>
-            <AppText variant="bodyStrong" color="#ffffff">
-              {t('mng_start')}
+          {liveToday ? (
+            <Pressable style={[styles.button, busy && styles.disabled]} disabled={busy} onPress={startSession}>
+              <AppText variant="bodyStrong" color="#ffffff">
+                {t('mng_start')}
+              </AppText>
+            </Pressable>
+          ) : (
+            <AppText variant="caption" color={brand.muted} style={styles.center}>
+              {t('mng_live_today_only')}
             </AppText>
-          </Pressable>
+          )}
         </Card>
       ) : null}
 
@@ -475,9 +531,9 @@ export default function ManageRoom() {
                 {t('mng_close')}
               </AppText>
             </Pressable>
-          ) : eventOver ? (
+          ) : reopenBlocked ? (
             <AppText variant="caption" color={brand.muted} style={styles.center}>
-              {t('mng_over_note')}
+              {t(isClass ? 'mng_class_over_note' : 'mng_over_note')}
             </AppText>
           ) : (
             <Pressable style={[styles.button, busy && styles.disabled]} disabled={busy} onPress={reopenSession}>

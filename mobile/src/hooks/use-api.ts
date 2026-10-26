@@ -10,7 +10,7 @@ import { useSession } from '@/lib/session';
 // loading    = first load in progress (show a spinner)
 // refreshing = the user pulled down to refresh (keep showing the old data)
 // error      = something went wrong (show a message and a Try again button)
-export function useApi<T>(path: string) {
+export function useApi<T>(path: string | null) {
   const { accessToken } = useSession();
 
   const [data, setData] = useState<T | null>(null);
@@ -24,6 +24,10 @@ export function useApi<T>(path: string) {
   const load = useCallback(
     async (isRefresh: boolean) => {
       const id = ++latest.current;
+      if (path === null) {
+        setLoading(false); // nothing to load for this screen
+        return;
+      }
       if (isRefresh) {
         setRefreshing(true);
       } else {

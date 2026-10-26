@@ -63,8 +63,9 @@ export const MANAGE_SECTIONS: ManageSection[] = [
     key: 'class-attendance',
     label: 'mng_sec_class_attendance',
     icon: 'fact-check',
-    roles: [ROLES.courseCoordinator],
+    roles: [ROLES.courseCoordinator, ROLES.superAdmin],
     step: 'R3',
+    href: '/manage/courses',
   },
   {
     key: 'overview',
