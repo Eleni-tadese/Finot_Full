@@ -89,6 +89,7 @@ export const MANAGE_SECTIONS: ManageSection[] = [
     icon: 'question-answer',
     roles: [ROLES.qaModerator, ROLES.qaCounselor],
     step: 'R5',
+    href: '/manage/questions',
   },
 ];
 

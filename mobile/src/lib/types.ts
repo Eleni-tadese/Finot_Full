@@ -300,3 +300,37 @@ export type EmailStatus = {
   failed: number;
   skipped: number;
 };
+
+// GET /api/qa/questions/moderation-queue/  (QA Moderator: public questions waiting for approval)
+export type PublicQuestion = {
+  id: string;
+  display_name: string;
+  category: string;
+  question_body: string;
+  created_at: string;
+};
+
+// GET /api/qa/answers/pending/  (QA Moderator: answers on public questions waiting for approval)
+export type PendingAnswer = {
+  id: number;
+  question: string;
+  question_body: string;
+  question_category: string;
+  question_asker: string;
+  display_name: string;
+  answer_body: string;
+  created_at: string;
+};
+
+// GET /api/qa/questions/counselor-queue/  (QA Counselor: private questions in their queue; the server hides the asker
+// behind a nickname unless the student chose to be named)
+export type PrivateQuestion = {
+  id: string;
+  display_name: string;
+  asker_name: string | null;
+  category: string;
+  question_body: string;
+  created_at: string;
+  answer_count: number;
+  answers: { id: number; display_name: string; answer_body: string; created_at: string }[];
+};

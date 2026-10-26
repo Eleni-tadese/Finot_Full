@@ -22,6 +22,7 @@ export default function ManageLayout() {
       <Stack.Screen name="days" options={{ title: t('mng_days_title') }} />
       <Stack.Screen name="overview" options={{ title: t('mng_sec_overview') }} />
       <Stack.Screen name="email" options={{ title: t('mng_sec_email') }} />
+      <Stack.Screen name="questions" options={{ title: t('mng_sec_questions') }} />
     </Stack>
   );
 }
