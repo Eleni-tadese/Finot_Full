@@ -61,7 +61,11 @@ export const adminApi = {
   reissueSlip: (id: number) =>
     axiosInstance.post<{ name: string; email: string; password: string; grace_days: number; deadline: string }>(`${C}/users/${id}/reissue/`).then((r) => r.data),
   userCard: (id: number) => axiosInstance.get<PersonCard>(`${C}/users/${id}/`).then((r) => r.data),
-  userFilterOptions: () => axiosInstance.get<UserFilterOptions>(`${C}/users/filters/`).then((r) => r.data),
+  // the list's own filters go along, so the counts match the list on screen
+  userFilterOptions: (params: Record<string, string | undefined> = {}) =>
+    axiosInstance.get<UserFilterOptions>(`${C}/users/filters/`, { params }).then((r) => r.data),
+  usersExport: (params: Record<string, string | undefined>) =>
+    axiosInstance.get(`${C}/users/export/`, { params, responseType: "blob" }).then((r) => r.data as Blob),
   updateUser: (
     id: number,
     body: {

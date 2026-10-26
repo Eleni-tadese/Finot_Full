@@ -45,6 +45,9 @@ from student.cards import profile_card
 from student.models import Department, StudentProfile, YearRollover
 from student.participation import participating_q
 
+from . import exports
+from .utils.xlsx import xlsx_response
+
 User = get_user_model()
 
 
@@ -287,10 +290,60 @@ def filter_users(request, qs):
     return qs
 
 
+class _Without:
+    """A stand-in for `request` whose query string leaves one filter out (used to count that filter's own options)."""
+
+    def __init__(self, request, key):
+        self.query_params = request.query_params.copy()
+        self.query_params.pop(key, None)
+
+
+def user_filter_counts(request):
+    """
+    How many people each filter choice would give, keeping every OTHER filter, the search and the role as they are.
+    Choosing a different value in the same dropdown replaces its own filter, so that filter is left out of its count.
+    """
+    counts = {}
+
+    def people(key):
+        return filter_users(_Without(request, key), User.objects.all())
+
+    def grouped(key, lookup, rename=None):
+        rows = people(key).values(lookup).annotate(n=Count("id", distinct=True))
+        out = {}
+        for row in rows:
+            value = row[lookup]
+            value = "none" if value is None and key == "group" else value
+            if value is None:
+                continue
+            value = rename(value) if rename else str(value)
+            out[value] = out.get(value, 0) + row["n"]
+        counts[key] = out
+
+    grouped("gender", "gender")
+    grouped("batch", "student_profile__batch_year")
+    grouped("dorm_block", "student_profile__dorm_block")
+    grouped("section", "student_profile__section")
+    grouped("group", "service_memberships__service_group_id")
+    grouped("department", "student_profile__department", rename=lambda v: str(v).strip().lower())
+    grouped("stage", "student_profile__status", rename=lambda v: "student" if v == StudentProfile.IN_CAMPUS else "graduated")
+    grouped("status", "is_active", rename=lambda v: "active" if v else "inactive")
+
+    q = people("account")
+    counts["account"] = {"slip": q.filter(slip_email_q()).distinct().count(), "real": q.exclude(slip_email_q()).distinct().count()}
+    q = people("family")
+    counts["family"] = {
+        "has": q.filter(family_membership__isnull=False).distinct().count(),
+        "none": q.filter(family_membership__isnull=True).distinct().count(),
+    }
+    return counts
+
+
 class UserFilterOptionsView(ConsoleView):
     """
-    Choices for the filter dropdowns. Years 1-5 are always offered (plus any other year a student has);
-    departments are the Super Admin's whole list plus any older value students still carry.
+    Choices for the filter dropdowns, with a head count for each (`counts`). Years 1-5 are always offered
+    (plus any other year a student has); departments are the Super Admin's whole list plus any older value
+    students still carry. Pass the list's own filters in the query string to get counts for that view.
     """
 
     def get(self, request):
@@ -307,7 +360,22 @@ class UserFilterOptionsView(ConsoleView):
             "dorm_blocks": sorted(profiles.exclude(dorm_block__isnull=True).values_list("dorm_block", flat=True).distinct()),
             "sections": sorted(profiles.exclude(section__isnull=True).values_list("section", flat=True).distinct()),
             "groups": [{"id": g.id, "name": g.name} for g in ServiceGroup.objects.order_by("name")],
+            "counts": user_filter_counts(request),
         })
+
+
+class UsersExportView(ConsoleView):
+    """GET users/export/?<the same filters as the list>  everyone who matches, as an Excel file."""
+
+    def get(self, request):
+        qs = (
+            filter_users(request, User.objects.all())
+            .select_related("student_profile")
+            .prefetch_related("userrole_set__role", "service_memberships__service_group")
+            .order_by("first_name", "last_name", "id")
+            .distinct()
+        )
+        return xlsx_response(f"users-{timezone.localdate():%Y-%m-%d}.xlsx", exports.users_list_sheets(qs))
 
 
 class DonationsView(ConsoleView):

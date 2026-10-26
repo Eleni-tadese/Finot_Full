@@ -1,3 +1,4 @@
+import { FiDownload } from "react-icons/fi";
 import { useCallback, useEffect, useState } from "react";
 import { useConfirm } from "../../../components/ui/ConfirmProvider";
 import { useTranslation } from "react-i18next";
@@ -40,9 +41,13 @@ const UsersPage = () => {
 
   useEffect(() => {
     adminApi.roles().then(setRoles).catch(() => undefined);
-    adminApi.userFilterOptions().then(setOptions).catch(() => undefined);
     adminApi.departments().then(setDepartments).catch(() => undefined);
   }, []);
+
+  // the head counts in the dropdowns follow the search, the role and the other filters
+  useEffect(() => {
+    adminApi.userFilterOptions({ search: debounced || undefined, role: role || undefined, ...filters }).then(setOptions).catch(() => undefined);
+  }, [debounced, role, filters]);
 
   useEffect(() => {
     const timer = setTimeout(() => { setDebounced(search); setPage(1); }, 300);
@@ -72,19 +77,32 @@ const UsersPage = () => {
     });
     setPage(1);
   };
+  const download = async () => {
+    try {
+      const blob = await adminApi.usersExport({ search: debounced || undefined, role: role || undefined, ...filters });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url; a.download = "users.xlsx";
+      document.body.appendChild(a); a.click(); a.remove();
+      URL.revokeObjectURL(url);
+    } catch {
+      toast.error(t("export_failed", "Could not download the file."));
+    }
+  };
   const clearFilters = () => { setFilters({ account: "real" }); setRole(""); setPage(1); };
 
+  const n = (key: string, value: string) => options?.counts?.[key]?.[value] ?? (options?.counts ? 0 : undefined);
   const filterFields: FilterField[] = [
-    { key: "account", label: t("flt_account", "Accounts"), options: [{ value: "real", label: t("flt_acc_real", "Real accounts") }, { value: "slip", label: t("flt_acc_slip", "Still on a slip") }] },
-    { key: "gender", label: t("flt_gender", "Gender"), options: [{ value: "M", label: t("flt_male", "Male") }, { value: "F", label: t("flt_female", "Female") }] },
-    { key: "batch", label: t("flt_batch", "Batch"), options: (options?.batches ?? []).map((b) => ({ value: String(b), label: t("flt_batch_n", "Batch {{n}}", { n: b }) })) },
-    { key: "department", label: t("flt_department", "Department"), options: (options?.departments ?? []).map((d) => ({ value: d, label: d })) },
-    { key: "group", label: t("flt_group", "Service group"), options: [{ value: "none", label: t("flt_no_group", "No group") }, ...(options?.groups ?? []).map((g) => ({ value: String(g.id), label: g.name }))] },
-    { key: "family", label: t("flt_family", "Family"), options: [{ value: "has", label: t("flt_has_family", "In a family") }, { value: "none", label: t("flt_no_family", "Not in a family") }] },
-    { key: "dorm_block", label: t("flt_dorm", "Dorm block"), options: (options?.dorm_blocks ?? []).map((b) => ({ value: String(b), label: t("adm_block_n", "Block {{n}}", { n: b }) })) },
-    { key: "section", label: t("flt_section", "Section"), options: (options?.sections ?? []).map((s) => ({ value: String(s), label: t("adm_section_n", "Section {{n}}", { n: s }) })) },
-    { key: "stage", label: t("usr_stage", "Stage"), options: [{ value: "student", label: t("usr_stage_student", "Student") }, { value: "graduated", label: t("usr_stage_graduated", "Graduated") }] },
-    { key: "status", label: t("flt_status", "Status"), options: [{ value: "active", label: t("adm_active", "Active") }, { value: "inactive", label: t("adm_inactive", "Inactive") }] },
+    { key: "account", label: t("flt_account", "Accounts"), options: [{ value: "real", label: t("flt_acc_real", "Real accounts"), count: n("account", "real") }, { value: "slip", label: t("flt_acc_slip", "Still on a slip"), count: n("account", "slip") }] },
+    { key: "gender", label: t("flt_gender", "Gender"), options: [{ value: "M", label: t("flt_male", "Male"), count: n("gender", "M") }, { value: "F", label: t("flt_female", "Female"), count: n("gender", "F") }] },
+    { key: "batch", label: t("flt_batch", "Batch"), options: (options?.batches ?? []).map((b) => ({ value: String(b), label: t("flt_batch_n", "Batch {{n}}", { n: b }), count: n("batch", String(b)) })) },
+    { key: "department", label: t("flt_department", "Department"), options: (options?.departments ?? []).map((d) => ({ value: d, label: d, count: n("department", d.toLowerCase()) })) },
+    { key: "group", label: t("flt_group", "Service group"), options: [{ value: "none", label: t("flt_no_group", "No group"), count: n("group", "none") }, ...(options?.groups ?? []).map((g) => ({ value: String(g.id), label: g.name, count: n("group", String(g.id)) }))] },
+    { key: "family", label: t("flt_family", "Family"), options: [{ value: "has", label: t("flt_has_family", "In a family"), count: n("family", "has") }, { value: "none", label: t("flt_no_family", "Not in a family"), count: n("family", "none") }] },
+    { key: "dorm_block", label: t("flt_dorm", "Dorm block"), options: (options?.dorm_blocks ?? []).map((b) => ({ value: String(b), label: t("adm_block_n", "Block {{n}}", { n: b }), count: n("dorm_block", String(b)) })) },
+    { key: "section", label: t("flt_section", "Section"), options: (options?.sections ?? []).map((s) => ({ value: String(s), label: t("adm_section_n", "Section {{n}}", { n: s }), count: n("section", String(s)) })) },
+    { key: "stage", label: t("usr_stage", "Stage"), options: [{ value: "student", label: t("usr_stage_student", "Student"), count: n("stage", "student") }, { value: "graduated", label: t("usr_stage_graduated", "Graduated"), count: n("stage", "graduated") }] },
+    { key: "status", label: t("flt_status", "Status"), options: [{ value: "active", label: t("adm_active", "Active"), count: n("status", "active") }, { value: "inactive", label: t("adm_inactive", "Inactive"), count: n("status", "inactive") }] },
   ];
 
   const replaceUser = (updated: AdminUser) => setUsers((prev) => prev.map((u) => (u.id === updated.id ? updated : u)));
@@ -207,6 +225,13 @@ const UsersPage = () => {
 
       <div className="mb-4">
         <ProfileFilterBar fields={filterFields} values={filters} onChange={setFilter} onClear={clearFilters} />
+      </div>
+
+      <div className="mb-2 flex items-center justify-between gap-3">
+        <p className="text-sm font-medium text-foreground">{t("adm_n_users", "{{n}} user(s)", { n: count })}</p>
+        <button type="button" onClick={download} className="btn-outline inline-flex items-center gap-2 text-sm" disabled={count === 0}>
+          <FiDownload className="h-4 w-4" />{t("usr_export", "Export to Excel")}
+        </button>
       </div>
 
       {loading ? (

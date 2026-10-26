@@ -1237,6 +1237,7 @@
   "usr_stage": "Stage",
   "usr_stage_student": "Student",
   "usr_stage_graduated": "Graduated",
+  "usr_export": "Export to Excel",
   "usr_not_set": "Not set",
   "usr_details_hint": "Only the Super Admin can change these after sign-up. The yearly rollover moves the year for everyone.",
   "usr_need_year": "Year {{n}}+ or graduate",

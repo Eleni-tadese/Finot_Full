@@ -39,6 +39,8 @@ export interface UserFilterOptions {
   dorm_blocks: number[];
   sections: number[];
   groups: { id: number; name: string }[];
+  /** head count per choice: counts[filterKey][value]; department values are lower case */
+  counts?: Record<string, Record<string, number>>;
 }
 
 export interface Overview {

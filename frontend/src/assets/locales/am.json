@@ -1237,6 +1237,7 @@
   "usr_stage": "ደረጃ",
   "usr_stage_student": "ተማሪ",
   "usr_stage_graduated": "ተመራቂ",
+  "usr_export": "ወደ ኤክሴል ላክ",
   "usr_not_set": "አልተሞላም",
   "usr_details_hint": "ከምዝገባ በኋላ እነዚህን ሱፐር አድሚን ብቻ ሊቀይራቸው ይችላል። ዓመታዊው ዝውውር የሁሉንም ዓመት ያሳድጋል።",
   "usr_need_year": "ዓመት {{n}}+ ወይም ተመራቂ",

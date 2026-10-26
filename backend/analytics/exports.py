@@ -36,6 +36,26 @@ def students_sheets(profiles=None):
     return [Sheet("Students", headers, rows)]
 
 
+def users_list_sheets(users):
+    """The Users & roles list (already filtered by the caller) as one sheet."""
+    headers = [
+        "Full name", "Email", "Gender", "Roles", "Batch", "Department", "Dorm block", "Section",
+        "Service group", "Stage", "Active", "Phone", "Joined",
+    ]
+    rows = []
+    for u in users:
+        profile = getattr(u, "student_profile", None)
+        rows.append([
+            full_name(u), u.email, u.gender, ", ".join(sorted(r.role.name for r in u.userrole_set.all())),
+            profile.batch_year if profile else "", profile.department if profile else "",
+            profile.dorm_block if profile else "", profile.section if profile else "",
+            ", ".join(m.service_group.name for m in u.service_memberships.all()),
+            profile.status if profile else "", "Yes" if u.is_active else "No",
+            profile.personal_phone if profile else "", u.date_joined,
+        ])
+    return [Sheet("Users", headers, rows)]
+
+
 def families_sheets():
     families = Family.objects.select_related("father", "mother").prefetch_related("members__student")
     family_rows, member_rows = [], []

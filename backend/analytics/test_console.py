@@ -400,6 +400,26 @@ class TestUserFilters:
         assert self.emails(group="none") == {"b@finot.test", "d@finot.test"}
         assert self.emails(status="inactive") == set()
 
+    def test_option_counts_keep_the_other_filters_but_not_their_own(self):
+        counts = self.c.get(self.URL + "filters/", {"gender": "F", "batch": 1}).json()["counts"]
+        assert counts["batch"] == {"1": 1, "3": 1}  # the batch filter itself is ignored, gender F is kept
+        assert counts["gender"]["M"] == 1 and counts["gender"]["F"] == 1  # gender ignored, batch 1 is kept
+        assert counts["department"] == {"computer science": 1}  # both spellings counted together, F + batch 1 kept
+        assert counts["group"] == {"none": 1}  # the choir member is a man, so F + batch 1 leaves no group member
+
+    def test_export_has_the_filtered_people_only(self):
+        from io import BytesIO
+
+        from openpyxl import load_workbook
+
+        res = self.c.get(self.URL + "export/", {"gender": "F"})
+        assert res.status_code == 200 and "spreadsheetml" in res["Content-Type"]
+        sheet = load_workbook(BytesIO(res.content)).active
+        rows = list(sheet.iter_rows(values_only=True))
+        assert rows[0][0] == "Full name"
+        assert {r[1] for r in rows[1:]} == {"b@finot.test", "d@finot.test"}
+        assert client_for(self.a).get(self.URL + "export/").status_code == 403
+
     def test_filters_combine(self):
         assert self.emails(gender="F", batch=1) == {"b@finot.test"}
         assert self.emails(gender="F", batch=1, group="none") == {"b@finot.test"}

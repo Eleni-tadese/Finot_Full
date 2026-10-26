@@ -4,7 +4,7 @@ import { useTranslation } from "react-i18next";
 export interface FilterField {
   key: string;
   label: string;
-  options: { value: string; label: string }[];
+  options: { value: string; label: string; count?: number }[];
 }
 
 interface Props {
@@ -44,7 +44,7 @@ const FilterBar = ({ fields, values, onChange, onClear }: Props) => {
               className={`input py-2 text-sm ${values[f.key] ? "border-primary bg-primary/5" : ""}`}
             >
               <option value="">{t("flt_all", "All")}</option>
-              {f.options.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+              {f.options.map((o) => <option key={o.value} value={o.value}>{o.count === undefined ? o.label : `${o.label} (${o.count})`}</option>)}
             </select>
           </label>
         ))}

@@ -64,7 +64,8 @@ Generated from the code (`manage.py spectacular`). For request and response shap
 | PATCH | `/api/admin-console/sms/settings/` | api_admin_console_sms_settings_partial_update |
 | GET | `/api/admin-console/sub-admins/` | api_admin_console_sub_admins_retrieve |
 | GET | `/api/admin-console/users/` | api_admin_console_users_retrieve |
-| GET | `/api/admin-console/users/filters/` | Choices for the filter dropdowns. Years 1-5 are always offered (plus any other year a student has); |
+| GET | `/api/admin-console/users/export/` | GET users/export/?<the same filters as the list>  everyone who matches, as an Excel file. |
+| GET | `/api/admin-console/users/filters/` | Choices for the filter dropdowns, with a head count for each (`counts`). Years 1-5 are always offered |
 | GET | `/api/admin-console/users/{id}/` | Everything about one person (Super Admin only). |
 | PATCH | `/api/admin-console/users/{id}/` | api_admin_console_users_partial_update |
 | POST | `/api/admin-console/users/{id}/badge/` | POST users/<id>/badge/ : a lost or shared QR badge. The old badge stops scanning (old_badge); the student opens |

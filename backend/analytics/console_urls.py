@@ -7,6 +7,7 @@ urlpatterns = [
     path("overview/", v.OverviewView.as_view()),
     path("roles/", v.RolesView.as_view()),
     path("users/filters/", v.UserFilterOptionsView.as_view()),
+    path("users/export/", v.UsersExportView.as_view()),
     path("users/", v.UsersView.as_view()),
     path("users/<int:pk>/", v.UserDetailView.as_view()),
     path("users/<int:pk>/reissue/", v.UserReissueView.as_view()),
