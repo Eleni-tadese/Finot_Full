@@ -26,6 +26,8 @@ const ERROR_KEYS: Record<string, string> = {
   closed: 'att_err_closed',
   forbidden: 'att_err_forbidden',
   another_open: 'att_err_another_open',
+  not_yet: 'att_err_not_yet',
+  ended: 'att_err_ended',
 };
 
 type Result = { ok: boolean; text: string };

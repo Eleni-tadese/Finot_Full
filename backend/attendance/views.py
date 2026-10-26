@@ -3,6 +3,7 @@
 
 Organizer (may take attendance for the target):
     POST sessions/open/            {"event_id": 1} or {"course_session_id": "<uuid>"}
+                                   (an event opens 1 hour before it starts until 2 hours after its end; a class day only on its date)
     GET  sessions/current/?event_id=1  (or ?course_session_id=)   -> the open session or 404
     GET  sessions/<id>/            counts and state
     POST sessions/<id>/close/      everyone else becomes Absent

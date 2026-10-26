@@ -119,6 +119,20 @@ class TestOpening:
         assert res.status_code == 201 and res.json()["kind"] == "class_day" and res.json()["roster"] == 2
         assert client_for(w.manager).post(A + "sessions/open/", {"course_session_id": str(w.day.id)}, format="json").status_code == 403
 
+    def test_an_event_opens_only_around_its_own_time(self, w):
+        client = client_for(w.manager)
+        far = baker.make(Event, title="In three days", service_group=None, created_by=w.manager,
+                         start_date=tz.now() + timedelta(days=3), end_date=tz.now() + timedelta(days=3, hours=2))
+        res = client.post(A + "sessions/open/", {"event_id": far.id}, format="json")
+        assert res.status_code == 400 and res.json()["code"] == "not_yet"
+        soon = baker.make(Event, title="Starts in 30 minutes", service_group=None, created_by=w.manager,
+                          start_date=tz.now() + timedelta(minutes=30), end_date=tz.now() + timedelta(hours=2))
+        assert client.post(A + "sessions/open/", {"event_id": soon.id}, format="json").status_code == 201
+        old = baker.make(Event, title="Last week", service_group=None, created_by=w.manager,
+                         start_date=tz.now() - timedelta(days=7), end_date=tz.now() - timedelta(days=7) + timedelta(hours=2))
+        res = client.post(A + "sessions/open/", {"event_id": old.id}, format="json")
+        assert res.status_code == 400 and res.json()["code"] == "ended"
+
     def test_opening_twice_returns_the_same_open_session(self, w):
         first = open_event(w)
         res = client_for(w.manager).post(A + "sessions/open/", {"event_id": w.general.id}, format="json")

@@ -1776,6 +1776,8 @@
   "att_err_old_badge": "Baajiin kun kana booda hin hojjetu. Haaraa gaafadhu.",
   "att_err_not_on_roster": "Barataan kun tarree seeshinii kanaa keessa hin jiru.",
   "att_err_closed": "Argamuun seeshinii kanaaf cufameera.",
+  "att_err_not_yet": "Argamni sa’aatii tokko taateen jalqabuu dura ni banama.",
+  "att_err_ended": "Taateen kun xumurameera. Marsariitii irratti argama darbe sirreessi.",
   "att_err_wrong_code": "Koodii dogoggoraa yookiin yeroon isaa darbe. Iskiriinii irra deebi'ii dubbisi.",
   "att_err_forbidden": "Asitti argamuu fudhachuu hin dandeessu.",
   "att_err_another_open": "Kanaaf seeshiniin biraa duraan banaa dha.",

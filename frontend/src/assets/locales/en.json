@@ -1776,6 +1776,8 @@
   "att_err_old_badge": "This badge is no longer valid. Ask for a new one.",
   "att_err_not_on_roster": "This student is not on the list for this session.",
   "att_err_closed": "Attendance is closed for this session.",
+  "att_err_not_yet": "Attendance opens one hour before the event starts.",
+  "att_err_ended": "This event has ended. Correct it with Mark attendance on the website.",
   "att_err_wrong_code": "Wrong or expired code. Read the screen again.",
   "att_err_forbidden": "You may not take attendance here.",
   "att_err_another_open": "Another session is already open for this.",

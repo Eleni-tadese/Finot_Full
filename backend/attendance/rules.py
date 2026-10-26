@@ -25,6 +25,9 @@ from student.participation import participating_q
 
 ETHIOPIA = dt_timezone(timedelta(hours=3))
 
+# An event's attendance can be opened from this long before it starts (students arrive early) until its auto-close time.
+OPEN_BEFORE_START = timedelta(hours=1)
+
 
 def today_in_ethiopia():
     return datetime.now(ETHIOPIA).date()
@@ -88,6 +91,13 @@ def open_session(user, event=None, course_session=None):
     existing = AttendanceSession.objects.filter(event=event, course_session=course_session, closed_at__isnull=True).first()
     if existing:
         return existing, False
+    if event is not None:
+        # like a class day, an event has its own time: closing an event that has not happened would mark everyone Absent
+        now = timezone.now()
+        if now < event.start_date - OPEN_BEFORE_START:
+            raise AttendanceError("not_yet", "Attendance opens one hour before the event starts.")
+        if now > AttendanceSession.default_auto_close(event=event):
+            raise AttendanceError("ended", "This event has ended. Correct a past event with Mark attendance on the website.")
     try:
         with transaction.atomic():
             session = AttendanceSession.objects.create(
