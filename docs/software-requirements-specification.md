@@ -366,3 +366,8 @@ The logical and physical data model, constraints and retention rules are in the 
 | F11 Rollover | FR-YEAR | `student/rollover.py` | `AdminYearPage` |
 | F12 Materials | FR-RES | `resources/` | `ResourcesList`, `CourseMaterialsPage` |
 | F13 Console and exports | FR-ADM | `analytics/` | `features/admin-console/` |
+
+## Mobile app for role holders (FR-MOB)
+- FR-MOB-1: one app and one sign-in; role holders (Super Admin, Event Manager, Service Admin, Course Coordinator, QA Moderator, QA Counselor) see a Manage tab, students do not. The phone only hides screens; every action is checked by the server.
+- FR-MOB-2: attendance on the phone uses the same API as the website. Nobody, including the Super Admin, takes attendance for an event that has not started (live attendance opens 1 hour before the start) or a class day before its date; hand marking never overwrites a newer mark.
+- FR-MOB-3: tablets get a navigation rail and landscape is supported.

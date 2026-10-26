@@ -45,7 +45,7 @@ Gibi Gubae is a student fellowship (an Orthodox Christian student ministry) at E
 
 - Not a general learning management system (no grading, no video lessons).
 - Not a chat application (family messages are simple, no real-time chat).
-- No native mobile app (the website is responsive and can send push notifications).
+- A mobile app (Expo, Android first) exists next to the website: students use Home, Events, Courses, Giving, Alerts and Profile; role holders get a **Manage** tab (event and class attendance, Super Admin overview and email status, questions). The server decides what each role may do. Not yet: offline scan queue, iPhone build.
 - No SMS sending by default (built, but switched off until a provider is chosen).
 - No online registration for the public: students are registered by the organization.
 
