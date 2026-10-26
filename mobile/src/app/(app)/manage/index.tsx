@@ -1,3 +1,5 @@
+import { MaterialIcons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
 import { StyleSheet, View } from 'react-native';
 
 import { Screen } from '@/components/screen';
@@ -15,6 +17,7 @@ import { useTranslation } from 'react-i18next';
 export default function ManageHome() {
   const { t } = useTranslation();
   const { user } = useSession();
+  const router = useRouter();
   const roles = staffRoles(user);
   const sections = sectionsFor(user);
 
@@ -28,14 +31,18 @@ export default function ManageHome() {
       </View>
 
       {sections.map((section) => (
-        <Card key={section.key} style={styles.row}>
+        // A card with an `href` opens its tool; the others still say "coming soon".
+        <Card key={section.key} style={styles.row} onPress={section.href ? () => router.push(section.href as never) : undefined}>
           <IconBadge name={section.icon} />
           <View style={styles.rowText}>
             <AppText variant="bodyStrong">{t(section.label)}</AppText>
-            <AppText variant="caption" color={brand.muted}>
-              {t('mng_soon')}
-            </AppText>
+            {section.href ? null : (
+              <AppText variant="caption" color={brand.muted}>
+                {t('mng_soon')}
+              </AppText>
+            )}
           </View>
+          {section.href ? <MaterialIcons name="chevron-right" size={24} color={brand.muted} /> : null}
         </Card>
       ))}
     </Screen>

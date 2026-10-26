@@ -46,7 +46,8 @@ export type ManageSection = {
   label: string;
   icon: keyof typeof MaterialIcons.glyphMap;
   roles: readonly string[]; // who sees it
-  step: string; // the plan step that builds it (for now every section says "coming soon")
+  step: string; // the plan step that builds it
+  href?: string; // where the card opens; without it the card says "coming soon"
 };
 
 export const MANAGE_SECTIONS: ManageSection[] = [
@@ -54,8 +55,9 @@ export const MANAGE_SECTIONS: ManageSection[] = [
     key: 'event-attendance',
     label: 'mng_sec_event_attendance',
     icon: 'qr-code-scanner',
-    roles: [ROLES.eventManager, ROLES.serviceAdmin],
+    roles: [ROLES.eventManager, ROLES.serviceAdmin, ROLES.superAdmin],
     step: 'R2',
+    href: '/manage/events',
   },
   {
     key: 'class-attendance',

@@ -175,6 +175,15 @@ class EventSerializer(serializers.ModelSerializer):
     def get_service_group_name(self, obj):
         return group_name(obj.service_group, self.context.get('request')) if obj.service_group else None
 
+    can_take_attendance = serializers.SerializerMethodField()
+
+    def get_can_take_attendance(self, obj):
+        # the server's own rule (event_rules.can_manage_event_attendance): the phone only shows or hides the button
+        from .event_rules import can_manage_event_attendance
+
+        request = self.context.get('request')
+        return bool(request and request.user.is_authenticated and can_manage_event_attendance(request.user, obj))
+
     audience_label = serializers.SerializerMethodField()
 
     def get_audience_label(self, obj):
@@ -210,7 +219,7 @@ class EventSerializer(serializers.ModelSerializer):
     class Meta:
         model = Event
         fields = ['id', 'title', 'description', 'start_date', 'end_date', 'photo', 'status', 'created_by', 'created_by_name', 'created_at', 'place_name', 'place_url', 'service_group', 'service_group_name',
-                  'audience_years', 'audience_gender', 'audience_departments', 'audience_label']
+                  'audience_years', 'audience_gender', 'audience_departments', 'audience_label', 'can_take_attendance']
         read_only_fields = ['created_by', 'created_at']
 
 

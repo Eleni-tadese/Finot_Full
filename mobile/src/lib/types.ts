@@ -70,6 +70,7 @@ export type ServiceEvent = {
   place_url: string | null;
   service_group: number | null; // null = an event for everyone
   service_group_name: string | null;
+  can_take_attendance?: boolean; // true when the server lets THIS person take attendance for the event
 };
 
 // GET /api/service/attendance/  (my own records only)
@@ -214,4 +215,33 @@ export type AttendanceSession = {
 export type SelfCheckInResponse = {
   ok?: boolean;
   already?: boolean;
+};
+
+// GET /api/attendance/sessions/current/?event_id=  and  POST sessions/open/  (the organizer's view of a session)
+export type OrganizerSession = {
+  id: number;
+  kind: 'event' | 'class_day';
+  status: 'OPEN' | 'CLOSED';
+  present: number;
+  roster: number;
+  event?: { id: number; title: string; start_date: string; end_date: string };
+};
+
+// GET /api/attendance/sessions/{id}/code/  (the room code changes every 30 seconds)
+export type RoomCode = {
+  code: string; // "123456"
+  seconds_left: number;
+  qr: string; // "FS1.<session id>.<6 digits>", what the students' cameras read
+  window_seconds: number;
+  present: number;
+  roster: number;
+};
+
+// POST /api/attendance/sessions/{id}/scan/  (400 answers carry the same shape with ok: false and a code)
+export type ScanResult = {
+  ok: boolean;
+  already?: boolean;
+  code?: string; // bad_badge, old_badge, not_on_roster, closed
+  detail?: string;
+  student?: { id: number; name: string; photo: string | null; batch_year: number | null; department: string | null };
 };

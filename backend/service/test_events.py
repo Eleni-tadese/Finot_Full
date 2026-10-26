@@ -122,6 +122,23 @@ class TestWhoSeesWhat:
 
 
 @pytest.mark.django_db
+class TestCanTakeAttendanceFlag:
+    """The event list tells the app which events this person may take attendance for (the phone only shows or hides a button)."""
+
+    def flags(self, user):
+        data = client_for(user).get(EVENTS).json()
+        return {e["id"]: e["can_take_attendance"] for e in (data["results"] if isinstance(data, dict) else data)}
+
+    def test_flag_follows_the_server_rule(self, world):
+        assert self.flags(world.manager)[world.general.id] is True          # their own general event
+        assert self.flags(world.other_manager)[world.general.id] is False   # another manager's event
+        assert self.flags(world.sa1)[world.group_event.id] is True          # their group's event
+        assert self.flags(world.sa1)[world.general.id] is False
+        assert self.flags(world.a)[world.group_event.id] is False           # a student
+        assert set(self.flags(world.boss).values()) == {True}               # the Super Admin: all
+
+
+@pytest.mark.django_db
 class TestAttendanceRoster:
     def roster(self, user, event):
         return client_for(user).get(f"{EVENTS}{event.id}/roster/")
