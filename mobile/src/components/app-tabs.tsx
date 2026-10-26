@@ -1,12 +1,15 @@
 import { NativeTabs } from 'expo-router/unstable-native-tabs';
 
 import { brand } from '@/constants/brand';
+import { isStaff } from '@/lib/roles';
+import { useSession } from '@/lib/session';
 import { useTranslation } from 'react-i18next';
 
 // The bottom bar. Each tab has its OWN icon: `md` is a Material Symbol name (Android),
 // `sf` is the matching Apple SF Symbol (iPhone). The tab name must match the file or folder in src/app/(app)/.
 export default function AppTabs() {
   const { t } = useTranslation();
+  const { user } = useSession();
   return (
     <NativeTabs
       backgroundColor={brand.card}
@@ -26,6 +29,12 @@ export default function AppTabs() {
       <NativeTabs.Trigger name="courses">
         <NativeTabs.Trigger.Label>{t('adm_nav_courses')}</NativeTabs.Trigger.Label>
         <NativeTabs.Trigger.Icon sf="book.fill" md="school" />
+      </NativeTabs.Trigger>
+
+      {/* Manage: `hidden` takes the tab out of the bar, so students never see it. */}
+      <NativeTabs.Trigger name="manage" hidden={!isStaff(user)}>
+        <NativeTabs.Trigger.Label>{t('mng_tab')}</NativeTabs.Trigger.Label>
+        <NativeTabs.Trigger.Icon sf="wrench.and.screwdriver.fill" md="admin_panel_settings" />
       </NativeTabs.Trigger>
 
       <NativeTabs.Trigger name="notifications">
