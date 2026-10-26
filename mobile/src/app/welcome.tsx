@@ -13,7 +13,7 @@ import Animated, {
   withRepeat,
   withTiming,
 } from 'react-native-reanimated';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { AppText } from '@/components/ui/app-text';
 import { LanguagePicker } from '@/components/ui/language-picker';
@@ -74,6 +74,7 @@ function Stat({ icon, value, label }: { icon: keyof typeof MaterialIcons.glyphMa
 
 export default function WelcomeScreen() {
   const { t } = useTranslation();
+  const insets = useSafeAreaInsets();
   const router = useRouter();
   const { width, height } = useWindowDimensions();
   const overview = useApi<PublicOverview>('/api/public/overview/');
@@ -140,7 +141,8 @@ export default function WelcomeScreen() {
             </View>
           </Animated.View>
 
-          <View style={styles.languageCorner}>
+          {/* An absolute box ignores the safe-area padding, so the status-bar height is added by hand */}
+          <View style={[styles.languageCorner, { top: insets.top + 12 }]}>
             <LanguagePicker onDark />
           </View>
 
