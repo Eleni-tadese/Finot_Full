@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
+import { KeyboardAvoidingView, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { AppText } from '@/components/ui/app-text';
@@ -20,17 +20,21 @@ type ScreenProps = {
 export function Screen({ children, title, subtitle, headerRight, onRefresh, refreshing = false }: ScreenProps) {
   return (
     <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
-      <ScrollView
-        contentContainerStyle={styles.content}
-        showsVerticalScrollIndicator={false}
-        refreshControl={
-          onRefresh ? (
-            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[brand.primary]} tintColor={brand.primary} />
-          ) : undefined
-        }>
-        {title ? <PageHeader title={title} subtitle={subtitle} right={headerRight} /> : null}
-        {children}
-      </ScrollView>
+      {/* The app draws edge to edge, so Android no longer shrinks the window for the keyboard: this box does it. */}
+      <KeyboardAvoidingView style={styles.flex} behavior="padding">
+        <ScrollView
+          keyboardShouldPersistTaps="handled"
+          contentContainerStyle={styles.content}
+          showsVerticalScrollIndicator={false}
+          refreshControl={
+            onRefresh ? (
+              <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[brand.primary]} tintColor={brand.primary} />
+            ) : undefined
+          }>
+          {title ? <PageHeader title={title} subtitle={subtitle} right={headerRight} /> : null}
+          {children}
+        </ScrollView>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
@@ -54,6 +58,7 @@ export function PageHeader({ title, subtitle, right }: { title: string; subtitle
 }
 
 const styles = StyleSheet.create({
+  flex: { flex: 1 },
   safeArea: { flex: 1, backgroundColor: brand.background },
   // width + maxWidth + alignSelf: on a tablet the content is a centred column, not stretched edge to edge
   content: { padding: 20, gap: 14, flexGrow: 1, paddingBottom: 32, width: '100%', maxWidth: 760, alignSelf: 'center' },

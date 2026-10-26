@@ -4,7 +4,6 @@ import { useState } from 'react';
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
-  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -71,7 +70,8 @@ export default function SignInScreen() {
       </SafeAreaView>
       <View style={styles.amberLine} />
 
-      <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+      {/* 'padding' on Android too: with edge-to-edge the system no longer moves the screen above the keyboard */}
+      <KeyboardAvoidingView style={styles.flex} behavior="padding">
         <ScrollView contentContainerStyle={styles.form} keyboardShouldPersistTaps="handled">
           <AppText variant="title">{t('welcome_back_simple')}</AppText>
           <AppText color={brand.muted} style={styles.lead}>
