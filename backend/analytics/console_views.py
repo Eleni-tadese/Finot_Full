@@ -390,6 +390,7 @@ def _apply_profile_facts(user, data):
     if not any(k in data for k in ("batch_year", "department", "student_status")):
         return
     profile, _ = StudentProfile.objects.get_or_create(user=user)
+    before = (profile.batch_year, (profile.department or "").strip().lower())
     if "batch_year" in data:
         raw = data["batch_year"]
         if raw in (None, ""):
@@ -422,6 +423,12 @@ def _apply_profile_facts(user, data):
     dept = Department.objects.filter(name__iexact=profile.department or "").first() if profile.department else None
     if dept and profile.batch_year and profile.batch_year > dept.years:
         raise ValidationError({"batch_year": f"{dept.name} is a {dept.years}-year program."})
+    # Year 1 is spent on a stage, same rule as the student's own form (student/serializers.py). The edit form sends
+    # both fields every time, so only a real change of year or department is checked.
+    changed = before != (profile.batch_year, (profile.department or "").strip().lower())
+    if (changed and dept and profile.batch_year == 1 and not dept.is_stage and profile.status != StudentProfile.GRADUATED
+            and Department.objects.filter(is_stage=True, is_active=True).exists()):
+        raise ValidationError({"department": "In year 1 choose a stage such as Pre-Engineering or Pre-Science. The final department comes later."})
     profile.save()
 
 

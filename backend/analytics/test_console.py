@@ -532,11 +532,28 @@ class TestProfileFactsAndDepartments:
         wrong = me.patch("/api/student/profiles/me/", {"department": "Pharmacy"}, format="json")
         assert wrong.status_code == 400 and "School of Electrical Engineering" in str(wrong.json())  # not where the stage leads
         assert me.patch("/api/student/profiles/me/", {"department": "School of Electrical Engineering"}, format="json").status_code == 200
+        StudentProfile.objects.filter(user=u).update(batch_year=2)  # the yearly rollover moves the year
         assert me.patch("/api/student/profiles/me/", {"department": "Electrical and Computer Engineering"}, format="json").status_code == 200
         assert me.patch("/api/student/profiles/me/", {"department": "Pharmacy"}, format="json").status_code == 400  # final: locked
         assert me.patch("/api/student/profiles/me/", {"batch_year": 3}, format="json").status_code == 400  # the year stays locked
         row = next(d for d in me.get("/api/student/departments/").json() if d["name"] == "Pre-Engineering")
         assert row["is_stage"] is True and row["leads_to"] == [school.id]
+
+    def test_year_one_only_accepts_a_stage_once_stages_exist(self):
+        Department.objects.create(name="Pre-Science", years=5, is_stage=True)
+        Department.objects.create(name="Pharmacy", years=5)
+        u = make_user("y1@x.test", batch=None)
+        StudentProfile.objects.filter(user=u).update(batch_year=None)
+        me = client_for(u)
+        bad = me.patch("/api/student/profiles/me/", {"batch_year": 1, "department": "Pharmacy"}, format="json")
+        assert bad.status_code == 400 and "stage" in str(bad.json())
+        assert me.patch("/api/student/profiles/me/", {"batch_year": 1, "department": "Pre-Science"}, format="json").status_code == 200
+        # the Super Admin follows the same rule when editing details
+        res = self.c.patch(f"{BASE}users/{u.id}/", {"department": "Pharmacy"}, format="json")
+        assert res.status_code == 400
+        # an older record with a final department in year 1 can still save other fields
+        StudentProfile.objects.filter(user=u).update(department="Pharmacy")
+        assert me.patch("/api/student/profiles/me/", {"personal_phone": "0911223344"}, format="json").status_code == 200
 
     def test_super_admin_defines_stages(self):
         a = self.c.post(f"{BASE}departments/", {"name": "Pre-Science", "years": 4, "is_stage": True}, format="json").json()

@@ -125,3 +125,12 @@ class StudentProfileSerializer(serializers.ModelSerializer):
         dept = Department.objects.filter(name__iexact=(dept_name or '').strip()).first() if dept_name else None
         if dept and batch and batch > dept.program_length():
             raise serializers.ValidationError({'batch_year': f'{dept.name} is a {dept.program_length()}-year program.'})
+
+        # Year 1 is spent on a stage (Pre-Engineering, Pre-Science...). Checked only when the year or the
+        # department is being changed, so an older record can still save its phone number. Not applied while
+        # no stage exists yet, and a department outside the list is left to the check above.
+        changing = current is None or any(
+            f in attrs and not same(attrs[f], getattr(current, f, None)) for f in ('batch_year', 'department')
+        )
+        if changing and dept and batch == 1 and not dept.is_stage and Department.objects.filter(is_stage=True, is_active=True).exists():
+            raise serializers.ValidationError({'department': 'In year 1 choose a stage such as Pre-Engineering or Pre-Science. The final department comes later.'})
