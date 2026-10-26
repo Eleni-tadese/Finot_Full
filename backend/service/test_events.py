@@ -204,6 +204,35 @@ class TestMarkingAttendance:
 
 
 @pytest.mark.django_db
+class TestFutureEventsCannotBeMarked:
+    """Save on Mark attendance writes Absent for everyone, so an event that has not started cannot be marked at all."""
+
+    def future(self, world):
+        from datetime import timedelta
+
+        from django.utils import timezone as tz
+
+        return baker.make(Event, title="Later today", service_group=None, created_by=world.manager,
+                          start_date=tz.now() + timedelta(hours=4), end_date=tz.now() + timedelta(hours=6))
+
+    def test_nobody_marks_an_event_that_has_not_started_not_even_the_super_admin(self, world):
+        event = self.future(world)
+        body = {"event_id": event.id, "attendances": [{"student_id": world.a.id, "status": "ABSENT"}]}
+        for who in (world.manager, world.boss):
+            res = client_for(who).post(MARK, body, format="json")
+            assert res.status_code == 400 and res.json()["code"] == "not_yet"
+        assert ServiceAttendance.objects.filter(event=event).count() == 0
+
+    def test_a_student_never_sees_a_mark_for_an_event_that_has_not_started(self, world):
+        event = self.future(world)
+        ServiceAttendance.objects.create(event=event, student=world.a, status="ABSENT")  # an old mistake
+        ServiceAttendance.objects.create(event=world.general, student=world.a, status="PRESENT")
+        data = client_for(world.a).get("/api/service/attendance/").json()
+        rows = data["results"] if isinstance(data, dict) else data
+        assert [r["event"] for r in rows] == [world.general.id]
+
+
+@pytest.mark.django_db
 class TestSaveDoesNotUndoNewerMarks:
     """Mark attendance sends what the page showed (`previous`): a mark that changed meanwhile (a scan) is kept."""
 

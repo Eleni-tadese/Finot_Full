@@ -157,7 +157,7 @@ def my_insights(user, months=6):
     for _ in range(months - 1):  # walk back month by month (months have different lengths)
         first = (first - timedelta(days=1)).replace(day=1)
     buckets = defaultdict(lambda: {"events_present": 0, "events_absent": 0, "classes_present": 0, "classes_absent": 0})
-    for status, when in ServiceAttendance.objects.filter(student=user, event__start_date__date__gte=first).values_list(
+    for status, when in ServiceAttendance.objects.filter(student=user, event__start_date__date__gte=first, event__start_date__lte=timezone.now()).values_list(
         "status", "event__start_date"
     ):
         key = when.date().strftime("%Y-%m")
@@ -177,7 +177,7 @@ def my_insights(user, months=6):
         cursor = (cursor + timedelta(days=32)).replace(day=1)
 
     streak = 0
-    for status in ServiceAttendance.objects.filter(student=user).order_by("-event__start_date").values_list("status", flat=True):
+    for status in ServiceAttendance.objects.filter(student=user, event__start_date__lte=timezone.now()).order_by("-event__start_date").values_list("status", flat=True):
         if status != ServiceAttendance.PRESENT:
             break
         streak += 1

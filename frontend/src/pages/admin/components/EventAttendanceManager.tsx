@@ -110,7 +110,8 @@ export default function EventAttendanceManager({ scope, groupId }: { scope: Scop
       if (kept.length > 0) toast(t("evatt_kept", "{{n}} people were marked while this page was open. Their newer marks were kept.", { n: kept.length }), { icon: "ℹ️", duration: 8000 });
       await loadPeople(eventId);
     } catch (e: any) {
-      toast.error(e?.response?.data?.detail || t("failed_save_event"));
+      // the server refuses an event that has not started (code not_yet); the text is translated here
+      toast.error(e?.response?.data?.code === "not_yet" ? t("att_err_not_yet", "Attendance opens one hour before the event starts.") : e?.response?.data?.detail || t("failed_save_event"));
     } finally {
       setSaving(false);
     }

@@ -6,6 +6,7 @@ from rest_framework.views import APIView
 from rest_framework.exceptions import PermissionDenied
 from django.contrib.auth import get_user_model
 from django.db import transaction
+from django.utils import timezone
 from django.db.models import Count, Q
 from questionanswer.visibility import is_super_admin
 from . import family_hub
@@ -588,8 +589,9 @@ class ServiceAttendanceViewSet(viewsets.ReadOnlyModelViewSet):
         if self.request.user.is_authenticated:
             # select_related('event') eliminates the N+1 hit caused by
             # ServiceAttendanceSerializer reading event.title and event.start_date per row.
+            # an event that has not started has no attendance to show (an old mistake must not appear as "absent")
             return (
-                ServiceAttendance.objects.filter(student=self.request.user)
+                ServiceAttendance.objects.filter(student=self.request.user, event__start_date__lte=timezone.now())
                 .select_related("event")
                 .order_by("-event__start_date")
             )
@@ -616,6 +618,15 @@ class ServiceAttendanceViewSet(viewsets.ReadOnlyModelViewSet):
             # Event Manager: general events they made. Service Admin: their group's events. Super Admin: any event.
             if not can_manage_event_attendance(user, event):
                 return Response({"detail": "Not authorized to mark attendance for this event."}, status=status.HTTP_403_FORBIDDEN)
+
+            # Nobody (not even the Super Admin) marks an event that has not started: Save would write Absent for everyone.
+            from attendance.rules import OPEN_BEFORE_START
+
+            if timezone.now() < event.start_date - OPEN_BEFORE_START:
+                return Response(
+                    {"code": "not_yet", "detail": "Attendance can be marked from one hour before the event starts."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
 
             # Collect student IDs from the request payload
             student_ids = [item['student'].id for item in attendances_data]
