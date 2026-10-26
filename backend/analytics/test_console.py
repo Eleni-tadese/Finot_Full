@@ -412,10 +412,14 @@ class TestUserFilters:
     def test_bad_number_is_a_clear_error(self):
         assert self.c.get(self.URL, {"batch": "x"}).status_code == 400
 
-    def test_filter_options_list_only_real_values(self):
+    def test_filter_options_offer_all_years_and_all_listed_departments(self):
+        from student.models import Department
+
+        Department.objects.create(name="Pharmacy", years=5)
         data = self.c.get(self.URL + "filters/").json()
-        assert data["batches"] == [1, 3] and data["dorm_blocks"] == [1, 2]
-        assert sorted(d.lower() for d in data["departments"]) == ["civil", "computer science"]
+        assert data["batches"] == [1, 2, 3, 4, 5] and data["dorm_blocks"] == [1, 2]
+        # the Super Admin's list plus the values students already have
+        assert sorted(d.lower() for d in data["departments"]) == ["civil", "computer science", "pharmacy"]
         assert data["groups"] == [{"id": self.group.id, "name": "Choir"}]
 
     def test_only_super_admin_may_filter(self):

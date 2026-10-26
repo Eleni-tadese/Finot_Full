@@ -288,15 +288,21 @@ def filter_users(request, qs):
 
 
 class UserFilterOptionsView(ConsoleView):
-    """Values that actually exist, so the filter dropdowns only offer choices that match someone."""
+    """
+    Choices for the filter dropdowns. Years 1-5 are always offered (plus any other year a student has);
+    departments are the Super Admin's whole list plus any older value students still carry.
+    """
 
     def get(self, request):
         profiles = StudentProfile.objects
         departments = {}
+        for value in Department.objects.filter(is_active=True).values_list("name", flat=True):
+            departments.setdefault(value.strip().lower(), value.strip())
         for value in profiles.exclude(department__isnull=True).exclude(department="").values_list("department", flat=True):
             departments.setdefault(value.strip().lower(), value.strip())
+        years = set(profiles.exclude(batch_year__isnull=True).values_list("batch_year", flat=True)) | set(range(1, 6))
         return Response({
-            "batches": sorted(profiles.exclude(batch_year__isnull=True).values_list("batch_year", flat=True).distinct()),
+            "batches": sorted(years),
             "departments": sorted(departments.values(), key=str.lower),
             "dorm_blocks": sorted(profiles.exclude(dorm_block__isnull=True).values_list("dorm_block", flat=True).distinct()),
             "sections": sorted(profiles.exclude(section__isnull=True).values_list("section", flat=True).distinct()),
