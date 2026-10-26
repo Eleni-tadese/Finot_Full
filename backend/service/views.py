@@ -620,13 +620,12 @@ class ServiceAttendanceViewSet(viewsets.ReadOnlyModelViewSet):
                 return Response({"detail": "Not authorized to mark attendance for this event."}, status=status.HTTP_403_FORBIDDEN)
 
             # Nobody (not even the Super Admin) marks an event that has not started: Save would write Absent for everyone.
-            from attendance.rules import OPEN_BEFORE_START
+            from attendance.rules import AttendanceError, assert_not_upcoming
 
-            if timezone.now() < event.start_date - OPEN_BEFORE_START:
-                return Response(
-                    {"code": "not_yet", "detail": "Attendance can be marked from one hour before the event starts."},
-                    status=status.HTTP_400_BAD_REQUEST,
-                )
+            try:
+                assert_not_upcoming(event=event)
+            except AttendanceError as exc:
+                return Response({"code": exc.code, "detail": exc.message}, status=status.HTTP_400_BAD_REQUEST)
 
             # Collect student IDs from the request payload
             student_ids = [item['student'].id for item in attendances_data]

@@ -33,6 +33,18 @@ def today_in_ethiopia():
     return datetime.now(ETHIOPIA).date()
 
 
+def assert_not_upcoming(event=None, course_session=None):
+    """
+    ONE rule for every kind of attendance: nobody (not even the Super Admin) takes attendance for something that has not
+    started. An event opens OPEN_BEFORE_START before it begins; a class day only from its own date.
+    """
+    if event is not None:
+        if timezone.now() < event.start_date - OPEN_BEFORE_START:
+            raise AttendanceError("not_yet", "Attendance opens one hour before the event starts.")
+    elif course_session is not None and course_session.date > today_in_ethiopia():
+        raise AttendanceError("not_yet", "This class day has not come yet.")
+
+
 class AttendanceError(Exception):
     """A plain-language reason with a short machine code the apps can translate."""
 
@@ -98,12 +110,10 @@ def open_session(user, event=None, course_session=None):
     existing = AttendanceSession.objects.filter(event=event, course_session=course_session, closed_at__isnull=True).first()
     if existing:
         return existing, False
-    if event is not None and not is_super_admin(user):
-        # like a class day, an event has its own time (the Super Admin may open any time, for a rescue or a test)
-        now = timezone.now()
-        if now < event.start_date - OPEN_BEFORE_START:
-            raise AttendanceError("not_yet", "Attendance opens one hour before the event starts.")
-        if now > AttendanceSession.default_auto_close(event=event):
+    if event is not None:
+        assert_not_upcoming(event=event)  # no exceptions: not even the Super Admin opens an event that has not started
+        # an event that is long over: only the Super Admin may still rescue it live (others correct by hand)
+        if not is_super_admin(user) and timezone.now() > AttendanceSession.default_auto_close(event=event):
             raise AttendanceError("ended", "This event has ended. Correct a past event with Mark attendance on the website.")
     try:
         with transaction.atomic():
@@ -181,6 +191,8 @@ def mark_present(session, student, method, scanned_by=None, scanned_at=None):
     """
     if not session.is_open:
         raise AttendanceError("closed", "Attendance is closed for this session.", 409)
+    # a last guard, so even a session opened by mistake earlier cannot record something that has not started
+    assert_not_upcoming(event=session.event if session.event_id else None, course_session=None if session.event_id else session.course_session)
     if not on_roster(session, student):
         raise AttendanceError("not_on_roster", "This student is not on the list for this session.")
     with transaction.atomic():

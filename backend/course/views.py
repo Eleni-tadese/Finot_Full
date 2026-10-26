@@ -313,9 +313,20 @@ class AttendanceRecordViewSet(viewsets.ModelViewSet):
         if not can_manage_semester_course(self.request.user, session.semester_course):
             raise PermissionDenied("You are not a coordinator of this course.")
         assert_not_completed(session.semester_course)
+        self._not_upcoming(session)
         if not CourseEnrollment.objects.filter(student=student, semester_course=session.semester_course).exists():
             raise serializers.ValidationError({"student": "Student is not enrolled in this course."})
         serializer.save(marked_by=self.request.user)
+
+    @staticmethod
+    def _not_upcoming(session):
+        """Nobody marks a class day that has not come yet (the same rule as live attendance and bulk marking)."""
+        from attendance.rules import AttendanceError, assert_not_upcoming
+
+        try:
+            assert_not_upcoming(course_session=session)
+        except AttendanceError as exc:
+            raise serializers.ValidationError({"code": exc.code, "detail": exc.message})
 
     def perform_update(self, serializer):
         session = serializer.validated_data.get('session')
@@ -325,6 +336,7 @@ class AttendanceRecordViewSet(viewsets.ModelViewSet):
             if not can_manage_semester_course(self.request.user, effective_session.semester_course):
                 raise PermissionDenied("You are not a coordinator of this course.")
             assert_not_completed(effective_session.semester_course)
+            self._not_upcoming(effective_session)
             effective_student = student if student else serializer.instance.student
             if not CourseEnrollment.objects.filter(student=effective_student, semester_course=effective_session.semester_course).exists():
                 raise serializers.ValidationError({"student": "Student is not enrolled in this course."})

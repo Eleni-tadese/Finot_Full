@@ -157,6 +157,22 @@ class TestOpening:
         assert mine(w.s1)[sid]["checked_in"] is True and mine(w.s1)[sid]["status"] == "CLOSED"
         assert sid not in mine(w.s3)  # marked Absent by the close: nothing to show
 
+    def test_a_session_opened_before_the_rule_cannot_record_an_upcoming_event(self, w):
+        far = baker.make(Event, title="In three days", service_group=None, created_by=w.manager,
+                         start_date=tz.now() + timedelta(days=3), end_date=tz.now() + timedelta(days=3, hours=2))
+        old = AttendanceSession.objects.create(event=far, opened_by=w.boss, auto_close_at=far.end_date + timedelta(hours=2))
+        res = client_for(w.manager).post(A + f"sessions/{old.id}/scan/", {"badge": badge(w.s1)}, format="json")
+        assert res.status_code == 400 and res.json()["code"] == "not_yet"
+        assert not ServiceAttendance.objects.filter(event=far).exists()
+
+    def test_a_class_day_that_has_not_come_cannot_be_marked_one_by_one_either(self, w):
+        from attendance.rules import today_in_ethiopia
+
+        tomorrow = CourseSession.objects.create(semester_course=w.course, date=today_in_ethiopia() + timedelta(days=1))
+        res = client_for(w.coord).post("/api/course/attendance/", {"session": str(tomorrow.id), "student": w.s1.id, "status": "ABSENT"}, format="json")
+        assert res.status_code == 400 and "not_yet" in str(res.json())
+        assert not AttendanceRecord.objects.filter(session=tomorrow).exists()
+
     def test_opening_twice_returns_the_same_open_session(self, w):
         first = open_event(w)
         res = client_for(w.manager).post(A + "sessions/open/", {"event_id": w.general.id}, format="json")
@@ -339,10 +355,11 @@ class TestClosing:
         assert ServiceAttendance.objects.get(event=w.general, student=w.s1).status == "PRESENT"
         assert close_stale_sessions() == (0, 0)  # running it again changes nothing
 
-    def test_the_super_admin_may_open_and_reopen_outside_the_time_window(self, w):
+    def test_nobody_opens_an_upcoming_event_but_the_super_admin_may_rescue_a_past_one(self, w):
         far = baker.make(Event, title="In three days", service_group=None, created_by=w.manager,
                          start_date=tz.now() + timedelta(days=3), end_date=tz.now() + timedelta(days=3, hours=2))
-        assert client_for(w.boss).post(A + "sessions/open/", {"event_id": far.id}, format="json").status_code == 201
+        res = client_for(w.boss).post(A + "sessions/open/", {"event_id": far.id}, format="json")
+        assert res.status_code == 400 and res.json()["code"] == "not_yet"  # no exception for the Super Admin
         sid = open_event(w)
         client_for(w.manager).post(A + f"sessions/{sid}/close/")
         past = tz.now() - timedelta(days=3)

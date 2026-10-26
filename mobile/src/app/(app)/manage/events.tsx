@@ -7,8 +7,6 @@ import { EventCard } from '@/components/event-card';
 import { EmptyView, ErrorView, LoadingView } from '@/components/status-views';
 import { brand } from '@/constants/brand';
 import { usePaginated } from '@/hooks/use-paginated';
-import { hasRole, ROLES } from '@/lib/roles';
-import { useSession } from '@/lib/session';
 import type { ServiceEvent } from '@/lib/types';
 import { useTranslation } from 'react-i18next';
 
@@ -19,20 +17,18 @@ const OPEN_BEFORE_START_MS = 60 * 60 * 1000; // keep in step with OPEN_BEFORE_ST
 export default function ManageEvents() {
   const { t } = useTranslation();
   const router = useRouter();
-  const { user } = useSession();
-  const everything = hasRole(user, ROLES.superAdmin); // the Super Admin is not limited by the time window
   const events = usePaginated<ServiceEvent>('/api/service/events/');
 
   // Only events that can take attendance RIGHT NOW: happening, or starting within the next hour (the server's own window).
-  // Later events stay hidden, so nobody opens attendance for an event that has not started.
+  // Later events stay hidden, for everybody including the Super Admin: nobody takes attendance for an event that has not started.
   const mine = useMemo(() => {
     const now = Date.now();
     const open = events.items.filter(
-      (e) => e.can_take_attendance && e.status !== 'COMPLETED' && (everything || new Date(e.start_date).getTime() - now <= OPEN_BEFORE_START_MS),
+      (e) => e.can_take_attendance && e.status !== 'COMPLETED' && new Date(e.start_date).getTime() - now <= OPEN_BEFORE_START_MS,
     );
     const rank = (e: ServiceEvent) => (e.status === 'ONGOING' ? 0 : 1);
     return [...open].sort((a, b) => rank(a) - rank(b) || a.start_date.localeCompare(b.start_date));
-  }, [events.items, everything]);
+  }, [events.items]);
 
   if (events.loading && events.items.length === 0) return <LoadingView />;
   if (events.error && events.items.length === 0) return <ErrorView message={events.error.message} onRetry={events.retry} />;
