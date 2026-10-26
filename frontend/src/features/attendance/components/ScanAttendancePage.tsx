@@ -77,7 +77,8 @@ export default function ScanAttendancePage() {
     try {
       const res = await attendanceApi.close(session.id);
       setSession(res);
-      toast.success(t("att_closed_toast", "Closed. {{n}} marked absent.", { n: res.marked_absent }));
+      // closing while the event still runs only stops the scanning: the absent marks come when the event is over
+      toast.success(res.final === false ? t("att_closed_early_toast", "Scanning stopped. People not marked are saved as absent when the event is over.") : t("att_closed_toast", "Closed. {{n}} marked absent.", { n: res.marked_absent }));
     } catch {
       toast.error(t("att_err_generic", "Something went wrong. Try again."));
     }

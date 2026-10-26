@@ -15,6 +15,7 @@ import { brand, font } from '@/constants/brand';
 import { useApi } from '@/hooks/use-api';
 import { ApiError, apiRequest } from '@/lib/api';
 import { etDate, etTime } from '@/lib/ethiopia-time';
+import { hasRole, ROLES } from '@/lib/roles';
 import { useSession } from '@/lib/session';
 import type { OrganizerSession, RoomCode, RosterPerson, ScanResult, ServiceEvent } from '@/lib/types';
 import { useTranslation } from 'react-i18next';
@@ -44,7 +45,7 @@ const PAGE = 40; // rows shown at a time, so a long list stays fast
 // Manual marking and the offline queue come in R2c; the server decides who may do all of this.
 export default function ManageRoom() {
   const { t } = useTranslation();
-  const { accessToken } = useSession();
+  const { accessToken, user } = useSession();
   const { event: eventParam } = useLocalSearchParams<{ event?: string }>();
   const eventId = Number(eventParam);
   const event = useApi<ServiceEvent>(`/api/service/events/${eventId}/`);
@@ -213,7 +214,7 @@ export default function ManageRoom() {
   }
 
   function confirmClose() {
-    Alert.alert(t('mng_close'), t('mng_close_confirm'), [
+    Alert.alert(t('mng_close'), t('mng_close_confirm_new'), [
       { text: t('mng_cancel'), style: 'cancel' },
       { text: t('mng_close'), style: 'destructive', onPress: closeSession },
     ]);
@@ -223,13 +224,14 @@ export default function ManageRoom() {
     if (!sessionId) return;
     setBusy(true);
     try {
-      const closed = await apiRequest<OrganizerSession & { marked_absent: number }>(`/api/attendance/sessions/${sessionId}/close/`, {
+      const closed = await apiRequest<OrganizerSession & { marked_absent: number; final?: boolean }>(`/api/attendance/sessions/${sessionId}/close/`, {
         method: 'POST',
         token: accessToken,
       });
       setSession(closed);
       setCode(null);
-      setResult({ ok: true, text: t('mng_closed_done', { n: closed.marked_absent }) });
+      // closing while the event still runs only stops the scanning: the Absent marks come when the event is over
+      setResult({ ok: true, text: closed.final === false ? t('mng_closed_early') : t('mng_closed_done', { n: closed.marked_absent }) });
     } catch (e) {
       setResult({ ok: false, text: explain(e) });
     } finally {
@@ -256,7 +258,8 @@ export default function ManageRoom() {
   const ev = event.data;
   const activeTab = open ? tab : 'people';
   // Reopening has the server's time limit: until 2 hours after the event ends (OPEN_BEFORE/auto-close in backend attendance/rules.py)
-  const eventOver = !!ev && Date.now() > new Date(ev.end_date).getTime() + 2 * 60 * 60 * 1000;
+  // The Super Admin is not limited by it (same as the server).
+  const eventOver = !!ev && !hasRole(user, ROLES.superAdmin) && Date.now() > new Date(ev.end_date).getTime() + 2 * 60 * 60 * 1000;
   const needle = query.trim().toLowerCase();
   const matches = people.filter(
     (p) =>

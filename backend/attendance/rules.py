@@ -16,7 +16,7 @@ from django.utils import timezone
 
 from course.access import can_manage_semester_course
 from course.models import AttendanceRecord, CourseEnrollment
-from service.event_rules import attendance_roster, can_manage_event_attendance
+from service.event_rules import attendance_roster, can_manage_event_attendance, is_super_admin
 from service.models import ServiceAttendance
 
 from .models import AttendanceSession, CheckIn
@@ -91,8 +91,8 @@ def open_session(user, event=None, course_session=None):
     existing = AttendanceSession.objects.filter(event=event, course_session=course_session, closed_at__isnull=True).first()
     if existing:
         return existing, False
-    if event is not None:
-        # like a class day, an event has its own time: closing an event that has not happened would mark everyone Absent
+    if event is not None and not is_super_admin(user):
+        # like a class day, an event has its own time (the Super Admin may open any time, for a rescue or a test)
         now = timezone.now()
         if now < event.start_date - OPEN_BEFORE_START:
             raise AttendanceError("not_yet", "Attendance opens one hour before the event starts.")
@@ -110,22 +110,31 @@ def open_session(user, event=None, course_session=None):
     return session, True
 
 
+def closes_early(session, user):
+    """A person closing an EVENT's attendance while the event is still running: it only stops the scanning."""
+    return bool(user is not None and session.event_id and timezone.now() < session.event.end_date)
+
+
 def close_session(session, user=None):
-    """Close the session; everyone on the roster without a record becomes Absent. Returns the number of new Absent rows."""
+    """
+    Close the session. Everyone on the roster without a record becomes Absent, EXCEPT when a person closes an event that
+    has not ended yet: that only stops scanning, and the Absent marks come at the end (close_stale_sessions, 2 hours
+    after the event). Returns the number of new Absent rows.
+    """
     if not session.is_open:
         return 0
     with transaction.atomic():
         session = AttendanceSession.objects.select_for_update().get(pk=session.pk)
         if not session.is_open:
             return 0
-        absent = _mark_rest_absent(session, user)
+        absent = 0 if closes_early(session, user) else _mark_rest_absent(session, user)
         session.closed_at = timezone.now()
         session.closed_by = user
         session.save(update_fields=["closed_at", "closed_by"])
     return absent
 
 
-def reopen_session(session):
+def reopen_session(session, user=None):
     """
     Open it again (late students, corrections). The Absent rows stay until someone is marked Present.
     Same time limits as opening: an event until its auto-close time (2 hours after it ends), a class day only on its date.
@@ -134,7 +143,7 @@ def reopen_session(session):
     if session.is_open:
         return
     if session.event_id:
-        if timezone.now() > AttendanceSession.default_auto_close(event=session.event):
+        if not is_super_admin(user) and timezone.now() > AttendanceSession.default_auto_close(event=session.event):
             raise AttendanceError("ended", "This event has ended. Correct it with Mark attendance.")
     elif session.course_session.date != today_in_ethiopia():
         raise AttendanceError("not_today", "A class day can be reopened only on its own date. Use Mark attendance for a past day.")
@@ -201,4 +210,10 @@ def close_stale_sessions(now=None):
     for session in AttendanceSession.objects.filter(closed_at__isnull=True, auto_close_at__lte=now):
         absent += close_session(session, user=None)
         closed += 1
+    # sessions an organizer closed EARLY (while the event was running) get their Absent marks now that it is over.
+    # Only the missing rows are added, so running this again never changes an existing mark.
+    for session in AttendanceSession.objects.filter(
+        closed_at__isnull=False, event__isnull=False, auto_close_at__lte=now, auto_close_at__gte=now - timedelta(days=7)
+    ).select_related("event"):
+        absent += _mark_rest_absent(session, None) or 0
     return closed, absent

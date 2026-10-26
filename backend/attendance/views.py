@@ -165,9 +165,10 @@ class CloseSessionView(APIView):
         session = _get_session(pk)
         if not rules.is_organizer(request.user, session):
             return Response({"detail": "Not allowed."}, status=status.HTTP_403_FORBIDDEN)
+        early = rules.closes_early(session, request.user)  # an event still running: only the scanning stops
         absent = rules.close_session(session, request.user)
         session.refresh_from_db()
-        return Response({**_session_json(session), "marked_absent": absent})
+        return Response({**_session_json(session), "marked_absent": absent, "final": not early})
 
 
 class ReopenSessionView(APIView):
@@ -181,7 +182,7 @@ class ReopenSessionView(APIView):
                                             closed_at__isnull=True).exclude(pk=session.pk).exists():
             return Response({"code": "another_open", "detail": "Another session is already open for this."}, status=409)
         try:
-            rules.reopen_session(session)
+            rules.reopen_session(session, request.user)
         except rules.AttendanceError as exc:
             return _error(exc)
         return Response(_session_json(session))

@@ -84,7 +84,7 @@ export const attendanceApi = {
     axiosInstance.get<AttendanceSession>(base + "sessions/current/", { params: target }).then((r) => r.data),
   session: (id: number) => axiosInstance.get<AttendanceSession>(`${base}sessions/${id}/`).then((r) => r.data),
   close: (id: number) =>
-    axiosInstance.post<AttendanceSession & { marked_absent: number }>(`${base}sessions/${id}/close/`).then((r) => r.data),
+    axiosInstance.post<AttendanceSession & { marked_absent: number; final?: boolean }>(`${base}sessions/${id}/close/`).then((r) => r.data),
   reopen: (id: number) => axiosInstance.post<AttendanceSession>(`${base}sessions/${id}/reopen/`).then((r) => r.data),
   setHelpers: (id: number, userIds: number[]) =>
     axiosInstance.post<AttendanceSession>(`${base}sessions/${id}/helpers/`, { user_ids: userIds }).then((r) => r.data),

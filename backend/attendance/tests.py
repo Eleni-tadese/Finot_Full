@@ -295,8 +295,9 @@ class TestClosing:
         sid = open_event(w)
         c = client_for(w.manager)
         c.post(A + f"sessions/{sid}/scan/", {"badge": badge(w.s1)}, format="json")
+        Event.objects.filter(pk=w.general.pk).update(end_date=tz.now() - timedelta(minutes=5))  # the event is over: closing finalizes
         res = c.post(A + f"sessions/{sid}/close/")
-        assert res.status_code == 200 and res.json()["status"] == "CLOSED"
+        assert res.status_code == 200 and res.json()["status"] == "CLOSED" and res.json()["final"] is True
         roster = {w.s1, w.s2, w.s3, w.manager, w.other_manager, w.sa, w.coord, w.boss}  # every active in-campus user
         assert res.json()["marked_absent"] == len(roster) - 1
         assert ServiceAttendance.objects.get(event=w.general, student=w.s2).status == "ABSENT"
@@ -305,6 +306,36 @@ class TestClosing:
         assert res.status_code == 400 and res.json()["code"] == "closed"
         assert c.get(A + f"sessions/{sid}/code/").status_code == 409
         assert c.post(A + f"sessions/{sid}/close/").json()["marked_absent"] == 0  # closing twice changes nothing
+
+    def test_closing_early_only_stops_scanning_and_the_end_of_the_event_marks_absent(self, w):
+        from attendance.rules import close_stale_sessions
+
+        sid = open_event(w)
+        c = client_for(w.manager)
+        c.post(A + f"sessions/{sid}/scan/", {"badge": badge(w.s1)}, format="json")
+        res = c.post(A + f"sessions/{sid}/close/")  # the event is still running
+        assert res.json()["marked_absent"] == 0 and res.json()["final"] is False
+        assert not ServiceAttendance.objects.filter(event=w.general, student=w.s2).exists()
+        # later the event is over and its 2 hours have passed: the job adds the Absent marks and never changes a Present
+        past = tz.now() - timedelta(hours=5)
+        Event.objects.filter(pk=w.general.pk).update(start_date=past - timedelta(hours=2), end_date=past)
+        AttendanceSession.objects.filter(pk=sid).update(auto_close_at=past + timedelta(hours=2))
+        closed, absent = close_stale_sessions()
+        assert closed == 0 and absent > 0
+        assert ServiceAttendance.objects.get(event=w.general, student=w.s2).status == "ABSENT"
+        assert ServiceAttendance.objects.get(event=w.general, student=w.s1).status == "PRESENT"
+        assert close_stale_sessions() == (0, 0)  # running it again changes nothing
+
+    def test_the_super_admin_may_open_and_reopen_outside_the_time_window(self, w):
+        far = baker.make(Event, title="In three days", service_group=None, created_by=w.manager,
+                         start_date=tz.now() + timedelta(days=3), end_date=tz.now() + timedelta(days=3, hours=2))
+        assert client_for(w.boss).post(A + "sessions/open/", {"event_id": far.id}, format="json").status_code == 201
+        sid = open_event(w)
+        client_for(w.manager).post(A + f"sessions/{sid}/close/")
+        past = tz.now() - timedelta(days=3)
+        Event.objects.filter(pk=w.general.pk).update(start_date=past, end_date=past + timedelta(hours=2))
+        assert client_for(w.manager).post(A + f"sessions/{sid}/reopen/").status_code == 400
+        assert client_for(w.boss).post(A + f"sessions/{sid}/reopen/").status_code == 200
 
     def test_reopen_lets_a_late_student_in(self, w):
         sid = open_event(w)
