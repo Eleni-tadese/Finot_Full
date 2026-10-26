@@ -10,6 +10,8 @@ import { usePaginated } from '@/hooks/use-paginated';
 import type { ServiceEvent } from '@/lib/types';
 import { useTranslation } from 'react-i18next';
 
+const OPEN_BEFORE_START_MS = 60 * 60 * 1000; // keep in step with OPEN_BEFORE_START in backend attendance/rules.py
+
 // Step R2: the events THIS person may take attendance for. The server says which ones with `can_take_attendance`
 // (the same rule the website uses), so the phone only filters the list.
 export default function ManageEvents() {
@@ -17,9 +19,13 @@ export default function ManageEvents() {
   const router = useRouter();
   const events = usePaginated<ServiceEvent>('/api/service/events/');
 
-  // Happening now first, then the coming ones soonest first. Finished events are left out.
+  // Only events that can take attendance RIGHT NOW: happening, or starting within the next hour (the server's own window).
+  // Later events stay hidden, so nobody opens attendance for an event that has not started.
   const mine = useMemo(() => {
-    const open = events.items.filter((e) => e.can_take_attendance && e.status !== 'COMPLETED');
+    const now = Date.now();
+    const open = events.items.filter(
+      (e) => e.can_take_attendance && e.status !== 'COMPLETED' && new Date(e.start_date).getTime() - now <= OPEN_BEFORE_START_MS,
+    );
     const rank = (e: ServiceEvent) => (e.status === 'ONGOING' ? 0 : 1);
     return [...open].sort((a, b) => rank(a) - rank(b) || a.start_date.localeCompare(b.start_date));
   }, [events.items]);

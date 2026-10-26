@@ -139,7 +139,7 @@
   "mng_closed_done": "Attendance is closed. {{n}} marked absent.",
   "mng_closed_state": "Attendance is closed",
   "mng_intro": "Tools for your roles. More arrive step by step.",
-  "mng_no_events": "No events for you to take attendance right now.",
+  "mng_no_events": "No event is open for attendance right now. Attendance opens one hour before an event starts.",
   "mng_not_started": "Attendance is not open for this event yet.",
   "mng_present_count": "{{present}} of {{roster}} present",
   "mng_reopen": "Reopen attendance",
