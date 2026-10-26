@@ -133,7 +133,7 @@ export default function ManageRoom() {
     }
   }, [eventId, accessToken]);
   useEffect(() => {
-    if (stage !== 'ready') return;
+    if (stage !== 'ready' && stage !== 'none') return;
     loadRoster();
     if (!open) return;
     const timer = setInterval(loadRoster, 15000); // picks up students who checked in with the room code
@@ -266,6 +266,80 @@ export default function ManageRoom() {
   const presentCount = people.filter((p) => p.status === 'PRESENT').length;
   const percent = session && session.roster > 0 ? Math.round((session.present / session.roster) * 100) : 0;
 
+  const peopleCard = (
+          <Card style={styles.gap}>
+            <AppText variant="heading">{t('mng_roster_title')}</AppText>
+            <AppText variant="caption" color={brand.muted}>
+              {t('mng_roster_hint')}
+            </AppText>
+            <TextInput
+              value={query}
+              onChangeText={(v) => {
+                setQuery(v);
+                setLimit(PAGE);
+              }}
+              placeholder={t('mng_search')}
+              placeholderTextColor={brand.muted}
+              style={styles.search}
+            />
+            <View style={styles.filters}>
+              {(['all', 'present', 'not_yet'] as Filter[]).map((f) => {
+                const n = f === 'all' ? people.length : f === 'present' ? presentCount : people.length - presentCount;
+                return (
+                  <Pressable
+                    key={f}
+                    onPress={() => {
+                      setFilter(f);
+                      setLimit(PAGE);
+                    }}
+                    style={[styles.filterChip, filter === f && styles.filterChipActive]}>
+                    <AppText variant="caption" color={filter === f ? '#ffffff' : brand.primary}>
+                      {t(f === 'all' ? 'mng_filter_all' : f === 'present' ? 'mng_filter_present' : 'mng_filter_not_yet')} ({n})
+                    </AppText>
+                  </Pressable>
+                );
+              })}
+            </View>
+            {matches.slice(0, limit).map((p) => (
+              <View key={p.id} style={styles.person}>
+                <View style={styles.personText}>
+                  <AppText variant="bodyStrong" numberOfLines={1}>
+                    {p.name}
+                  </AppText>
+                  <AppText variant="caption" color={brand.muted} numberOfLines={1}>
+                    {[p.batch_year ? t('evatt_year', { n: p.batch_year }) : '', p.department].filter(Boolean).join(' · ')}
+                  </AppText>
+                  <View style={styles.chips}>
+                    <Chip text={p.status === 'PRESENT' ? t('mng_filter_present') : t('mng_filter_not_yet')} tone={p.status === 'PRESENT' ? 'green' : 'grey'} />
+                    {p.status === 'PRESENT' && p.method === 'BADGE' ? <Chip text={t('mng_scanned')} tone="blue" /> : null}
+                    {p.status === 'PRESENT' && p.method === 'CODE' ? <Chip text={t('mng_code')} tone="blue" /> : null}
+                  </View>
+                </View>
+                <Pressable
+                  disabled={busy}
+                  onPress={() => mark(p, p.status === 'PRESENT' ? 'ABSENT' : 'PRESENT')}
+                  style={[styles.markButton, p.status === 'PRESENT' && styles.markButtonUndo, busy && styles.disabled]}>
+                  <AppText variant="caption" color={p.status === 'PRESENT' ? brand.danger : '#ffffff'}>
+                    {p.status === 'PRESENT' ? t('mng_mark_absent') : t('mng_mark_present')}
+                  </AppText>
+                </Pressable>
+              </View>
+            ))}
+            {matches.length === 0 ? (
+              <AppText color={brand.muted} style={styles.center}>
+                {t('mng_no_people')}
+              </AppText>
+            ) : null}
+            {matches.length > limit ? (
+              <Pressable style={styles.showMore} onPress={() => setLimit((n) => n + PAGE)}>
+                <AppText variant="bodyStrong" color={brand.primary}>
+                  {t('mng_show_more')}
+                </AppText>
+              </Pressable>
+            ) : null}
+          </Card>
+  );
+
   return (
     <Screen title={ev?.title ?? t('mng_room_title')} subtitle={ev ? `${etDate(ev.start_date)} · ${etTime(ev.start_date)}` : undefined}>
       {stage === 'loading' ? <LoadingView /> : null}
@@ -390,79 +464,7 @@ export default function ManageRoom() {
           ) : null}
 
           {/* The people invited to this event: who came, who not yet, and a button to mark by hand */}
-          {activeTab === 'people' ? (
-          <Card style={styles.gap}>
-            <AppText variant="heading">{t('mng_roster_title')}</AppText>
-            <AppText variant="caption" color={brand.muted}>
-              {t('mng_roster_hint')}
-            </AppText>
-            <TextInput
-              value={query}
-              onChangeText={(v) => {
-                setQuery(v);
-                setLimit(PAGE);
-              }}
-              placeholder={t('mng_search')}
-              placeholderTextColor={brand.muted}
-              style={styles.search}
-            />
-            <View style={styles.filters}>
-              {(['all', 'present', 'not_yet'] as Filter[]).map((f) => {
-                const n = f === 'all' ? people.length : f === 'present' ? presentCount : people.length - presentCount;
-                return (
-                  <Pressable
-                    key={f}
-                    onPress={() => {
-                      setFilter(f);
-                      setLimit(PAGE);
-                    }}
-                    style={[styles.filterChip, filter === f && styles.filterChipActive]}>
-                    <AppText variant="caption" color={filter === f ? '#ffffff' : brand.primary}>
-                      {t(f === 'all' ? 'mng_filter_all' : f === 'present' ? 'mng_filter_present' : 'mng_filter_not_yet')} ({n})
-                    </AppText>
-                  </Pressable>
-                );
-              })}
-            </View>
-            {matches.slice(0, limit).map((p) => (
-              <View key={p.id} style={styles.person}>
-                <View style={styles.personText}>
-                  <AppText variant="bodyStrong" numberOfLines={1}>
-                    {p.name}
-                  </AppText>
-                  <AppText variant="caption" color={brand.muted} numberOfLines={1}>
-                    {[p.batch_year ? t('evatt_year', { n: p.batch_year }) : '', p.department].filter(Boolean).join(' · ')}
-                  </AppText>
-                  <View style={styles.chips}>
-                    <Chip text={p.status === 'PRESENT' ? t('mng_filter_present') : t('mng_filter_not_yet')} tone={p.status === 'PRESENT' ? 'green' : 'grey'} />
-                    {p.status === 'PRESENT' && p.method === 'BADGE' ? <Chip text={t('mng_scanned')} tone="blue" /> : null}
-                    {p.status === 'PRESENT' && p.method === 'CODE' ? <Chip text={t('mng_code')} tone="blue" /> : null}
-                  </View>
-                </View>
-                <Pressable
-                  disabled={busy}
-                  onPress={() => mark(p, p.status === 'PRESENT' ? 'ABSENT' : 'PRESENT')}
-                  style={[styles.markButton, p.status === 'PRESENT' && styles.markButtonUndo, busy && styles.disabled]}>
-                  <AppText variant="caption" color={p.status === 'PRESENT' ? brand.danger : '#ffffff'}>
-                    {p.status === 'PRESENT' ? t('mng_mark_absent') : t('mng_mark_present')}
-                  </AppText>
-                </Pressable>
-              </View>
-            ))}
-            {matches.length === 0 ? (
-              <AppText color={brand.muted} style={styles.center}>
-                {t('mng_no_people')}
-              </AppText>
-            ) : null}
-            {matches.length > limit ? (
-              <Pressable style={styles.showMore} onPress={() => setLimit((n) => n + PAGE)}>
-                <AppText variant="bodyStrong" color={brand.primary}>
-                  {t('mng_show_more')}
-                </AppText>
-              </Pressable>
-            ) : null}
-          </Card>
-          ) : null}
+          {activeTab === 'people' ? peopleCard : null}
 
           {open ? (
             <Pressable style={[styles.dangerButton, busy && styles.disabled]} disabled={busy} onPress={confirmClose}>
@@ -481,6 +483,18 @@ export default function ManageRoom() {
               </AppText>
             </Pressable>
           )}
+        </>
+      ) : null}
+
+      {stage === 'none' && people.length > 0 ? (
+        <>
+          <Card style={styles.gap}>
+            <AppText variant="title" color={brand.primary}>
+              {t('mng_present_count', { present: presentCount, roster: people.length })}
+            </AppText>
+            <ProgressBar percent={people.length > 0 ? Math.round((presentCount / people.length) * 100) : 0} />
+          </Card>
+          {peopleCard}
         </>
       ) : null}
 

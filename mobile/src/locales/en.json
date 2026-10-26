@@ -149,7 +149,7 @@
   "mng_mark_present": "Mark present",
   "mng_no_events": "No event is open for attendance right now. Attendance opens one hour before an event starts.",
   "mng_no_people": "Nobody matches.",
-  "mng_not_started": "Attendance is not open for this event yet.",
+  "mng_not_started": "No attendance is open for this event right now. You can start it, or see and correct the results below.",
   "mng_over_note": "The event is over, so attendance cannot be reopened. To correct someone, use Mark present in People, or Mark attendance on the website.",
   "mng_present_count": "{{present}} of {{roster}} present",
   "mng_reopen": "Reopen attendance",
