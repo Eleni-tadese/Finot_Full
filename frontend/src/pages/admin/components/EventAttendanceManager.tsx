@@ -18,6 +18,7 @@ interface Person {
   batch_year: number | null;
   department: string | null;
   status: "PRESENT" | "ABSENT" | null;
+  method?: "BADGE" | "CODE" | "MANUAL" | null; // how live attendance marked this person (null = by hand)
 }
 
 /**
@@ -98,11 +99,15 @@ export default function EventAttendanceManager({ scope, groupId }: { scope: Scop
     if (!eventId || people.length === 0) return;
     setSaving(true);
     try {
-      await axiosInstance.post("/api/service/attendance/mark/", {
+      // `previous` = what this page showed when it was opened. A mark that changed since (a badge was scanned
+      // while the page was open) is kept by the server, so an old page can never undo a scan.
+      const res = await axiosInstance.post("/api/service/attendance/mark/", {
         event_id: Number(eventId),
-        attendances: people.map((p) => ({ student_id: p.id, status: came[p.id] ? "PRESENT" : "ABSENT", remark: "" })),
+        attendances: people.map((p) => ({ student_id: p.id, status: came[p.id] ? "PRESENT" : "ABSENT", remark: "", previous: p.status })),
       });
       toast.success(t("attendance_recorded_success"));
+      const kept: number[] = res.data?.conflicts ?? [];
+      if (kept.length > 0) toast(t("evatt_kept", "{{n}} people were marked while this page was open. Their newer marks were kept.", { n: kept.length }), { icon: "ℹ️", duration: 8000 });
       await loadPeople(eventId);
     } catch (e: any) {
       toast.error(e?.response?.data?.detail || t("failed_save_event"));
@@ -190,7 +195,11 @@ export default function EventAttendanceManager({ scope, groupId }: { scope: Scop
                 <label className="flex cursor-pointer items-center gap-3 px-3 py-2.5 transition hover:bg-muted/50">
                   <input type="checkbox" className="h-5 w-5 shrink-0" checked={!!came[p.id]} onChange={(e) => setCame((prev) => ({ ...prev, [p.id]: e.target.checked }))} />
                   <span className="min-w-0 flex-1">
-                    <span className="block truncate text-sm font-medium text-foreground">{p.name}</span>
+                    <span className="block truncate text-sm font-medium text-foreground">
+                      {p.name}
+                      {p.method === "BADGE" && <span className="ml-2 rounded bg-primary/10 px-1.5 py-0.5 text-[10px] font-medium text-primary">{t("evatt_scanned", "Scanned")}</span>}
+                      {p.method === "CODE" && <span className="ml-2 rounded bg-primary/10 px-1.5 py-0.5 text-[10px] font-medium text-primary">{t("evatt_code", "Code")}</span>}
+                    </span>
                     <span className="block truncate text-xs text-muted-foreground">
                       {[p.batch_year ? t("evatt_year", "Year {{n}}", { n: p.batch_year }) : "", p.department, p.email].filter(Boolean).join(" · ")}
                     </span>

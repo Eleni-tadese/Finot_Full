@@ -204,6 +204,43 @@ class TestMarkingAttendance:
 
 
 @pytest.mark.django_db
+class TestSaveDoesNotUndoNewerMarks:
+    """Mark attendance sends what the page showed (`previous`): a mark that changed meanwhile (a scan) is kept."""
+
+    def body(self, world, status, previous, **extra):
+        item = {"student_id": world.a.id, "status": status, "previous": previous}
+        return {"event_id": world.group_event.id, "attendances": [item], **extra}
+
+    def test_a_scan_made_while_the_page_was_open_is_kept(self, world):
+        # the page was opened when nobody was marked; then a was scanned (Present); then the page saves "absent"
+        ServiceAttendance.objects.create(event=world.group_event, student=world.a, status="PRESENT")
+        res = client_for(world.sa1).post(MARK, self.body(world, "ABSENT", None), format="json")
+        assert res.status_code == 200 and res.json()["conflicts"] == [world.a.id]
+        assert ServiceAttendance.objects.get(event=world.group_event, student=world.a).status == "PRESENT"
+
+    def test_an_up_to_date_page_saves_normally(self, world):
+        ServiceAttendance.objects.create(event=world.group_event, student=world.a, status="PRESENT")
+        res = client_for(world.sa1).post(MARK, self.body(world, "ABSENT", "PRESENT"), format="json")
+        assert res.json()["conflicts"] == []
+        assert ServiceAttendance.objects.get(event=world.group_event, student=world.a).status == "ABSENT"
+
+    def test_a_client_that_sends_no_previous_keeps_the_old_behaviour(self, world):
+        ServiceAttendance.objects.create(event=world.group_event, student=world.a, status="PRESENT")
+        body = {"event_id": world.group_event.id, "attendances": [{"student_id": world.a.id, "status": "ABSENT"}]}
+        assert client_for(world.sa1).post(MARK, body, format="json").json()["conflicts"] == []
+        assert ServiceAttendance.objects.get(event=world.group_event, student=world.a).status == "ABSENT"
+
+    def test_roster_says_how_a_person_was_marked(self, world):
+        from attendance.models import AttendanceSession, CheckIn
+
+        session = AttendanceSession.objects.create(event=world.group_event, opened_by=world.sa1, auto_close_at=world.group_event.end_date)
+        CheckIn.objects.create(session=session, student=world.a, method=CheckIn.BADGE, scanned_by=world.sa1, scanned_at=world.group_event.start_date)
+        ServiceAttendance.objects.create(event=world.group_event, student=world.a, status="PRESENT")
+        rows = client_for(world.sa1).get(f"{EVENTS}{world.group_event.id}/roster/").json()["students"]
+        assert next(r for r in rows if r["id"] == world.a.id)["method"] == "BADGE"
+
+
+@pytest.mark.django_db
 class TestAudience:
     """An event may be for some students only: years, gender, departments."""
 

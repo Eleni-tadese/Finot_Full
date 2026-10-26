@@ -32,6 +32,9 @@ class BulkAttendanceInputSerializer(serializers.Serializer):
     )
     status = serializers.ChoiceField(choices=ServiceAttendance.STATUS_CHOICES)
     remark = serializers.CharField(required=False, allow_blank=True)
+    # What the page showed when it was opened (PRESENT, ABSENT, or null = not marked). When it is sent, a row
+    # that changed in the meantime (for example a badge scan) is kept as it is instead of being overwritten.
+    previous = serializers.ChoiceField(choices=ServiceAttendance.STATUS_CHOICES, required=False, allow_null=True)
 
 class BulkAttendanceSerializer(serializers.Serializer):
     """

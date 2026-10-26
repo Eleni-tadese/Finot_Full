@@ -534,6 +534,10 @@ class EventViewSet(viewsets.ModelViewSet):
         if not can_manage_event_attendance(request.user, event):
             raise PermissionDenied("You cannot take attendance for this event.")
         saved = dict(ServiceAttendance.objects.filter(event=event).values_list('student_id', 'status'))
+        # how each person was marked by live attendance: BADGE (scanned) or CODE (typed the room code); hand marks have none
+        from attendance.models import CheckIn
+
+        methods = dict(CheckIn.objects.filter(session__event=event).values_list('student_id', 'method'))
         search = (request.query_params.get('search') or '').strip().lower()
         rows = []
         for person in attendance_roster(event):
@@ -548,6 +552,7 @@ class EventViewSet(viewsets.ModelViewSet):
                 'batch_year': getattr(profile, 'batch_year', None),
                 'department': getattr(profile, 'department', None),
                 'status': saved.get(person.id),
+                'method': methods.get(person.id) if saved.get(person.id) == 'PRESENT' else None,
             })
         return Response({
             'event': {'id': event.id, 'title': event.title, 'start_date': event.start_date, 'service_group': event.service_group_id},
@@ -636,11 +641,20 @@ class ServiceAttendanceViewSet(viewsets.ReadOnlyModelViewSet):
                 records_to_create = []
                 records_to_update = []
                 response_data = []
+                conflicts = []
 
                 for item in attendances_data:
                     student_user = item['student']
                     attendance_status = item['status']
                     remark = item.get('remark', '')
+
+                    # The page says what it showed when it was opened. If the stored mark is different now (a badge
+                    # was scanned, someone else saved), keep the newer mark: this row is NOT overwritten.
+                    if 'previous' in item:
+                        current = existing_attendance_by_student[student_user.id].status if student_user.id in existing_attendance_by_student else None
+                        if current != item['previous']:
+                            conflicts.append(student_user.id)
+                            continue
 
                     if student_user.id in existing_attendance_by_student:
                         # Update existing record
@@ -673,7 +687,7 @@ class ServiceAttendanceViewSet(viewsets.ReadOnlyModelViewSet):
                 if records_to_update:
                     ServiceAttendance.objects.bulk_update(records_to_update, fields=['status', 'remark'])
 
-            return Response({"detail": "Attendance marked successfully", "records": response_data}, status=status.HTTP_200_OK)
+            return Response({"detail": "Attendance marked successfully", "records": response_data, "conflicts": conflicts}, status=status.HTTP_200_OK)
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
