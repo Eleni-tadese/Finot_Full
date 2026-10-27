@@ -471,6 +471,11 @@ class TestRoleEligibility:
         check_role_eligibility(third, Role.QA_COUNSELOR)
         check_role_eligibility(fresh, Role.SUPER_ADMIN)  # no year rule for the owner role
 
+    def test_family_father_or_mother_needs_year_2(self):
+        with pytest.raises(DjangoValidationError):
+            check_family_leader(student("a@x.test", 1))
+        check_family_leader(student("b@x.test", 2))
+
     def test_graduates_are_always_eligible_and_unknown_year_is_not(self):
         graduate = student("g@x.test", 5, status=StudentProfile.GRADUATED)
         check_role_eligibility(graduate, Role.QA_MODERATOR)
@@ -922,7 +927,7 @@ class TestFamilyParents:
         fam = make_user("fam@finot.test", Role.FAMILY_ADMIN)
         dad = make_user("dad@finot.test", gender="M", batch=5)
         mum = make_user("mum@finot.test", gender="F", batch=5)
-        junior = make_user("jun@finot.test", gender="M", batch=2)
+        junior = make_user("jun@finot.test", gender="M", batch=1)
         done = Family.objects.create(name="Family 1", father=dad, mother=mum)
         empty = Family.objects.create(name="Family 2")
         c = client_for(fam)

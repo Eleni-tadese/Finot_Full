@@ -17,7 +17,7 @@ MIN_YEAR = {
     Role.QA_MODERATOR: 3,
 }
 # Leading a family as its father or mother.
-FAMILY_LEADER_MIN_YEAR = 4
+FAMILY_LEADER_MIN_YEAR = 2
 
 
 def _name(user):
