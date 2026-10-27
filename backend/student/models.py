@@ -142,7 +142,7 @@ class Department(models.Model):
 
     name = models.CharField(max_length=100, unique=True)
     years = models.PositiveSmallIntegerField(
-        default=5, validators=[MinValueValidator(3), MaxValueValidator(7)], help_text="Length of the program in years."
+        default=5, validators=[MinValueValidator(3), MaxValueValidator(MAX_STUDY_YEAR)], help_text="Length of the program in years."
     )
     is_active = models.BooleanField(default=True, help_text="Untick to hide it from new choices (existing students keep it).")
     is_stage = models.BooleanField(
@@ -191,3 +191,29 @@ class YearRollover(models.Model):
 
     def __str__(self):
         return f"Rollover {self.label or self.performed_at:%Y-%m-%d}"
+
+
+class RegistrationSettings(models.Model):
+    """
+    One settings row edited by the Super Admin (Users & roles area of the console).
+    allow_year_choice: when on, a student who signs in with a slip chooses their own year (1 to MAX_STUDY_YEAR);
+    when off, everyone who signs in with a slip is a first-year student and cannot change it.
+    """
+    allow_year_choice = models.BooleanField(default=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Registration settings"
+        verbose_name_plural = "Registration settings"
+
+    def __str__(self):
+        return "Registration settings"
+
+    @classmethod
+    def get(cls):
+        obj, _ = cls.objects.get_or_create(pk=1)
+        return obj
+
+    def save(self, *args, **kwargs):
+        self.pk = 1  # a singleton: saving again updates the same row
+        super().save(*args, **kwargs)
