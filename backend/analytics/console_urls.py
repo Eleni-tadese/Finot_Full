@@ -42,6 +42,7 @@ urlpatterns = [
     path("academic-year/rollover/<int:pk>/undo/", v.RolloverUndoView.as_view()),
     path("donations/", v.DonationsView.as_view()),
     path("donations/recheck/", v.DonationsRecheckView.as_view()),
+    path("registration/settings/", v.RegistrationSettingsView.as_view()),
     path("sms/settings/", v.SmsSettingsView.as_view()),
     path("sms/logs/", v.SmsLogsView.as_view()),
     path("email/settings/", v.EmailSettingsView.as_view()),

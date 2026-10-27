@@ -42,7 +42,7 @@ from service.services import (
 from core.role_rules import MIN_YEAR, check_family_leader, check_role_eligibility
 from student import rollover
 from student.cards import profile_card
-from student.models import MAX_STUDY_YEAR, Department, StudentProfile, YearRollover
+from student.models import MAX_STUDY_YEAR, Department, RegistrationSettings, StudentProfile, YearRollover
 from student.participation import participating_q
 
 from . import exports
@@ -1075,6 +1075,23 @@ class SmsSettingsView(ConsoleView):
             config.monthly_limit = limit
         config.save()
         return Response(_sms_settings_json(config))
+
+
+class RegistrationSettingsView(ConsoleView):
+    """GET / PATCH registration/settings/ : may a student who signs in with a slip choose their own year?
+    On = they choose 1 to MAX_STUDY_YEAR; off = everyone is a first-year student."""
+
+    def get(self, request):
+        return Response({"allow_year_choice": RegistrationSettings.get().allow_year_choice, "max_year": MAX_STUDY_YEAR})
+
+    def patch(self, request):
+        value = request.data.get("allow_year_choice")
+        if not isinstance(value, bool):
+            raise ValidationError({"allow_year_choice": "Must be true or false."})
+        config = RegistrationSettings.get()
+        config.allow_year_choice = value
+        config.save()
+        return Response({"allow_year_choice": config.allow_year_choice, "max_year": MAX_STUDY_YEAR})
 
 
 class SmsLogsView(ConsoleView):

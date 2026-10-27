@@ -51,6 +51,8 @@ Generated from the code (`manage.py spectacular`). For request and response shap
 | GET | `/api/admin-console/overview/` | api_admin_console_overview_retrieve |
 | GET | `/api/admin-console/qa/counselors/` | api_admin_console_qa_counselors_retrieve |
 | PUT | `/api/admin-console/qa/counselors/{id}/specializations/` | api_admin_console_qa_counselors_specializations_update |
+| GET | `/api/admin-console/registration/settings/` | GET / PATCH registration/settings/ : may a student who signs in with a slip choose their own year? |
+| PATCH | `/api/admin-console/registration/settings/` | GET / PATCH registration/settings/ : may a student who signs in with a slip choose their own year? |
 | GET | `/api/admin-console/roles/` | api_admin_console_roles_retrieve |
 | GET | `/api/admin-console/service-config/` | Open or close the period in which students may choose their service groups. |
 | PATCH | `/api/admin-console/service-config/` | Open or close the period in which students may choose their service groups. |
