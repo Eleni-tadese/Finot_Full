@@ -67,6 +67,7 @@ const combineUserWithProfile = (userData: Record<string, any>, profileData: Reco
       batch_year: profileData?.batch_year ?? null,
       department: profileData?.department || '',
       department_is_stage: Boolean(profileData?.department_is_stage),
+      can_choose_year: Boolean(profileData?.can_choose_year),
       telegram: profileData?.telegram_username || '',
       personal_phone: profileData?.personal_phone || '',
       sms_opt_in: Boolean(profileData?.sms_opt_in),

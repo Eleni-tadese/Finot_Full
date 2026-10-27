@@ -54,7 +54,9 @@ const EditProfile = () => {
     axiosInstance.get("/api/student/departments/").then((r) => setDepartments(r.data)).catch(() => setDepartments([]));
   }, []);
   // Year and department are set once; after that only the Super Admin changes them (the yearly rollover moves the year).
-  const lockedBatch = Boolean(parsedBatch);
+  // A slip student may still choose the year once (the Super Admin switch is on): then it is not locked.
+  const canChooseYear = Boolean(user?.profile?.can_choose_year);
+  const lockedBatch = Boolean(parsedBatch) && !canChooseYear;
   // A stage (Pre-Science, Pre-Engineering, a school) is not final: the student chooses again from what it leads to.
   const currentDepartment = departments.find((d) => d.name === (user?.profile?.department || ""));
   const onStage = Boolean(currentDepartment?.is_stage);

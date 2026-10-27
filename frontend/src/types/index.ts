@@ -25,6 +25,7 @@ profile_image?: string | null;
 batch_year?: number;
 department?: string;
 department_is_stage?: boolean; // Pre-Engineering, a school: the student still has to choose the final department
+  can_choose_year?: boolean;
 telegram_username?: string;
 personal_phone?: string;
 sms_opt_in?: boolean;
@@ -188,6 +189,7 @@ batch: string;
 batch_year: number | null;
 department: string;
 department_is_stage: boolean; // Pre-Engineering, a school: the final department is still to be chosen
+can_choose_year: boolean; // a slip student who may still choose their own year (once)
 telegram: string;
 personal_phone: string;
 sms_opt_in?: boolean;
