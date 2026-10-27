@@ -22,7 +22,6 @@ const FamiliesAdminPage = () => {
   const [busy, setBusy] = useState(false);
   const [creating, setCreating] = useState(false);
   const [famName, setFamName] = useState("");
-  const [famGender, setFamGender] = useState("");
   const [famFather, setFamFather] = useState<PickedUser | null>(null);
   const [famMother, setFamMother] = useState<PickedUser | null>(null);
   const [famReligious, setFamReligious] = useState("");
@@ -94,11 +93,11 @@ const FamiliesAdminPage = () => {
     setBusy(true);
     try {
       await adminApi.createFamily({
-        name: famName, gender: famGender, father_id: famFather?.id ?? null, mother_id: famMother?.id ?? null, religious_father: famReligious,
+        name: famName, father_id: famFather?.id ?? null, mother_id: famMother?.id ?? null, religious_father: famReligious,
       });
       toast.success(t("fam_created", "Family created."));
       setCreating(false);
-      setFamName(""); setFamGender(""); setFamFather(null); setFamMother(null); setFamReligious("");
+      setFamName(""); setFamFather(null); setFamMother(null); setFamReligious("");
       await load();
     } catch (err: any) {
       toast.error(firstApiError(err?.response?.data) || t("adm_save_failed", "Could not save."));
@@ -162,7 +161,7 @@ const FamiliesAdminPage = () => {
     <div className="mx-auto max-w-5xl space-y-8">
       <PageHeader
         title={t("adm_fam_title", "Family distribution")}
-        description={t("adm_fam_desc", "Puts unassigned first-year students into families automatically. Sizes stay even (maximum {{n}}), each family gets a mix of sections and dorm blocks, and Male/Female families only get that gender. You see a preview first; nothing is saved until you confirm.", { n: data.limit })}
+        description={t("adm_fam_desc", "Puts unassigned first-year students into families automatically. Sizes stay even (maximum {{n}}), each family gets a mix of sections and dorm blocks, and every family has men and women. You see a preview first; nothing is saved until you confirm.", { n: data.limit })}
         actions={
           <>
             <button onClick={() => setCreating(true)} className="btn-primary px-4 py-2 text-sm">{t("fam_new", "New family")}</button>
@@ -221,7 +220,7 @@ const FamiliesAdminPage = () => {
                   <label key={f.id} className={`flex items-center gap-2 rounded-lg border border-border px-3 py-2 ${full ? "opacity-50" : "cursor-pointer"}`}>
                     <input type="checkbox" className="h-4 w-4" disabled={full} checked={selected.includes(f.id)} onChange={() => toggle(f.id)} />
                     <span className="flex-1 truncate text-sm text-foreground">{f.name}</span>
-                    <span className="text-xs text-muted-foreground">{f.member_count}/{data.limit}{f.gender ? ` · ${f.gender === "M" ? "M" : "F"}` : ""}</span>
+                    <span className="text-xs text-muted-foreground">{f.member_count}/{data.limit}</span>
                   </label>
                 );
               })}
@@ -283,14 +282,6 @@ const FamiliesAdminPage = () => {
             <div>
               <label className="text-sm font-medium text-foreground" htmlFor="fam-name">{t("fam_name", "Family name")} *</label>
               <input id="fam-name" className="input mt-1 w-full" value={famName} onChange={(e) => setFamName(e.target.value)} maxLength={100} />
-            </div>
-            <div>
-              <label className="text-sm font-medium text-foreground" htmlFor="fam-gender">{t("fam_gender", "Who can join")}</label>
-              <select id="fam-gender" className="input mt-1 w-full" value={famGender} onChange={(e) => setFamGender(e.target.value)}>
-                <option value="">{t("fam_gender_mixed", "Male and female students")}</option>
-                <option value="M">{t("fam_gender_M", "Male students only")}</option>
-                <option value="F">{t("fam_gender_F", "Female students only")}</option>
-              </select>
             </div>
             <UserPicker label={t("fam_father", "Father (a man, optional)")} value={famFather} onChange={setFamFather} limited />
             <UserPicker label={t("fam_mother", "Mother (a woman, optional)")} value={famMother} onChange={setFamMother} limited />

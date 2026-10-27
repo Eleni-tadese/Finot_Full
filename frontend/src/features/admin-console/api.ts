@@ -83,7 +83,7 @@ export const adminApi = {
   deleteFamily: (id: number) => axiosInstance.delete<{ removed_students: number }>(`${C}/families/${id}/`).then((r) => r.data),
   updateFamily: (id: number, body: { name?: string; father_id?: number | null; mother_id?: number | null; religious_father?: string }) =>
     axiosInstance.patch<FamilyRow>(`${C}/families/${id}/`, body).then((r) => r.data),
-  createFamily: (body: { name: string; gender: string; father_id?: number | null; mother_id?: number | null; religious_father?: string }) =>
+  createFamily: (body: { name: string; father_id?: number | null; mother_id?: number | null; religious_father?: string }) =>
     axiosInstance.post<{ id: number; name: string }>(`${C}/families/`, body).then((r) => r.data),
 
   subAdmins: () => axiosInstance.get<SubAdminRole[]>(`${C}/sub-admins/`).then((r) => r.data),
