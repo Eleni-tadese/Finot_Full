@@ -27,7 +27,7 @@ A role can only go to a person whose year allows it. A graduate always qualifies
 |---|---|
 | Service Admin, Event Manager, Course Coordinator, Family Admin | year 2 or above (or graduate) |
 | QA Counselor, QA Moderator | year 3 or above (or graduate) |
-| Family father or mother | year 2 or above (or graduate) |
+| Family father or mother | year 2 or above; never a graduate |
 | Super Admin | no rule |
 
 A person with no year on record cannot receive a role until the Super Admin sets it (Users & roles → Edit details).

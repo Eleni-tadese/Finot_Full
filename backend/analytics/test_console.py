@@ -479,7 +479,8 @@ class TestRoleEligibility:
     def test_graduates_are_always_eligible_and_unknown_year_is_not(self):
         graduate = student("g@x.test", 5, status=StudentProfile.GRADUATED)
         check_role_eligibility(graduate, Role.QA_MODERATOR)
-        check_family_leader(graduate)
+        with pytest.raises(DjangoValidationError):
+            check_family_leader(graduate)  # a graduate may not lead a family
         nobody = make_user("n@x.test")
         StudentProfile.objects.filter(user=nobody).update(batch_year=None)
         with pytest.raises(DjangoValidationError):

@@ -95,7 +95,7 @@ Student, Super Admin, Service Admin, Event Manager, Course Coordinator, Family A
 |---|---|
 | FR-ROLE-1 | The system shall support the roles Student, Super Admin, Service Admin, Event Manager, Course Coordinator, Family Admin, QA Moderator and QA Counselor; a person may hold several. |
 | FR-ROLE-2 | Only a Super Admin shall assign or remove roles. |
-| FR-ROLE-3 | The system shall refuse a role to a person whose year of study is too low: year 2+ for Service Admin, Event Manager, Course Coordinator and Family Admin; year 3+ for QA Counselor and QA Moderator; year 2+ for a family father or mother. Graduates always qualify. |
+| FR-ROLE-3 | The system shall refuse a role to a person whose year of study is too low: year 2+ for Service Admin, Event Manager, Course Coordinator and Family Admin; year 3+ for QA Counselor and QA Moderator; year 2+ for a family father or mother (never a graduate). Graduates qualify for the other roles. |
 | FR-ROLE-4 | The system shall always keep at least one Super Admin; a Super Admin cannot remove their own role or deactivate themselves. |
 | FR-ROLE-5 | The server shall check permissions on every endpoint; hidden buttons in the interface are never the protection. |
 | FR-ROLE-6 | The website shall show each user a menu with the pages of all the roles they hold. |

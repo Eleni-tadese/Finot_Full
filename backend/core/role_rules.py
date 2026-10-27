@@ -1,6 +1,6 @@
 """
 Who may hold which role, by year of study. A graduate is always eligible (graduates are the fellowship's
-long-term members: counselors, moderators, family fathers and mothers). The Super Admin role and roles not listed
+long-term members: counselors, moderators), except as a family father or mother. The Super Admin role and roles not listed
 here have no year rule.
 """
 from django.core.exceptions import ValidationError
@@ -47,4 +47,8 @@ def check_role_eligibility(user, role_name):
 
 
 def check_family_leader(user):
+    """A family father or mother is a student in year 2 or above. A graduate may not lead a family."""
+    profile = getattr(user, "student_profile", None)
+    if profile is not None and profile.status == "GRADUATED":
+        raise ValidationError(f"{_name(user)} has graduated. A graduate cannot be a family father or mother.")
     _check(user, FAMILY_LEADER_MIN_YEAR, "A family father or mother")
