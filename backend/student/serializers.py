@@ -1,5 +1,8 @@
 from rest_framework import serializers
+from django.utils import timezone
+
 from .models import MAX_STUDY_YEAR, StudentProfile
+from .year_choice import may_choose_year
 from django.conf import settings
 
 class StudentProfileSerializer(serializers.ModelSerializer):
@@ -22,6 +25,14 @@ class StudentProfileSerializer(serializers.ModelSerializer):
     def get_department_is_stage(self, obj):
         return self._stage(obj.department) is not None
 
+    # True while this student may still choose their own year (slip account, switch on, not chosen yet)
+    can_choose_year = serializers.SerializerMethodField()
+    # Sent by the first-sign-in screen to use up the choice even when the year stays the same
+    year_confirmed = serializers.BooleanField(write_only=True, required=False)
+
+    def get_can_choose_year(self, obj):
+        return may_choose_year(obj)
+
     class Meta:
         model = StudentProfile
         fields = [
@@ -36,6 +47,8 @@ class StudentProfileSerializer(serializers.ModelSerializer):
             'batch_year',
             'department',
             'department_is_stage',
+            'can_choose_year',
+            'year_confirmed',
             'telegram_username',
             'personal_phone',
             'sms_opt_in',
@@ -58,7 +71,8 @@ class StudentProfileSerializer(serializers.ModelSerializer):
         # Opting in to SMS needs a phone number we can actually send to.
         from notifications.sms.phone import normalize_phone
 
-        self._check_academic_facts(attrs)
+        confirmed = attrs.pop('year_confirmed', False)
+        self._check_academic_facts(attrs, confirmed)
 
         opt_in = attrs.get('sms_opt_in', getattr(self.instance, 'sms_opt_in', False))
         phone = attrs.get('personal_phone', getattr(self.instance, 'personal_phone', None))
@@ -78,7 +92,7 @@ class StudentProfileSerializer(serializers.ModelSerializer):
         dept = Department.objects.filter(name__iexact=str(department_name).strip()).first()
         return dept if dept and dept.is_stage else None
 
-    def _check_academic_facts(self, attrs):
+    def _check_academic_facts(self, attrs, year_confirmed=False):
         """
         Year and department are set once by the student; after that only the Super Admin changes them
         (the yearly rollover moves the year). Department must come from the Super Admin's list when there is one.
@@ -93,8 +107,13 @@ class StudentProfileSerializer(serializers.ModelSerializer):
             return str(a if a is not None else '').strip().lower() == str(b if b is not None else '').strip().lower()
 
         stage = self._stage(getattr(current, 'department', None)) if current is not None else None
+        choosing_year = current is not None and not is_admin and may_choose_year(current)
+        if choosing_year and 'batch_year' in attrs and (year_confirmed or not same(attrs['batch_year'], current.batch_year)):
+            attrs['year_chosen_at'] = timezone.now()  # the choice is used up
         if current is not None and not is_admin:
             for field in ('batch_year', 'department'):
+                if field == 'batch_year' and choosing_year:
+                    continue  # this student may still choose the year
                 if field in attrs and getattr(current, field) not in (None, '') and not same(attrs[field], getattr(current, field)):
                     if field == 'department' and stage is not None:
                         continue  # a stage is left for the next stage or the final department

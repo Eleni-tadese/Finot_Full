@@ -79,6 +79,8 @@ class StudentProfile(models.Model):
     )
     setup_deadline = models.DateTimeField(blank=True, null=True)
     setup_completed_at = models.DateTimeField(blank=True, null=True)
+    # when a slip student chose their own year (once, while RegistrationSettings.allow_year_choice is on)
+    year_chosen_at = models.DateTimeField(blank=True, null=True)
     password_changed_at = models.DateTimeField(blank=True, null=True)
     # set when a slip student confirms a real email with the code; from then on the slip password must be replaced at once
     # (accounts that confirmed their email before this existed have no value and may change the password any time)
