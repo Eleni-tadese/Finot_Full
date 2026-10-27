@@ -3,6 +3,9 @@ from django.db import models
 from django.conf import settings
 from django.core.validators import MaxValueValidator, MinValueValidator
 
+# The longest study year in the whole system (there is no year 6 or 7).
+MAX_STUDY_YEAR = 5
+
 # Create your models here.
 
 

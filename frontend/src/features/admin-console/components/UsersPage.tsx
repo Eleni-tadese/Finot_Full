@@ -412,7 +412,7 @@ const UsersPage = () => {
             <label className="block text-sm font-medium">{t("usr_year", "Year of study")}
               <select className="input mt-1 w-full" value={detailsForm.batch} onChange={(e) => setDetailsForm({ ...detailsForm, batch: e.target.value })}>
                 <option value="">{t("usr_not_set", "Not set")}</option>
-                {[1, 2, 3, 4, 5, 6, 7].map((y) => <option key={y} value={y}>{y}</option>)}
+                {[1, 2, 3, 4, 5].map((y) => <option key={y} value={y}>{y}</option>)}
               </select>
             </label>
             <label className="block text-sm font-medium">{t("usr_department", "Department")}

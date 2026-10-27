@@ -7,7 +7,7 @@ import { adminApi } from "../api";
 import type { Department } from "../types";
 import { Chip, Empty, Loading, Modal, PageHeader } from "./AdminUi";
 
-const YEARS = [3, 4, 5, 6, 7];
+const YEARS = [3, 4, 5];
 
 const DepartmentsPage = () => {
   const { t } = useTranslation();

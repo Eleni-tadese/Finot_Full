@@ -42,7 +42,7 @@ from service.services import (
 from core.role_rules import MIN_YEAR, check_family_leader, check_role_eligibility
 from student import rollover
 from student.cards import profile_card
-from student.models import Department, StudentProfile, YearRollover
+from student.models import MAX_STUDY_YEAR, Department, StudentProfile, YearRollover
 from student.participation import participating_q
 
 from . import exports
@@ -468,8 +468,8 @@ def _apply_profile_facts(user, data):
                 year = int(raw)
             except (TypeError, ValueError):
                 raise ValidationError({"batch_year": "Must be a number."})
-            if not 1 <= year <= 7:
-                raise ValidationError({"batch_year": "The year must be between 1 and 7."})
+            if not 1 <= year <= MAX_STUDY_YEAR:
+                raise ValidationError({"batch_year": f"The year must be between 1 and {MAX_STUDY_YEAR}."})
             profile.batch_year = year
     if "department" in data:
         name = str(data["department"] or "").strip()
@@ -1211,8 +1211,8 @@ def _clean_years(raw):
         years = int(raw)
     except (TypeError, ValueError):
         raise ValidationError({"years": "Must be a number."})
-    if not 3 <= years <= 7:
-        raise ValidationError({"years": "A program lasts between 3 and 7 years."})
+    if not 3 <= years <= MAX_STUDY_YEAR:
+        raise ValidationError({"years": f"A program lasts between 3 and {MAX_STUDY_YEAR} years."})
     return years
 
 

@@ -500,6 +500,15 @@ class TestRoleEligibility:
         )
         assert res.status_code == 200 and res.json()["batch_year"] == 2 and Role.EVENT_MANAGER in res.json()["roles"]
 
+    def test_there_is_no_year_6_or_7(self):
+        boss = make_user("boss@x.test", Role.SUPER_ADMIN)
+        pupil = student("pupil@x.test", 2)
+        c = client_for(boss)
+        for year in (6, 7):
+            res = c.patch(f"{BASE}users/{pupil.id}/", {"batch_year": year}, format="json")
+            assert res.status_code == 400 and "between 1 and 5" in res.json()["batch_year"]
+        assert c.patch(f"{BASE}users/{pupil.id}/", {"batch_year": 5}, format="json").status_code == 200
+
     def test_failed_role_rolls_back_the_year_change(self):
         boss = make_user("boss@x.test", Role.SUPER_ADMIN)
         fresh = student("fresh@x.test", 1)

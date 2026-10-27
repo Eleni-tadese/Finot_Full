@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import StudentProfile
+from .models import MAX_STUDY_YEAR, StudentProfile
 from django.conf import settings
 
 class StudentProfileSerializer(serializers.ModelSerializer):
@@ -109,8 +109,8 @@ class StudentProfileSerializer(serializers.ModelSerializer):
             if 'status' in attrs and attrs['status'] != current.status:
                 raise serializers.ValidationError({'status': 'Only the Super Admin can change this.'})
 
-        if 'batch_year' in attrs and attrs['batch_year'] is not None and not 1 <= attrs['batch_year'] <= 7:
-            raise serializers.ValidationError({'batch_year': 'The year must be between 1 and 7.'})
+        if 'batch_year' in attrs and attrs['batch_year'] is not None and not 1 <= attrs['batch_year'] <= MAX_STUDY_YEAR:
+            raise serializers.ValidationError({'batch_year': f'The year must be between 1 and {MAX_STUDY_YEAR}.'})
 
         if 'department' in attrs and attrs['department'] and (current is None or not same(attrs['department'], current.department)):
             listed = Department.objects.filter(is_active=True)

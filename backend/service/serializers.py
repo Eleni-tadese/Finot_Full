@@ -2,6 +2,7 @@ from .i18n import TRANSLATABLE, group_name, localized, request_language
 from rest_framework import serializers
 from .models import ServiceGroup, AgeglotSelection, Family, FamilyMembership, Event, ServiceConfiguration, ServiceGroupMembership, ServiceAttendance
 from django.contrib.auth import get_user_model
+from student.models import MAX_STUDY_YEAR
 from student.participation import participating_q
 
 User = get_user_model()
@@ -199,8 +200,8 @@ class EventSerializer(serializers.ModelSerializer):
             years = sorted({int(y) for y in (value or [])})
         except (TypeError, ValueError):
             raise serializers.ValidationError('Years must be numbers.')
-        if any(not 1 <= y <= 7 for y in years):
-            raise serializers.ValidationError('A year is between 1 and 7.')
+        if any(not 1 <= y <= MAX_STUDY_YEAR for y in years):
+            raise serializers.ValidationError(f'A year is between 1 and {MAX_STUDY_YEAR}.')
         return years
 
     def validate_audience_departments(self, value):

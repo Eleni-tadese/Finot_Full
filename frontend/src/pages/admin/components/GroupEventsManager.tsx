@@ -331,7 +331,7 @@ export default function GroupEventsManager({ groupId, eventType }: GroupEventsMa
                 <div>
                   <p className="mb-1 text-xs font-medium text-muted-foreground">{t("ev_aud_years", "Years of study")}</p>
                   <div className="flex flex-wrap gap-1">
-                    {[1, 2, 3, 4, 5, 6, 7].map((y) => {
+                    {[1, 2, 3, 4, 5].map((y) => {
                       const on = formData.audience_years.includes(y);
                       return (
                         <button key={y} type="button" onClick={() => setFormData({ ...formData, audience_years: on ? formData.audience_years.filter((v) => v !== y) : [...formData.audience_years, y].sort() })}
