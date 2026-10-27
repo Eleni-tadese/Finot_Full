@@ -89,3 +89,19 @@ class TestSlipHolderChoosesYear:
         normal = client_for(make_user("normal@x.test", batch=2))
         assert normal.get(self.URL).json()["can_choose_year"] is False
         assert normal.patch(self.URL, {"batch_year": 3}, format="json").status_code == 400
+
+
+@pytest.mark.django_db
+class TestChoosingTheYearEnrolsInCourses:
+    def test_the_courses_of_the_chosen_year_open_and_the_old_ones_go(self):
+        from analytics.test_console import client_for
+        from course.models import Course, CourseEnrollment, SemesterCourse
+
+        slip = TestSlipHolderChoosesYear().slip_student("enrol@x.test")
+        first = SemesterCourse.objects.create(course=Course.objects.create(title="Year 1 course", batch_year=1), academic_year=2026, semester=1, status="OPEN")
+        third = SemesterCourse.objects.create(course=Course.objects.create(title="Year 3 course", batch_year=3), academic_year=2026, semester=1, status="OPEN")
+        CourseEnrollment.objects.get_or_create(semester_course=first, student=slip)
+        res = client_for(slip).patch("/api/student/profiles/me/", {"batch_year": 3}, format="json")
+        assert res.status_code == 200
+        assert CourseEnrollment.objects.filter(student=slip, semester_course=third).exists()
+        assert not CourseEnrollment.objects.filter(student=slip, semester_course=first).exists()
