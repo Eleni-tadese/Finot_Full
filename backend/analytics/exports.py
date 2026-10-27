@@ -62,13 +62,13 @@ def families_sheets():
     for family in families.order_by("name"):
         members = list(family.members.all())
         family_rows.append([
-            family.name, family.gender, full_name(family.father) if family.father else "",
+            family.name, full_name(family.father) if family.father else "",
             full_name(family.mother) if family.mother else "", family.religious_father, len(members),
         ])
         for m in members:
             member_rows.append([family.name, full_name(m.student), m.student.email, m.joined_at])
     return [
-        Sheet("Families", ["Family", "Gender", "Father", "Mother", "Religious father", "Members"], family_rows),
+        Sheet("Families", ["Family", "Father", "Mother", "Religious father", "Members"], family_rows),
         Sheet("Members", ["Family", "Student", "Email", "Joined"], member_rows),
     ]
 

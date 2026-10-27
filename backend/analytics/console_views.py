@@ -801,7 +801,7 @@ def _family_json(f):
         return {"id": u.id, "full_name": full_name(u), "email": u.email} if u else None
 
     return {
-        "id": f.id, "name": f.name, "gender": f.gender or None, "member_count": f.members.filter(participating_q('student__')).count(),
+        "id": f.id, "name": f.name, "member_count": f.members.filter(participating_q('student__')).count(),
         "father": person(f.father), "mother": person(f.mother), "religious_father": f.religious_father or "",
     }
 
@@ -876,7 +876,7 @@ class FamiliesView(FamilyConsoleView):
 
     def post(self, request):
         """
-        Create a family. Body: name, gender ("M" / "F" / empty = mixed), optional father_id (a man),
+        Create a family (always mixed: men and women). Body: name, optional father_id (a man),
         mother_id (a woman) and religious_father. One person can lead only one family.
         """
         name = str(request.data.get("name", "")).strip()
@@ -886,14 +886,10 @@ class FamiliesView(FamilyConsoleView):
             raise ValidationError({"name": "The name is too long (maximum 100)."})
         if Family.objects.filter(name__iexact=name).exists():
             raise ValidationError({"name": "A family with this name already exists."})
-        gender = request.data.get("gender") or None
-        if gender not in (None, "M", "F"):
-            raise ValidationError({"gender": "Must be M, F or empty."})
-
         father = _pick_parent(request.data, "father_id", "M", "father")
         mother = _pick_parent(request.data, "mother_id", "F", "mother")
         family = Family.objects.create(
-            name=name, gender=gender, father=father, mother=mother,
+            name=name, father=father, mother=mother,
             religious_father=str(request.data.get("religious_father", "")).strip()[:150],
         )
         return Response({"id": family.id, "name": family.name}, status=status.HTTP_201_CREATED)
@@ -919,7 +915,7 @@ class DistributionOverviewView(FamilyConsoleView):
             "unassigned_count": get_unassigned_freshers().count(),
             "filter_options": get_filter_options(),
             "families": [
-                {"id": f.id, "name": f.name, "gender": f.gender, "member_count": f.member_count}
+                {"id": f.id, "name": f.name, "member_count": f.member_count}
                 for f in families
             ],
             "batches": [_batch_json(b) for b in FamilyDistributionBatch.objects.select_related("created_by")[:10]],

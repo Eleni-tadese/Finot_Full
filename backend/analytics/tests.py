@@ -90,7 +90,7 @@ class TestExportContents:
         fam = baker.make(Family, name="Fam A", father=None, mother=None)
         FamilyMembership.objects.create(family=fam, student=make_user("m@finot.test"))
         res = get(boss, "/api/analytics/export/families/")
-        assert sheet_rows(res, 0)[1][0] == "Fam A" and sheet_rows(res, 0)[1][5] == 1
+        assert sheet_rows(res, 0)[1][0] == "Fam A" and sheet_rows(res, 0)[1][4] == 1
         assert sheet_rows(res, 1)[1][2] == "m@finot.test"
 
     def test_event_manager_exports_only_own_events(self):

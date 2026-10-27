@@ -343,17 +343,16 @@ class TestSelectionWindowAndFamilies:
 
     def test_create_family_with_parents(self, boss):
         father, mother = make_user("f@finot.test", gender="M"), make_user("m@finot.test", gender="F")
-        res = client_for(boss).post(BASE + "families/", {"name": "Family 1", "gender": "M", "father_id": father.id, "mother_id": mother.id,
+        res = client_for(boss).post(BASE + "families/", {"name": "Family 1", "father_id": father.id, "mother_id": mother.id,
                                                           "religious_father": "Abba X"}, format="json")
         assert res.status_code == 201
         fam = Family.objects.get(name="Family 1")
-        assert fam.father_id == father.id and fam.mother_id == mother.id and fam.gender == "M"
+        assert fam.father_id == father.id and fam.mother_id == mother.id and fam.gender is None
 
     def test_family_rules(self, boss):
         c = client_for(boss)
         man, woman = make_user("f@finot.test", gender="M"), make_user("m@finot.test", gender="F")
         assert c.post(BASE + "families/", {"name": " "}, format="json").status_code == 400
-        assert c.post(BASE + "families/", {"name": "A", "gender": "X"}, format="json").status_code == 400
         assert c.post(BASE + "families/", {"name": "A", "father_id": woman.id}, format="json").status_code == 400  # father must be a man
         assert c.post(BASE + "families/", {"name": "A", "mother_id": man.id}, format="json").status_code == 400
         assert c.post(BASE + "families/", {"name": "A", "father_id": 99999}, format="json").status_code == 400
