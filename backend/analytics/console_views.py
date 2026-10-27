@@ -817,10 +817,13 @@ def _pick_parent(data, key, expected_gender, label, family=None):
         raise ValidationError({key: "User not found or not active."})
     if person.gender != expected_gender:
         raise ValidationError({key: f"The {label} must be a {'man' if expected_gender == 'M' else 'woman'}."})
-    try:
-        check_family_leader(person)
-    except DjangoValidationError as exc:
-        raise ValidationError({key: exc.messages[0]})
+    # The current father or mother stays, even after graduating; the year/graduate rule is for a new one only
+    already_leads_here = family is not None and getattr(family, key, None) == person.id
+    if not already_leads_here:
+        try:
+            check_family_leader(person)
+        except DjangoValidationError as exc:
+            raise ValidationError({key: exc.messages[0]})
     others = Family.objects.filter(**{key.replace("_id", ""): person})
     if family is not None:
         others = others.exclude(pk=family.pk)

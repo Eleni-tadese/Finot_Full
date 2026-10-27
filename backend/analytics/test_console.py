@@ -948,6 +948,13 @@ class TestFamilyParents:
         # the same father can be re-saved on his own family, and cleared
         assert c.patch(f"{BASE}families/{done.id}/", {"father_id": dad.id}, format="json").status_code == 200
         assert c.patch(f"{BASE}families/{done.id}/", {"mother_id": None}, format="json").json()["mother"] is None
+        # a father who graduated stays; a graduate cannot be named as a NEW father
+        StudentProfile.objects.filter(user=dad).update(status=StudentProfile.GRADUATED)
+        assert c.patch(f"{BASE}families/{done.id}/", {"father_id": dad.id, "name": "Family 1b"}, format="json").status_code == 200
+        old_boy = make_user("old@finot.test", gender="M", batch=5)
+        StudentProfile.objects.filter(user=old_boy).update(status=StudentProfile.GRADUATED)
+        res = c.patch(url, {"father_id": old_boy.id}, format="json")
+        assert res.status_code == 400 and "graduated" in res.json()["father_id"]
         assert c.patch(f"{BASE}families/99999/", {}, format="json").status_code == 404
 
     def test_students_cannot_edit_or_list(self):
