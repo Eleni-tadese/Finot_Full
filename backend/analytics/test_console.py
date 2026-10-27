@@ -893,7 +893,6 @@ class TestAutoFamilies:
 
     def test_fills_existing_mixed_family_first_and_names_continue(self, boss):
         Family.objects.create(name="Family 7")
-        Family.objects.create(name="Boys only", gender="M")
         self.fresh(14, women=7)
         preview = client_for(boss).post(BASE + "families/distribution/auto-preview/").json()
         assert [f["name"] for f in preview["new_families"]] == ["Family 8"]

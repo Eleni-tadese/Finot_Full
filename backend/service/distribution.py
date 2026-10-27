@@ -6,9 +6,8 @@ it decides which student goes to which family, and the admin screen shows that p
 as a preview before anything is saved.
 
 Rules:
-  * a family with a gender only takes students of that gender (no gender = mixed);
   * a family never exceeds max_size;
-  * family sizes are kept as even as possible (always fill the emptiest eligible family);
+  * family sizes are kept as even as possible (always fill the emptiest family);
   * among equally empty families, prefer the one with the fewest students of the same
     gender, then from the same section, then from the same dorm block, so each family is a mix.
 """
@@ -31,7 +30,6 @@ class StudentInfo:
 class FamilyInfo:
     id: int
     name: str
-    gender: Optional[str]
     current_size: int = 0
     # section / dorm block of existing members, so new students spread against them
     sections: Counter = field(default_factory=Counter)
@@ -47,10 +45,6 @@ class Plan:
     unplaced: list
 
 
-def _accepts(family: FamilyInfo, student: StudentInfo) -> bool:
-    return family.gender is None or student.gender is None or family.gender == student.gender
-
-
 def plan_distribution(students, families, max_size) -> Plan:
     sizes = {f.id: f.current_size for f in families}
     sections = {f.id: Counter(f.sections) for f in families}
@@ -59,15 +53,10 @@ def plan_distribution(students, families, max_size) -> Plan:
     assignments = {f.id: [] for f in families}
     unplaced = []
 
-    # Students with fewer eligible families go first (gender-restricted pools fill before mixed ones);
-    # then dorm / room / section order so students from the same place are dealt out one by one.
-    def eligible_count(student):
-        return sum(1 for f in families if _accepts(f, student))
-
+    # Dorm / room / section order, so students from the same place are dealt out one by one.
     ordered = sorted(
         students,
         key=lambda s: (
-            eligible_count(s),
             s.dorm_block if s.dorm_block is not None else 10**6,
             s.dorm_room if s.dorm_room is not None else 10**6,
             s.section if s.section is not None else 10**6,
@@ -76,14 +65,9 @@ def plan_distribution(students, families, max_size) -> Plan:
     )
 
     for student in ordered:
-        candidates = [f for f in families if _accepts(f, student) and sizes[f.id] < max_size]
+        candidates = [f for f in families if sizes[f.id] < max_size]
         if not candidates:
-            reason = (
-                "no family accepts this gender"
-                if eligible_count(student) == 0
-                else "all matching families are full"
-            )
-            unplaced.append((student, reason))
+            unplaced.append((student, "all families are full"))
             continue
         best = min(
             candidates,

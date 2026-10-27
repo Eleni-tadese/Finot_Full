@@ -26,43 +26,32 @@ def sizes(plan, families):
 
 class TestAlgorithm:
     def test_sizes_are_even(self):
-        families = [FamilyInfo(i, f"F{i}", None) for i in range(1, 5)]
+        families = [FamilyInfo(i, f"F{i}") for i in range(1, 5)]
         plan = plan_distribution(students(22), families, MAX_FAMILY_SIZE)
         counts = sizes(plan, families).values()
         assert max(counts) - min(counts) <= 1 and sum(counts) == 22 and not plan.unplaced
 
     def test_existing_members_are_taken_into_account(self):
-        families = [FamilyInfo(1, "A", None, current_size=10), FamilyInfo(2, "B", None, current_size=0)]
+        families = [FamilyInfo(1, "A", current_size=10), FamilyInfo(2, "B", current_size=0)]
         plan = plan_distribution(students(6), families, MAX_FAMILY_SIZE)
         assert len(plan.assignments[2]) == 6 and not plan.assignments[1]
 
-    def test_gender_rules(self):
-        families = [FamilyInfo(1, "Boys", "M"), FamilyInfo(2, "Girls", "F")]
-        everyone = students(4, "M") + students(4, "F", start=100)
-        plan = plan_distribution(everyone, families, MAX_FAMILY_SIZE)
-        assert {s.gender for s in plan.assignments[1]} == {"M"}
-        assert {s.gender for s in plan.assignments[2]} == {"F"}
-
     def test_never_exceeds_max_and_reports_unplaced(self):
-        families = [FamilyInfo(1, "A", None), FamilyInfo(2, "B", None)]
+        families = [FamilyInfo(1, "A"), FamilyInfo(2, "B")]
         plan = plan_distribution(students(40), families, MAX_FAMILY_SIZE)
         assert all(len(v) <= MAX_FAMILY_SIZE for v in plan.assignments.values())
         assert len(plan.unplaced) == 40 - 2 * MAX_FAMILY_SIZE
-        assert plan.unplaced[0][1] == "all matching families are full"
-
-    def test_no_family_for_gender_is_reported(self):
-        plan = plan_distribution(students(2, "F"), [FamilyInfo(1, "Boys", "M")], MAX_FAMILY_SIZE)
-        assert [reason for _, reason in plan.unplaced] == ["no family accepts this gender"] * 2
+        assert plan.unplaced[0][1] == "all families are full"
 
     def test_sections_are_spread_across_families(self):
-        families = [FamilyInfo(1, "A", None), FamilyInfo(2, "B", None)]
+        families = [FamilyInfo(1, "A"), FamilyInfo(2, "B")]
         group = students(4, section=1, block=1) + students(4, section=2, block=1, start=50)
         plan = plan_distribution(group, families, MAX_FAMILY_SIZE)
         for f in families:
             assert {s.section for s in plan.assignments[f.id]} == {1, 2}
 
     def test_deterministic(self):
-        families = [FamilyInfo(i, f"F{i}", None) for i in range(1, 4)]
+        families = [FamilyInfo(i, f"F{i}") for i in range(1, 4)]
         a = plan_distribution(students(20), families, MAX_FAMILY_SIZE)
         b = plan_distribution(list(reversed(students(20))), families, MAX_FAMILY_SIZE)
         assert {k: [s.id for s in v] for k, v in a.assignments.items()} == {k: [s.id for s in v] for k, v in b.assignments.items()}

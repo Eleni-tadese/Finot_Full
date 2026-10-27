@@ -146,7 +146,7 @@ def _family_info(family):
             blocks[profile.dorm_block] += 1
         if m.student.gender:
             genders[m.student.gender] += 1
-    return FamilyInfo(family.id, family.name, family.gender or None, count, sections, blocks, genders)
+    return FamilyInfo(family.id, family.name, count, sections, blocks, genders)
 
 
 def _student_infos(students):
@@ -198,7 +198,7 @@ def next_family_names(count):
 
 def build_auto_distribution_plan(students):
     """
-    The system makes the families itself. Mixed families (men and women together) that already have room
+    The system makes the families itself. Existing families that have room
     are filled first; as many new ones as needed are planned on top (nothing is saved here).
     New families get negative temporary ids. Returns (Plan, {family_id: Family}, [{"temp_id", "name"}]).
     """
@@ -207,12 +207,12 @@ def build_auto_distribution_plan(students):
     from .distribution import FamilyInfo, plan_distribution
 
     students = list(students)
-    existing = [f for f in Family.objects.order_by("name") if not f.gender]
+    existing = list(Family.objects.order_by("name"))
     infos = [_family_info(f) for f in existing]
     free = sum(max(0, MAX_FAMILY_SIZE - i.current_size) for i in infos)
     new_count = math.ceil(max(0, len(students) - free) / MAX_FAMILY_SIZE)
     new_families = [{"temp_id": -(i + 1), "name": name} for i, name in enumerate(next_family_names(new_count))]
-    infos += [FamilyInfo(f["temp_id"], f["name"], None) for f in new_families]
+    infos += [FamilyInfo(f["temp_id"], f["name"]) for f in new_families]
     plan = plan_distribution(_student_infos(students), infos, MAX_FAMILY_SIZE)
     return plan, {f.id: f for f in existing}, new_families
 
@@ -220,7 +220,7 @@ def build_auto_distribution_plan(students):
 def apply_distribution(pairs, user=None):
     """
     pairs: iterable of (student_id, family_id) from a confirmed preview.
-    Re-checks every pair (student still unassigned, family still has room, gender still fits)
+    Re-checks every pair (student still unassigned, family still has room)
     so a stale preview can never overfill a family. Everything happens in one transaction.
 
     Returns (batch, applied_count, skipped_messages).
@@ -247,9 +247,6 @@ def apply_distribution(pairs, user=None):
             profile = getattr(student, "student_profile", None)
             if profile is None or profile.batch_year != 1 or profile.status != StudentProfile.IN_CAMPUS:
                 skipped.append(f"{label}: only first-year students on campus are placed in families")
-                continue
-            if family.gender and student.gender and family.gender != student.gender:
-                skipped.append(f"{label}: gender does not match {family.name}")
                 continue
             size = sizes.setdefault(family.id, family.members.count())
             if size >= MAX_FAMILY_SIZE:
