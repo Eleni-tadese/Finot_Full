@@ -55,7 +55,16 @@ const QaWorkNotice = ({ userId }: { userId: number | string }) => {
       toast.custom(
         (item) => (
           <div className={`pointer-events-auto w-full max-w-sm rounded-2xl border border-border bg-card p-4 shadow-elevated transition ${item.visible ? "opacity-100" : "opacity-0"}`}>
-            <p className="text-sm font-semibold text-foreground">{t("qa_work_title", "Waiting for you")}</p>
+            <div className="flex items-start justify-between gap-3">
+              <p className="text-sm font-semibold text-foreground">{t("qa_work_title", "Waiting for you")}</p>
+              <button
+                onClick={() => toast.dismiss(item.id)}
+                aria-label={t("close", "Close")}
+                className="-mr-1 -mt-1 shrink-0 rounded-full px-2 text-lg leading-none text-muted-foreground hover:bg-muted"
+              >
+                ×
+              </button>
+            </div>
             <ul className="mt-2 space-y-2">
               {lines.map((l) => (
                 <li key={l.text} className="flex items-center justify-between gap-3 text-sm text-muted-foreground">
@@ -71,7 +80,7 @@ const QaWorkNotice = ({ userId }: { userId: number | string }) => {
             </ul>
           </div>
         ),
-        { id: "qa-work-notice", duration: 12000, position: "top-right" }
+        { id: "qa-work-notice", duration: 7000, position: "top-right" }
       );
     }).catch(() => {
       try { sessionStorage.removeItem(key); } catch { /* ignore */ }  // could not load: try again next time
