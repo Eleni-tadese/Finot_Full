@@ -46,3 +46,43 @@ def suggest_ratios(females, males, families, size, how_many=3):
     options = [ratio_outcome(females, males, families, f, size - f) for f in range(1, size)]
     options.sort(key=lambda o: (o["left_total"], abs(o["female"] - ideal), o["female"]))
     return options[:how_many]
+
+
+def plan_by_ratio(students, families, size, female_per_family, male_per_family):
+    """
+    Place students so that each family gets `female_per_family` women and `male_per_family` men (counting the people
+    already in it), never more than `size` in all. Women are dealt out one by one to the family that has the fewest
+    women so far, men the same way, so the families stay even. A student for whom every family is full for their
+    gender (or who has no gender on file) is not placed: the Plan lists them as `unplaced` with the reason, and they
+    are placed at the end (see the remaining-students step).
+    """
+    from .distribution import Plan
+
+    quota = {"F": female_per_family, "M": male_per_family}
+    assignments = {f.id: [] for f in families}
+    total = {f.id: f.current_size for f in families}
+    have = {f.id: {"F": f.genders.get("F", 0), "M": f.genders.get("M", 0)} for f in families}
+    unplaced = []
+
+    def order(s):
+        return (
+            s.dorm_block if s.dorm_block is not None else 10**6,
+            s.dorm_room if s.dorm_room is not None else 10**6,
+            s.section if s.section is not None else 10**6,
+            s.name,
+        )
+
+    for student in sorted(students, key=order):
+        g = student.gender
+        if g not in quota:
+            unplaced.append((student, "no gender on file"))
+            continue
+        open_ = [f for f in families if have[f.id][g] < quota[g] and total[f.id] < size]
+        if not open_:
+            unplaced.append((student, "every family already has its share of this gender"))
+            continue
+        best = min(open_, key=lambda f: (have[f.id][g], total[f.id], f.name))
+        assignments[best.id].append(student)
+        have[best.id][g] += 1
+        total[best.id] += 1
+    return Plan(assignments=assignments, unplaced=unplaced)
