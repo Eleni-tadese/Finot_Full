@@ -184,8 +184,8 @@ REST_FRAMEWORK = {
     ],
     "DEFAULT_THROTTLE_RATES": {
         # Override in .env, e.g. THROTTLE_USER=600/minute for local testing.
-        # Many students share one campus IP, so these are per address and generous; sign-in has its own limits.
-        "anon": os.environ.get("THROTTLE_ANON") or "120/minute",
+        # Many students share one campus IP, so these are per address and generous (600 a minute for visitors who are not signed in); sign-in has its own limits.
+        "anon": os.environ.get("THROTTLE_ANON") or "600/minute",
         "user": os.environ.get("THROTTLE_USER") or "120/minute",
         "login_ip": os.environ.get("THROTTLE_LOGIN_IP") or "600/minute",
         "login_user": os.environ.get("THROTTLE_LOGIN_USER") or "10/minute",
