@@ -54,7 +54,7 @@ const QaWorkNotice = ({ userId }: { userId: number | string }) => {
 
       toast.custom(
         (item) => (
-          <div className={`pointer-events-auto w-full max-w-sm rounded-2xl border border-border bg-card p-4 shadow-elevated transition ${item.visible ? "opacity-100" : "opacity-0"}`}>
+          <div onClick={() => toast.dismiss(item.id)} className={`pointer-events-auto w-full max-w-sm cursor-pointer rounded-2xl border border-border bg-card p-4 shadow-elevated transition ${item.visible ? "opacity-100" : "opacity-0"}`}>
             <div className="flex items-start justify-between gap-3">
               <p className="text-sm font-semibold text-foreground">{t("qa_work_title", "Waiting for you")}</p>
               <button
@@ -70,7 +70,7 @@ const QaWorkNotice = ({ userId }: { userId: number | string }) => {
                 <li key={l.text} className="flex items-center justify-between gap-3 text-sm text-muted-foreground">
                   <span>{l.text}</span>
                   <button
-                    onClick={() => { toast.dismiss(item.id); navigate(l.path); }}
+                    onClick={(e) => { e.stopPropagation(); toast.dismiss(item.id); navigate(l.path); }}
                     className="shrink-0 rounded-lg bg-primary px-3 py-1 text-xs font-medium text-primary-foreground"
                   >
                     {t("qa_work_open", "Open")}
