@@ -11,8 +11,11 @@ from service.i18n import request_language
 from django.utils import timezone
 
 from .account_setup import is_blocked, must_replace_password, needs_name
+from .year_choice import may_choose_year
 
 OPEN_PREFIXES = ("/auth/users/me", "/auth/jwt/", "/api/account/", "/auth/users/reset_password")
+# The year step comes before the name step: while a slip student may still choose their year, these two calls stay open.
+YEAR_STEP_PREFIXES = ("/api/student/profiles/me", "/api/student/departments")
 
 
 class SetupAwareJWTAuthentication(JWTAuthentication):
@@ -21,7 +24,8 @@ class SetupAwareJWTAuthentication(JWTAuthentication):
         if result is None:
             return None
         user, _ = result
-        if not request.path.startswith(OPEN_PREFIXES) and is_blocked(user):
+        year_step = request.path.startswith(YEAR_STEP_PREFIXES) and may_choose_year(getattr(user, "student_profile", None))
+        if not request.path.startswith(OPEN_PREFIXES) and not year_step and is_blocked(user):
             profile = getattr(user, "student_profile", None)
             replace_only = must_replace_password(profile) and timezone.now() < profile.setup_deadline
             message = (

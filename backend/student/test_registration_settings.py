@@ -105,3 +105,28 @@ class TestChoosingTheYearEnrolsInCourses:
         assert res.status_code == 200
         assert CourseEnrollment.objects.filter(student=slip, semester_course=third).exists()
         assert not CourseEnrollment.objects.filter(student=slip, semester_course=first).exists()
+
+
+@pytest.mark.django_db
+class TestYearStepComesBeforeTheNameStep:
+    def test_a_slip_without_a_name_can_choose_the_year_then_is_blocked_until_the_name(self):
+        from datetime import timedelta
+
+        from django.utils import timezone
+
+        from rest_framework.test import APIClient
+        from rest_framework_simplejwt.tokens import RefreshToken
+
+        from student.models import StudentProfile
+
+        slip = TestSlipHolderChoosesYear().slip_student("noname@x.test")
+        slip.first_name = slip.middle_name = slip.last_name = ""
+        slip.save()
+        StudentProfile.objects.filter(user=slip).update(setup_deadline=timezone.now() + timedelta(days=30))
+        me = APIClient()
+        me.credentials(HTTP_AUTHORIZATION="JWT " + str(RefreshToken.for_user(slip).access_token))
+        assert me.get("/api/student/departments/").status_code == 200
+        assert me.patch("/api/student/profiles/me/", {"batch_year": 2, "year_confirmed": True}, format="json").status_code == 200
+        # the year is chosen: the name step closes the other pages again
+        blocked = me.get("/api/student/departments/")
+        assert blocked.status_code == 403 and blocked.json()["code"] == "account_setup_required"

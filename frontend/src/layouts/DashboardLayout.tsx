@@ -5,6 +5,7 @@ import { useAuth } from "../context/AuthContext";
 import DashboardSidebar from "../components/dashboard/DashboardSidebar";
 import DashboardTopNav from "../components/dashboard/DashboardTopNav";
 import QaWorkNotice from "../components/dashboard/QaWorkNotice";
+import YearChoiceStep from "../components/dashboard/YearChoiceStep";
 
 // Tablets (from 768px up to about 1100px) get the narrow, icon-only menu; phones keep the hamburger drawer.
 const TABLET_QUERY = "(min-width: 768px) and (max-width: 1099px)";
@@ -54,6 +55,19 @@ const DashboardLayout = () => {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background">
         <div className="h-12 w-12 animate-spin rounded-full border-[3px] border-muted border-t-primary" />
+      </div>
+    );
+  }
+
+  // A slip student who may still choose their year does that first, before the name step and every other page.
+  if (user.profile?.can_choose_year) {
+    return (
+      <div className="min-h-screen bg-background">
+        <div className="flex items-center justify-between bg-primary px-4 py-3 text-white">
+          <span className="font-semibold">Finot</span>
+          <button onClick={handleLogout} className="rounded-lg px-3 py-1.5 text-sm hover:bg-white/10">{t("logout")}</button>
+        </div>
+        <div className="p-4 md:p-8"><YearChoiceStep /></div>
       </div>
     );
   }
