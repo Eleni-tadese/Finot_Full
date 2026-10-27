@@ -9,6 +9,7 @@ import { credentialsCsv, slipsHtml, type Credential } from "../slips";
 import type { ImportBatchRow, ImportPreview } from "../types";
 import { Chip, Empty, PageHeader } from "./AdminUi";
 import SlipProgressPanel from "./SlipProgressPanel";
+import YearChoiceSwitch from "./YearChoiceSwitch";
 
 const CHUNK = 100;
 type Phase = "choose" | "preview" | "running" | "paused" | "done";
@@ -180,6 +181,7 @@ const ImportStudentsPage = () => {
         actions={<button onClick={getTemplate} className="btn-outline px-4 py-2 text-sm">{t("imp_template", "Download the Excel template")}</button>}
       />
 
+      <YearChoiceSwitch />
       <SlipProgressPanel key={`${phase}-${batches.length}`} />
 
       {phase === "choose" && (

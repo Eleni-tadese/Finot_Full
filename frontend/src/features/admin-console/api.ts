@@ -116,6 +116,11 @@ export const adminApi = {
   undoDistribution: (batchId: number) =>
     axiosInstance.post<{ removed: number }>(`${C}/families/distribution/batches/${batchId}/undo/`).then((r) => r.data),
 
+  registrationSettings: () =>
+    axiosInstance.get<{ allow_year_choice: boolean; max_year: number }>(`${C}/registration/settings/`).then((r) => r.data),
+  updateRegistrationSettings: (allow_year_choice: boolean) =>
+    axiosInstance.patch<{ allow_year_choice: boolean; max_year: number }>(`${C}/registration/settings/`, { allow_year_choice }).then((r) => r.data),
+
   smsSettings: () => axiosInstance.get<SmsSettings>(`${C}/sms/settings/`).then((r) => r.data),
   updateSmsSettings: (body: Partial<Pick<SmsSettings, "enabled" | "monthly_limit">>) =>
     axiosInstance.patch<SmsSettings>(`${C}/sms/settings/`, body).then((r) => r.data),
