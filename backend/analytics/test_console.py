@@ -6,7 +6,7 @@ from rest_framework.test import APIClient
 from core.models import Role, UserRole
 from notifications.models import SMSConfiguration, SMSLog
 from questionanswer.models import Question, TeacherSpecialization
-from service.models import Family, FamilyDistributionBatch, FamilyMembership
+from service.models import Family, FamilyDistributionBatch, FamilyMembership, ParentCandidate
 from student.models import StudentProfile
 
 User = get_user_model()
@@ -21,6 +21,13 @@ def make_user(email, *roles, gender=None, batch=5):
     for name in roles:
         UserRole.objects.create(user=user, role=Role.objects.get_or_create(name=name)[0])
     return User.objects.get(pk=user.pk)
+
+
+def train(*users):
+    """Put people on the trained list, so they can be named father or mother."""
+    for user in users:
+        ParentCandidate.objects.update_or_create(user=user, defaults={"status": ParentCandidate.TRAINED})
+    return users[0] if len(users) == 1 else users
 
 
 def client_for(user):
@@ -342,7 +349,7 @@ class TestSelectionWindowAndFamilies:
         assert sa.post(BASE + "families/", {"name": "X"}, format="json").status_code == 403
 
     def test_create_family_with_parents(self, boss):
-        father, mother = make_user("f@finot.test", gender="M"), make_user("m@finot.test", gender="F")
+        father, mother = train(make_user("f@finot.test", gender="M"), make_user("m@finot.test", gender="F"))
         res = client_for(boss).post(BASE + "families/", {"name": "Family 1", "father_id": father.id, "mother_id": mother.id,
                                                           "religious_father": "Abba X"}, format="json")
         assert res.status_code == 201
@@ -351,7 +358,7 @@ class TestSelectionWindowAndFamilies:
 
     def test_family_rules(self, boss):
         c = client_for(boss)
-        man, woman = make_user("f@finot.test", gender="M"), make_user("m@finot.test", gender="F")
+        man, woman = train(make_user("f@finot.test", gender="M"), make_user("m@finot.test", gender="F"))
         assert c.post(BASE + "families/", {"name": " "}, format="json").status_code == 400
         assert c.post(BASE + "families/", {"name": "A", "father_id": woman.id}, format="json").status_code == 400  # father must be a man
         assert c.post(BASE + "families/", {"name": "A", "mother_id": man.id}, format="json").status_code == 400
@@ -840,8 +847,8 @@ class TestFamilyAdminAccess:
 
     def test_family_admin_creates_family_and_distributes(self):
         fam = make_user("fam@finot.test", Role.FAMILY_ADMIN)
-        father = make_user("dad@finot.test", gender="M", batch=5)
-        mother = make_user("mum@finot.test", gender="F", batch=5)
+        father = train(make_user("dad@finot.test", gender="M", batch=5))
+        mother = train(make_user("mum@finot.test", gender="F", batch=5))
         c = client_for(fam)
         res = c.post(BASE + "families/", {"name": "Family 9", "father_id": father.id, "mother_id": mother.id}, format="json")
         assert res.status_code == 201
@@ -947,7 +954,7 @@ class TestFamilyParents:
         assert c.patch(url, {"father_id": dad.id}, format="json").status_code == 400
         assert c.patch(url, {"father_id": mum.id}, format="json").status_code == 400
         assert c.patch(url, {"father_id": junior.id}, format="json").status_code == 400
-        dad2 = make_user("dad2@finot.test", gender="M", batch=4)
+        dad2 = train(make_user("dad2@finot.test", gender="M", batch=4))
         res = c.patch(url, {"father_id": dad2.id, "religious_father": "Aba Giorgis"}, format="json")
         assert res.status_code == 200 and res.json()["father"]["id"] == dad2.id
         empty.refresh_from_db()

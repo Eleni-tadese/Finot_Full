@@ -895,8 +895,8 @@ class ParentCandidateDetailView(FamilyConsoleView):
 
 class FamilyParentCandidatesView(FamilyConsoleView):
     """
-    GET families/parents/candidates/?search= : the free people who may become a father (men) or a mother (women), and how
-    many families still wait for one. Same rules as naming a parent: active, year 2 or above, not a graduate, not
+    GET families/parents/candidates/?search= : the TRAINED people who are free to become a father (men) or a mother (women),
+    and how many families still wait for one. Same rules as naming a parent: active, year 2 or above, not a graduate, not
     already leading a family (having been a child in a family before does not matter). Small on purpose (name, email, year, department).
     """
 
@@ -909,6 +909,7 @@ class FamilyParentCandidatesView(FamilyConsoleView):
             .exclude(student_profile__status=StudentProfile.GRADUATED)
             .exclude(led_family_as_father__isnull=False)
             .exclude(led_family_as_mother__isnull=False)
+            .filter(parent_candidate__status=ParentCandidate.TRAINED)
             .select_related("student_profile")
             .order_by("first_name", "last_name", "id")
         )
@@ -972,6 +973,7 @@ class FamilyParentsAssignView(FamilyConsoleView):
         people = {
             u.id: u for u in User.objects.filter(pk__in=wanted_people, is_active=True).select_related("student_profile")
         }
+        trained = set(ParentCandidate.objects.filter(user_id__in=wanted_people, status=ParentCandidate.TRAINED).values_list("user_id", flat=True))
         leads = {}  # person id -> id of the family they lead now
         for fid, father_id, mother_id in Family.objects.values_list("id", "father_id", "mother_id"):
             for pid in (father_id, mother_id):
@@ -994,6 +996,8 @@ class FamilyParentsAssignView(FamilyConsoleView):
                 return None, exc.messages[0]
             if leads.get(person.id) not in (None, family.id):
                 return None, f"{full_name(person)} already leads a family."
+            if person.id not in trained and leads.get(person.id) != family.id:
+                return None, NOT_TRAINED.format(name=full_name(person))
             return person, ""
 
         results, changed = [], {}
@@ -1050,6 +1054,9 @@ def _family_json(f):
     }
 
 
+NOT_TRAINED = "{name} is not on the trained list. Choose them as a candidate and mark them trained first."
+
+
 def _pick_parent(data, key, expected_gender, label, family=None):
     """The father (a man) or mother (a woman) named in `data[key]`; None when empty. One person leads one family."""
     raw = data.get(key)
@@ -1068,6 +1075,8 @@ def _pick_parent(data, key, expected_gender, label, family=None):
             check_family_leader(person)
         except DjangoValidationError as exc:
             raise ValidationError({key: exc.messages[0]})
+        if not ParentCandidate.objects.filter(user=person, status=ParentCandidate.TRAINED).exists():
+            raise ValidationError({key: NOT_TRAINED.format(name=full_name(person))})
     others = Family.objects.filter(**{key.replace("_id", ""): person})
     if family is not None:
         others = others.exclude(pk=family.pk)

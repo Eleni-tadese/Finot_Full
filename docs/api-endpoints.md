@@ -48,7 +48,7 @@ Generated from the code (`manage.py spectacular`). For request and response shap
 | POST | `/api/admin-console/families/distribution/preview/` | api_admin_console_families_distribution_preview_create |
 | GET | `/api/admin-console/families/distribution/setup/` | GET families/distribution/setup/?size=10 : what the Family Admin needs before choosing the year's rules. |
 | POST | `/api/admin-console/families/parents/assign/` | POST families/parents/assign/ : name many fathers and mothers in one go. |
-| GET | `/api/admin-console/families/parents/candidates/` | GET families/parents/candidates/?search= : the free people who may become a father (men) or a mother (women), and how |
+| GET | `/api/admin-console/families/parents/candidates/` | GET families/parents/candidates/?search= : the TRAINED people who are free to become a father (men) or a mother (women), |
 | GET | `/api/admin-console/families/parents/pool/` | GET  families/parents/pool/?search= : everyone chosen so far (selected or trained) and the people who meet the |
 | POST | `/api/admin-console/families/parents/pool/` | GET  families/parents/pool/?search= : everyone chosen so far (selected or trained) and the people who meet the |
 | PATCH | `/api/admin-console/families/parents/pool/{user_id}/` | PATCH  families/parents/pool/<user_id>/ {"status": "TRAINED"/"SELECTED", "note": "..."} : mark a person trained (or back). |

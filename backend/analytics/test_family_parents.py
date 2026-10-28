@@ -2,16 +2,19 @@ import pytest
 
 from analytics.test_console import BASE, client_for, make_user
 from core.models import Role
-from service.models import Family, FamilyMembership
+from service.models import Family, FamilyMembership, ParentCandidate
 from student.models import StudentProfile
 
 CANDIDATES = BASE + "families/parents/candidates/"
 
 
-def senior(email, gender, year=3, **profile):
+def senior(email, gender, year=3, trained=True, **profile):
+    """A person who may be named a parent. `trained=False` leaves them off the trained list."""
     u = make_user(email, gender=gender, batch=year)
     if profile:
         StudentProfile.objects.filter(user=u).update(**profile)
+    if trained:
+        ParentCandidate.objects.create(user=u, status=ParentCandidate.TRAINED)
     return u
 
 
@@ -148,7 +151,7 @@ class TestParentPool:
         return client_for(make_user("fam@finot.test", Role.FAMILY_ADMIN, gender="F", batch=4))
 
     def test_the_family_admin_and_the_super_admin_can_both_choose_candidates(self):
-        a, b = senior("a@finot.test", "M"), senior("b@finot.test", "F")
+        a, b = senior("a@finot.test", "M", trained=False), senior("b@finot.test", "F", trained=False)
         assert self.family_admin().post(POOL, {"user_id": a.id, "note": "recommended by Aba Kebede"}, format="json").status_code == 201
         boss = client_for(make_user("boss@finot.test", Role.SUPER_ADMIN))
         assert boss.post(POOL, {"user_id": b.id}, format="json").status_code == 201
@@ -159,16 +162,16 @@ class TestParentPool:
 
     def test_the_requirements_are_always_checked(self):
         c = self.family_admin()
-        young = senior("young@finot.test", "M", year=1)
-        grad = senior("grad@finot.test", "F", year=5, status=StudentProfile.GRADUATED)
-        nogender = senior("none@finot.test", None)
+        young = senior("young@finot.test", "M", year=1, trained=False)
+        grad = senior("grad@finot.test", "F", year=5, status=StudentProfile.GRADUATED, trained=False)
+        nogender = senior("none@finot.test", None, trained=False)
         for person in (young, grad, nogender):
             assert c.post(POOL, {"user_id": person.id}, format="json").status_code == 400
         assert c.post(POOL, {"user_id": 99999}, format="json").status_code == 400
         assert c.post(POOL, {}, format="json").status_code == 400
 
     def test_leading_a_family_blocks_but_having_been_a_child_does_not(self):
-        dad, child = senior("dad@finot.test", "M"), senior("child@finot.test", "F", year=2)
+        dad, child = senior("dad@finot.test", "M", trained=False), senior("child@finot.test", "F", year=2, trained=False)
         fam = Family.objects.create(name="Family 1", father=dad)
         FamilyMembership.objects.create(family=fam, student=child)
         c = self.family_admin()
@@ -176,7 +179,7 @@ class TestParentPool:
         assert c.post(POOL, {"user_id": child.id}, format="json").status_code == 201  # their own earlier family
 
     def test_suggestions_exclude_the_chosen_and_follow_the_search(self):
-        a, b = senior("abel@finot.test", "M"), senior("kebede@finot.test", "M")
+        a, b = senior("abel@finot.test", "M", trained=False), senior("kebede@finot.test", "M", trained=False)
         c = self.family_admin()
         c.post(POOL, {"user_id": a.id}, format="json")
         data = c.get(POOL).json()
@@ -184,7 +187,7 @@ class TestParentPool:
         assert [s["email"] for s in c.get(POOL, {"search": "keb"}).json()["suggestions"]] == ["kebede@finot.test"]
 
     def test_training_is_marked_and_can_be_undone_and_choosing_twice_is_harmless(self):
-        a = senior("a@finot.test", "M")
+        a = senior("a@finot.test", "M", trained=False)
         c = self.family_admin()
         c.post(POOL, {"user_id": a.id}, format="json")
         assert c.post(POOL, {"user_id": a.id}, format="json").status_code == 200  # already chosen
@@ -199,7 +202,7 @@ class TestParentPool:
         assert c.patch(f"{POOL}9999/", {"status": "TRAINED"}, format="json").status_code == 404
 
     def test_a_candidate_can_be_removed_unless_they_lead_a_family(self):
-        a, b = senior("a@finot.test", "M"), senior("b@finot.test", "M")
+        a, b = senior("a@finot.test", "M", trained=False), senior("b@finot.test", "M", trained=False)
         c = self.family_admin()
         c.post(POOL, {"user_id": a.id}, format="json")
         c.post(POOL, {"user_id": b.id}, format="json")
@@ -211,3 +214,38 @@ class TestParentPool:
     def test_students_cannot_use_it(self):
         s = client_for(make_user("stu@finot.test", batch=2, gender="M"))
         assert s.get(POOL).status_code == 403 and s.post(POOL, {"user_id": 1}, format="json").status_code == 403
+
+
+@pytest.mark.django_db
+class TestOnlyTrainedPeopleBecomeParents:
+    def admin(self):
+        return client_for(make_user("fam@finot.test", Role.FAMILY_ADMIN, gender="F", batch=4))
+
+    def test_an_untrained_person_is_refused_in_the_quick_list_and_in_the_old_window(self):
+        raw, fine = senior("raw@finot.test", "M", trained=False), senior("fine@finot.test", "M")
+        f1, f2 = Family.objects.create(name="Family 1"), Family.objects.create(name="Family 2")
+        c = self.admin()
+        res = c.post(ASSIGN, {"assignments": [{"family_id": f1.id, "father_id": raw.id}, {"family_id": f2.id, "father_id": fine.id}]}, format="json").json()
+        assert res["applied"] == 1 and "trained list" in res["results"][0]["errors"]["father_id"]
+        one = c.patch(f"{BASE}families/{f1.id}/", {"father_id": raw.id}, format="json")
+        assert one.status_code == 400 and "trained list" in str(one.json())
+        assert c.patch(f"{BASE}families/{f1.id}/", {"father_id": fine.id}, format="json").status_code == 400  # leads Family 2
+
+    def test_the_free_list_shows_only_trained_people_and_marking_trained_adds_them(self):
+        raw = senior("raw@finot.test", "F", trained=False)
+        c = self.admin()
+        assert raw.id not in [p["id"] for p in c.get(CANDIDATES).json()["mothers"]]
+        c.post(POOL, {"user_id": raw.id}, format="json")
+        assert raw.id not in [p["id"] for p in c.get(CANDIDATES).json()["mothers"]]  # selected, not trained yet
+        c.patch(f"{POOL}{raw.id}/", {"status": "TRAINED"}, format="json")
+        assert raw.id in [p["id"] for p in c.get(CANDIDATES).json()["mothers"]]
+        fam = Family.objects.create(name="Family 1")
+        res = c.post(ASSIGN, {"assignments": [{"family_id": fam.id, "mother_id": raw.id}]}, format="json").json()
+        assert res["applied"] == 1
+
+    def test_a_parent_already_leading_keeps_the_place_even_if_set_back_to_selected(self):
+        dad = senior("dad@finot.test", "M")
+        fam = Family.objects.create(name="Family 1", father=dad)
+        ParentCandidate.objects.filter(user=dad).update(status="SELECTED")
+        res = self.admin().post(ASSIGN, {"assignments": [{"family_id": fam.id, "father_id": dad.id}]}, format="json").json()
+        assert res["applied"] == 1
