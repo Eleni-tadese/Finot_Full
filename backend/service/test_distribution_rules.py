@@ -137,3 +137,45 @@ class TestSectionModes:
         plan = plan_by_ratio(students, fams, 10, 5, 5, section_mode="together")
         used = sorted(len(m) for m in plan.assignments.values() if m)
         assert used == [2, 10] and not plan.unplaced
+
+
+def by_dorm(women, men, blocks):
+    rows = [StudentInfo(id=i, name=f"W{i:03d}", gender="F", dorm_block=i % blocks + 1, section=1) for i in range(women)]
+    rows += [StudentInfo(id=1000 + i, name=f"M{i:03d}", gender="M", dorm_block=i % blocks + 1, section=1) for i in range(men)]
+    return rows
+
+
+def blocks_per_family(plan):
+    from collections import Counter
+
+    return {fid: Counter(s.dorm_block for s in members) for fid, members in plan.assignments.items()}
+
+
+class TestDormModes:
+    def families(self, n):
+        return [FamilyInfo(i, f"Family {i}") for i in range(1, n + 1)]
+
+    def test_mix_spreads_every_dorm_over_the_families(self):
+        fams = self.families(4)
+        plan = plan_by_ratio(by_dorm(20, 20, 4), fams, 10, 5, 5, dorm_mode="mix")  # 4 dorm blocks of 10
+        assert all(makeup(plan, f.id) == (5, 5) for f in fams)
+        per = blocks_per_family(plan)
+        for block in (1, 2, 3, 4):
+            counts = [per[f.id][block] for f in fams]
+            assert max(counts) - min(counts) <= 1 and sum(counts) == 10
+
+    def test_together_puts_a_whole_dorm_in_one_family(self):
+        fams = self.families(4)
+        plan = plan_by_ratio(by_dorm(20, 20, 4), fams, 10, 5, 5, dorm_mode="together")
+        assert all(makeup(plan, f.id) == (5, 5) for f in fams)
+        assert all(len(b) == 1 for b in blocks_per_family(plan).values())
+
+    def test_the_two_modes_can_differ_in_one_run(self):
+        # section together AND dorm mixed: students of a section share a family while each family has several dorms
+        students = []
+        for i in range(40):
+            students.append(StudentInfo(id=i, name=f"S{i:03d}", gender="F" if i % 2 == 0 else "M", section=i // 10 + 1, dorm_block=i % 4 + 1))
+        fams = self.families(4)
+        plan = plan_by_ratio(students, fams, 10, 5, 5, section_mode="together", dorm_mode="mix")
+        assert all(len(c) == 1 for c in sections_per_family(plan).values())  # one section per family
+        assert all(len(c) >= 3 for c in blocks_per_family(plan).values())  # and several dorms in each
