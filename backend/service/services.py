@@ -245,42 +245,55 @@ def apply_distribution(pairs, user=None, max_size=MAX_FAMILY_SIZE):
     Re-checks every pair (student still unassigned, family still has room)
     so a stale preview can never overfill a family. Everything happens in one transaction.
 
+    Everything is read once and checked in memory, and the memberships are saved together: 1000 students cost the
+    same few queries as 10 (a query per student made this slow).
+
     Returns (batch, applied_count, skipped_messages).
     """
     from django.db import transaction
+    from django.db.models import Count
 
     from .models import FamilyDistributionBatch
 
+    pairs = [(student_id, family_id) for student_id, family_id in pairs]
     skipped = []
     with transaction.atomic():
         batch = FamilyDistributionBatch.objects.create(created_by=user)
-        sizes = {}
-        applied = 0
+        families = {f.id: f for f in Family.objects.select_for_update().filter(pk__in={fid for _, fid in pairs})}
+        students = {
+            u.id: u for u in User.objects.filter(pk__in={sid for sid, _ in pairs}).select_related("student_profile")
+        }
+        has_family = set(FamilyMembership.objects.filter(student_id__in=students).values_list("student_id", flat=True))
+        sizes = dict(
+            FamilyMembership.objects.filter(family_id__in=families).values("family_id").annotate(n=Count("id")).values_list("family_id", "n")
+        )
+        new = []
         for student_id, family_id in pairs:
-            family = Family.objects.select_for_update().filter(pk=family_id).first()
-            student = User.objects.filter(pk=student_id).first()
+            family = families.get(family_id)
+            student = students.get(student_id)
             if family is None or student is None:
                 skipped.append(f"#{student_id}: student or family no longer exists")
                 continue
             label = student.get_full_name() or student.username
-            if FamilyMembership.objects.filter(student=student).exists():
+            if student.id in has_family:
                 skipped.append(f"{label}: already in a family")
                 continue
             profile = getattr(student, "student_profile", None)
             if profile is None or profile.batch_year != 1 or profile.status != StudentProfile.IN_CAMPUS:
                 skipped.append(f"{label}: only first-year students on campus are placed in families")
                 continue
-            size = sizes.setdefault(family.id, family.members.count())
+            size = sizes.get(family.id, 0)
             if size >= max_size:
                 skipped.append(f"{label}: {family.name} is full")
                 continue
-            FamilyMembership.objects.create(family=family, student=student, batch=batch)
+            new.append(FamilyMembership(family=family, student=student, batch=batch))
+            has_family.add(student.id)
             sizes[family.id] = size + 1
-            applied += 1
-        if applied == 0:
+        FamilyMembership.objects.bulk_create(new)
+        if not new:
             transaction.set_rollback(True)
             batch = None
-    return batch, applied, skipped
+    return batch, len(new), skipped
 
 
 def undo_distribution(batch):

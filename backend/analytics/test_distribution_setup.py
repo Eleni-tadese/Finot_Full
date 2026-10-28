@@ -205,3 +205,17 @@ def test_the_light_student_list_gives_exactly_the_same_people_as_the_full_one():
     StudentProfile.objects.filter(user=nameless).update(batch_year=1, status=StudentProfile.IN_CAMPUS)
     type(nameless).objects.filter(pk=nameless.pk).update(first_name="", last_name="", gender=None)
     assert unassigned_fresher_infos() == student_infos(list(get_unassigned_freshers()))
+
+
+@pytest.mark.django_db
+def test_confirming_many_students_costs_only_a_few_queries():
+    from django.db import connection
+    from django.test.utils import CaptureQueriesContext
+
+    fresh(60, women=20)
+    admin = client_for(make_user("fam@finot.test", Role.FAMILY_ADMIN))
+    plan = admin.post(PLAN, rules(size=10, female_per_family=3, male_per_family=7), format="json").json()
+    with CaptureQueriesContext(connection) as q:
+        res = admin.post(CONFIRM, {"pairs": plan["pairs"], "new_families": plan["new_families"], "size": 10}, format="json").json()
+    assert res["applied"] == len(plan["pairs"]) and len(plan["pairs"]) >= 50
+    assert len(q.captured_queries) <= 30  # was about 6 per student (370 here)
