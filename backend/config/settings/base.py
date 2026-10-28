@@ -109,6 +109,16 @@ DATABASES = {
     )
 }
 
+# The first hasher is the normal PBKDF2 (full strength for every password a person chooses) that does not upgrade a
+# printed slip's light hash at sign-in (see student/hashers.py). The others are Django's defaults, so old hashes keep working.
+PASSWORD_HASHERS = [
+    "student.hashers.SlipFriendlyPBKDF2PasswordHasher",
+    "django.contrib.auth.hashers.PBKDF2SHA1PasswordHasher",
+    "django.contrib.auth.hashers.Argon2PasswordHasher",
+    "django.contrib.auth.hashers.BCryptSHA256PasswordHasher",
+    "django.contrib.auth.hashers.ScryptPasswordHasher",
+]
+
 AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},
     {"NAME": "django.contrib.auth.password_validation.MinimumLengthValidator"},

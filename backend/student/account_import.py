@@ -17,6 +17,8 @@ from datetime import timedelta
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.contrib.auth.hashers import PBKDF2PasswordHasher, get_hasher, make_password
+
+from .hashers import SLIP_HASH_ITERATIONS
 from django.db import transaction
 from django.utils import timezone
 
@@ -30,9 +32,9 @@ SLIP_DOMAINS = (LOGIN_DOMAIN,) + LEGACY_LOGIN_DOMAINS
 LOGIN_PATTERN = re.compile(r"^f(\d+)@(?:" + "|".join(re.escape(d) for d in SLIP_DOMAINS) + ")$")
 MAX_ROWS = 3000
 CHUNK_LIMIT = 150
-# Slip passwords are random (about 54 bits). A lighter hash keeps a 1000-student import quick; Django re-hashes
-# with the full strength at the student's first sign-in.
-IMPORT_HASH_ITERATIONS = 30000
+# Slip passwords are random (about 54 bits). A lighter hash keeps a 1000-student import quick AND keeps the first
+# sign-in quick: student/hashers.py does not upgrade it. The password the student chooses later is full strength.
+IMPORT_HASH_ITERATIONS = SLIP_HASH_ITERATIONS
 # Small letters and digits only (no capitals, no look-alikes such as l, i, o, 0, 1): easy to read from paper and to type.
 # 11 characters of 31 is about 54 bits, plenty for a password that is replaced within weeks.
 PASSWORD_ALPHABET = "abcdefghjkmnpqrstuvwxyz23456789"
@@ -192,7 +194,7 @@ def new_password():
 def quick_hash(password):
     """Hash with fewer PBKDF2 rounds when the site uses PBKDF2 (the normal case); any other hasher is used as set up."""
     hasher = get_hasher("default")
-    if type(hasher) is PBKDF2PasswordHasher:
+    if isinstance(hasher, PBKDF2PasswordHasher):
         return hasher.encode(password, hasher.salt(), iterations=IMPORT_HASH_ITERATIONS)
     return make_password(password)
 
