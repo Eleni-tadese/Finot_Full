@@ -10,6 +10,26 @@ import { Chip } from "./AdminUi";
 
 const MODES: SpreadMode[] = ["mix", "together", "ignore"];
 
+const TONES = {
+  neutral: "bg-muted text-foreground",
+  women: "bg-rose-50 text-rose-700",
+  men: "bg-sky-50 text-sky-700",
+  warn: "bg-amber-50 text-amber-800",
+};
+
+/** A small rounded label, for example "Section 1 · 30" or a dorm block with its students. */
+const Pill = ({ tone = "neutral", title, children }: { tone?: keyof typeof TONES; title?: string; children: React.ReactNode }) => (
+  <span title={title} className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs ${TONES[tone]}`}>{children}</span>
+);
+
+/** A big number with a small caption. */
+const Stat = ({ n, label }: { n: number; label: string }) => (
+  <div className="rounded-xl bg-muted/50 px-2 py-2 text-center">
+    <div className="text-lg font-semibold leading-tight text-foreground">{n}</div>
+    <div className="text-[11px] leading-tight text-muted-foreground">{label}</div>
+  </div>
+);
+
 /**
  * The Family Admin's rules for this year's distribution: family size, women : men ratio, how to treat the university
  * section and the dorm block (mix / together / ignore) and which factor counts first. Preview shows every family and
@@ -38,6 +58,7 @@ const FamilyRulesPanel = ({ onDone }: { onDone: () => void }) => {
       setSize(String(s.size));
       setPicked(0);
       if (s.ratios.length > 0) { setFemale(String(s.ratios[0].female)); setMale(String(s.ratios[0].male)); }
+      if (s.sections.every((r) => r.value === null)) setSectionMode("ignore");
     } catch (e: any) {
       toast.error(firstApiError(e?.response?.data) || t("adm_load_failed", "Could not load this page. Please try again."));
     }
@@ -72,13 +93,15 @@ const FamilyRulesPanel = ({ onDone }: { onDone: () => void }) => {
   };
 
   const unknown = t("fr_unknown", "not on file");
-  // "315 (12), 49 (1)": the value and how many students have it
+  // "315 (12), 49 (1)": the value and how many students have it (used on the family cards)
   const spread = (rows: Spread[]) => rows.map((r) => `${r.value ?? unknown} (${r.count})`).join(", ");
-  // the dorm blocks of one gender: women and men live in different blocks, so each list is read on its own
-  const blocksOf = (who: "women" | "men") =>
-    setup.dorm_blocks.filter((r) => r.value !== null && (r[who] ?? 0) > 0).map((r) => `${r.value} (${r[who]})`);
+  // dorm blocks of one gender: women and men live in different blocks, so each group is read on its own
+  const blocksOf = (who: "women" | "men") => setup.dorm_blocks.filter((r) => r.value !== null && (r[who] ?? 0) > 0);
+  const womenBlocks = blocksOf("women");
+  const menBlocks = blocksOf("men");
   const noBlock = setup.dorm_blocks.find((r) => r.value === null)?.count ?? 0;
   const noSection = setup.sections.find((r) => r.value === null)?.count ?? 0;
+  const sectionsMissing = noSection === setup.students.total;
 
   const problem = (): string => {
     const s = Number(size), f = Number(female), m = Number(male);
@@ -174,43 +197,62 @@ const FamilyRulesPanel = ({ onDone }: { onDone: () => void }) => {
         </div>
 
         <div className="mt-6 grid gap-4 md:grid-cols-2">
-          <div>
-            <label className="text-sm font-medium text-foreground" htmlFor="fr-section">{t("fr_f_section", "University section")}</label>
-            <select id="fr-section" className="input mt-1 w-full" value={sectionMode} onChange={(e) => setSectionMode(e.target.value as SpreadMode)}>
+          <div className="rounded-2xl border border-border p-4">
+            <label className="text-sm font-semibold text-foreground" htmlFor="fr-section">{t("fr_f_section", "University section")}</label>
+            {sectionsMissing && (
+              <p className="mt-2 rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-800">
+                {t("fr_section_off", "No student has a section on file yet, so this rule is switched off.")}
+              </p>
+            )}
+            <select id="fr-section" className="input mt-2 w-full" value={sectionMode} disabled={sectionsMissing}
+              onChange={(e) => setSectionMode(e.target.value as SpreadMode)}>
               {MODES.map((m) => <option key={m} value={m}>{modeLabel(m, "section")}</option>)}
             </select>
-            <div className="mt-2 space-y-1 rounded-lg bg-muted/40 p-2 text-xs text-muted-foreground">
-              {setup.sections.filter((r) => r.value !== null).map((r) => (
-                <p key={r.value}>{t("fr_sec_line", "Section {{v}}: {{n}} students ({{w}} women, {{m}} men)", { v: r.value, n: r.count, w: r.women ?? 0, m: r.men ?? 0 })}</p>
-              ))}
-              {noSection > 0 && (
-                <p className="font-medium text-amber-700">{t("fr_sec_none", "{{n}} student(s) have no section on file. Mix and Together cannot use it for them.", { n: noSection })}</p>
-              )}
-            </div>
+            {!sectionsMissing && (
+              <div className="mt-3 flex flex-wrap gap-1.5">
+                {setup.sections.filter((r) => r.value !== null).map((r) => (
+                  <Pill key={r.value} title={t("adm_gender_mix", "{{f}} women, {{m}} men", { f: r.women ?? 0, m: r.men ?? 0 })}>
+                    {t("fr_sec_chip", "Section {{v}}", { v: r.value })} <b>{r.count}</b>
+                  </Pill>
+                ))}
+                {noSection > 0 && <Pill tone="warn">{t("fr_no_section", "No section")} <b>{noSection}</b></Pill>}
+              </div>
+            )}
           </div>
-          <div>
-            <label className="text-sm font-medium text-foreground" htmlFor="fr-dorm">{t("fr_f_dorm", "Dorm block")}</label>
-            <select id="fr-dorm" className="input mt-1 w-full" value={dormMode} onChange={(e) => setDormMode(e.target.value as SpreadMode)}>
+
+          <div className="rounded-2xl border border-border p-4">
+            <label className="text-sm font-semibold text-foreground" htmlFor="fr-dorm">{t("fr_f_dorm", "Dorm block")}</label>
+            <select id="fr-dorm" className="input mt-2 w-full" value={dormMode} onChange={(e) => setDormMode(e.target.value as SpreadMode)}>
               {MODES.map((m) => <option key={m} value={m}>{modeLabel(m, "dorm")}</option>)}
             </select>
-            <label className="mt-2 block text-xs font-medium text-foreground" htmlFor="fr-level">{t("fr_dorm_level", "Compare students by")}</label>
-            <select id="fr-level" className="input mt-1 w-full" value={dormLevel} onChange={(e) => setDormLevel(e.target.value as "room" | "block")} disabled={dormMode === "ignore"}>
+            <label className="mt-3 block text-xs font-medium text-muted-foreground" htmlFor="fr-level">{t("fr_dorm_level", "Compare students by")}</label>
+            <select id="fr-level" className="input mt-1 w-full" value={dormLevel} disabled={dormMode === "ignore"}
+              onChange={(e) => setDormLevel(e.target.value as "room" | "block")}>
               <option value="room">{t("fr_level_room", "Room: block + room number (roommates are told apart)")}</option>
               <option value="block">{t("fr_level_block", "Block only")}</option>
             </select>
-            <p className="mt-1 text-xs text-muted-foreground">
-              {t("fr_rooms_summary", "{{n}} student(s) have a room number, in {{r}} room(s); {{s}} room(s) have more than one student so far.", { n: setup.rooms.students_with_room, r: setup.rooms.rooms, s: setup.rooms.shared })}
-            </p>
-            <div className="mt-2 space-y-1 rounded-lg bg-muted/40 p-2 text-xs text-muted-foreground">
-              {blocksOf("women").length > 0 && (
-                <p>{t("fr_dorm_women", "Women live in {{k}} dorm block(s) (block number: students): {{list}}", { k: blocksOf("women").length, list: blocksOf("women").join(", ") })}</p>
-              )}
-              {blocksOf("men").length > 0 && (
-                <p>{t("fr_dorm_men", "Men live in {{k}} dorm block(s) (block number: students): {{list}}", { k: blocksOf("men").length, list: blocksOf("men").join(", ") })}</p>
-              )}
-              {noBlock > 0 && <p className="font-medium text-amber-700">{t("fr_dorm_none", "{{n}} student(s) have no dorm block on file.", { n: noBlock })}</p>}
-              <p>{t("fr_dorm_note", "Women and men live in different blocks. Each student is compared only with students of the same block, so the women's blocks are spread among the women and the men's blocks among the men.")}</p>
+
+            <div className="mt-3 grid grid-cols-3 gap-2">
+              <Stat n={setup.rooms.students_with_room} label={t("fr_stat_with_room", "with a room number")} />
+              <Stat n={setup.rooms.rooms} label={t("fr_stat_rooms", "rooms")} />
+              <Stat n={setup.rooms.shared} label={t("fr_stat_shared", "shared rooms")} />
             </div>
+
+            <div className="mt-3 flex flex-wrap gap-1.5">
+              <Pill tone="women">{t("fr_women_blocks", "Women")}: {womenBlocks.length} {t("fr_blocks_word", "blocks")}</Pill>
+              <Pill tone="men">{t("fr_men_blocks", "Men")}: {menBlocks.length} {t("fr_blocks_word", "blocks")}</Pill>
+              {noBlock > 0 && <Pill tone="warn">{t("fr_no_block", "No block")}: {noBlock}</Pill>}
+            </div>
+            <details className="mt-2 text-xs">
+              <summary className="cursor-pointer font-medium text-primary">{t("fr_show_blocks", "Show every block")}</summary>
+              <p className="mt-2 text-muted-foreground">{t("fr_blocks_hint", "Block number and its students. Women's and men's blocks are compared separately.")}</p>
+              <div className="mt-2 flex flex-wrap gap-1.5">
+                {womenBlocks.map((r) => <Pill key={`w${r.value}`} tone="women">{r.value} <b>{r.women}</b></Pill>)}
+              </div>
+              <div className="mt-1.5 flex flex-wrap gap-1.5">
+                {menBlocks.map((r) => <Pill key={`m${r.value}`} tone="men">{r.value} <b>{r.men}</b></Pill>)}
+              </div>
+            </details>
           </div>
         </div>
 
