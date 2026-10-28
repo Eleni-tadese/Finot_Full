@@ -8,16 +8,13 @@ import { firstApiError } from "../../resources/utils";
 import { adminApi } from "../api";
 import type { DistributionOverview, DistributionPreview, FamilyRow } from "../types";
 import { Chip, Empty, Loading, Modal, PageHeader } from "./AdminUi";
+import FamilyRulesPanel from "./FamilyRulesPanel";
 import UserPicker, { PickedUser } from "./UserPicker";
 
 const FamiliesAdminPage = () => {
   const { t } = useTranslation();
   const askConfirm = useConfirm();
   const [data, setData] = useState<DistributionOverview | null>(null);
-  const [selected, setSelected] = useState<number[]>([]);
-  const [gender, setGender] = useState("");
-  const [block, setBlock] = useState("");
-  const [section, setSection] = useState("");
   const [preview, setPreview] = useState<DistributionPreview | null>(null);
   const [busy, setBusy] = useState(false);
   const [creating, setCreating] = useState(false);
@@ -37,7 +34,6 @@ const FamiliesAdminPage = () => {
       const d = await adminApi.distribution();
       setData(d);
       setRows(await adminApi.families());
-      setSelected(d.families.filter((f) => f.member_count < d.limit).map((f) => f.id));
     } catch {
       toast.error(t("adm_load_failed", "Could not load this page. Please try again."));
     }
@@ -46,19 +42,6 @@ const FamiliesAdminPage = () => {
   useEffect(() => { load(); }, [load]);
 
   if (!data) return <Loading />;
-
-  const toggle = (id: number) => setSelected((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
-
-  const runPreview = async () => {
-    setBusy(true);
-    try {
-      setPreview(await adminApi.previewDistribution({ family_ids: selected, gender, dorm_block: block, section }));
-    } catch (e: any) {
-      toast.error(firstApiError(e?.response?.data) || t("adm_save_failed", "Could not save."));
-    } finally {
-      setBusy(false);
-    }
-  };
 
   const runAuto = async () => {
     setBusy(true);
@@ -171,66 +154,15 @@ const FamiliesAdminPage = () => {
       />
 
       {!preview ? (
-        <Card>
-          <p className="mb-4 text-sm text-muted-foreground">
-            {t("adm_unassigned_n", "{{n}} first-year student(s) are not in a family.", { n: data.unassigned_count })}
-          </p>
-
-          {data.unassigned_count > 0 && data.families.length > 0 && (
-            <div className="mb-4 flex flex-wrap items-center gap-3 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
-              <span className="flex-1">{t("fam_late_banner", "{{n}} first-year student(s) have no family yet (for example late registrations). The button below places them: families with room first, new families only if needed.", { n: data.unassigned_count })}</span>
-              <button onClick={runAuto} disabled={busy} className="btn-primary px-3 py-1.5 text-xs">{t("fam_place_late", "Place them now")}</button>
-            </div>
-          )}
-          <div className="mb-6 rounded-xl border border-primary/20 bg-primary/5 p-4">
-            <h2 className="text-sm font-semibold text-foreground">{t("adm_auto_title", "Let the system make the families")}</h2>
-            <p className="mt-1 text-sm text-muted-foreground">
-              {t("adm_auto_desc", "It first fills mixed families that already have room, then creates as many new families as needed (at most {{n}} students each, women and men mixed, spread by dorm block and section). Add the father and mother afterwards. You see a preview first; nothing is saved until you confirm.", { n: data.limit })}
-            </p>
-            <button onClick={runAuto} disabled={busy || data.unassigned_count === 0} className="btn-primary mt-3 px-4 py-2 text-sm">
-              {busy ? t("adm_working", "Working...") : t("adm_auto_btn", "Create families automatically and preview")}
-            </button>
+        <>
+        {data.unassigned_count > 0 && data.families.length > 0 && (
+          <div className="mb-4 flex flex-wrap items-center gap-3 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
+            <span className="flex-1">{t("fam_late_banner", "{{n}} first-year student(s) have no family yet (for example late registrations). The button below places them: families with room first, new families only if needed.", { n: data.unassigned_count })}</span>
+            <button onClick={runAuto} disabled={busy} className="btn-primary px-3 py-1.5 text-xs">{t("fam_place_late", "Place them now")}</button>
           </div>
-
-          <h2 className="mb-2 text-sm font-semibold text-foreground">{t("adm_students_filter", "Which students (optional filters)")}</h2>
-          <div className="mb-5 flex flex-wrap gap-3">
-            <select className="input w-40" value={gender} onChange={(e) => setGender(e.target.value)} aria-label={t("adm_gender")}>
-              <option value="">{t("adm_any_gender", "Any gender")}</option>
-              <option value="M">{t("male", "Male")}</option>
-              <option value="F">{t("female", "Female")}</option>
-            </select>
-            <select className="input w-40" value={block} onChange={(e) => setBlock(e.target.value)} aria-label={t("adm_dorm_block")}>
-              <option value="">{t("adm_any_block", "Any dorm block")}</option>
-              {data.filter_options.dorm_blocks.map((b) => <option key={b} value={b}>{t("adm_block_n", { n: b })}</option>)}
-            </select>
-            <select className="input w-40" value={section} onChange={(e) => setSection(e.target.value)} aria-label={t("adm_section")}>
-              <option value="">{t("adm_any_section", "Any section")}</option>
-              {data.filter_options.sections.map((s) => <option key={s} value={s}>{t("adm_section_n", { n: s })}</option>)}
-            </select>
-          </div>
-
-          <h2 className="mb-2 text-sm font-semibold text-foreground">{t("adm_families_to_fill", "Families to fill")}</h2>
-          {data.families.length === 0 ? (
-            <p className="text-sm text-muted-foreground">{t("adm_no_families", "No families exist yet. Create them in the Django admin first.")}</p>
-          ) : (
-            <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-              {data.families.map((f) => {
-                const full = f.member_count >= data.limit;
-                return (
-                  <label key={f.id} className={`flex items-center gap-2 rounded-lg border border-border px-3 py-2 ${full ? "opacity-50" : "cursor-pointer"}`}>
-                    <input type="checkbox" className="h-4 w-4" disabled={full} checked={selected.includes(f.id)} onChange={() => toggle(f.id)} />
-                    <span className="flex-1 truncate text-sm text-foreground">{f.name}</span>
-                    <span className="text-xs text-muted-foreground">{f.member_count}/{data.limit}</span>
-                  </label>
-                );
-              })}
-            </div>
-          )}
-
-          <button onClick={runPreview} disabled={busy || selected.length === 0} className="btn-primary mt-5 px-4 py-2 text-sm">
-            {busy ? t("adm_working", "Working...") : t("adm_preview", "Preview distribution")}
-          </button>
-        </Card>
+        )}
+          <FamilyRulesPanel onDone={load} />
+        </>
       ) : (
         <div className="space-y-4">
           <Card>
