@@ -34,6 +34,7 @@ from django.db import transaction
 from django.utils import timezone
 from service.group_rules import GroupFullSerializer, assign_group_admin, group_blockers, release_service_admin
 from service.models import Event, Family, FamilyDistributionBatch, ServiceGroup
+from service.distribution_rules import family_count, suggest_ratios
 from service.services import build_auto_distribution_plan
 from service.services import (
     MAX_FAMILY_SIZE, apply_distribution, build_distribution_plan, get_filter_options,
@@ -919,6 +920,46 @@ class DistributionOverviewView(FamilyConsoleView):
                 for f in families
             ],
             "batches": [_batch_json(b) for b in FamilyDistributionBatch.objects.select_related("created_by")[:10]],
+        })
+
+
+class DistributionSetupView(FamilyConsoleView):
+    """
+    GET families/distribution/setup/?size=10 : what the Family Admin needs before choosing the year's rules.
+    Counts of the first-year students who are not in a family (women, men, by section, by dorm block), how many
+    families that makes for the chosen family size, and the possible women : men ratios with what each leaves over.
+    Nothing is saved. A father or mother is not part of the family size.
+    """
+
+    DEFAULT_SIZE = 10
+
+    def get(self, request):
+        raw = request.query_params.get("size")
+        try:
+            size = int(raw) if raw not in (None, "") else self.DEFAULT_SIZE
+        except (TypeError, ValueError):
+            raise ValidationError({"size": "Must be a number."})
+        if not 2 <= size <= 100:
+            raise ValidationError({"size": "A family has between 2 and 100 students."})
+        rows = list(get_unassigned_freshers().values_list("gender", "student_profile__section", "student_profile__dorm_block"))
+        women = sum(1 for g, _, _ in rows if g == "F")
+        men = sum(1 for g, _, _ in rows if g == "M")
+        families = family_count(len(rows), size)
+
+        def spread(index):
+            counts = {}
+            for row in rows:
+                counts[row[index]] = counts.get(row[index], 0) + 1
+            return [{"value": k, "count": counts[k]} for k in sorted(counts, key=lambda v: (v is None, v or 0))]
+
+        return Response({
+            "students": {"total": len(rows), "women": women, "men": men, "no_gender": len(rows) - women - men},
+            "sections": spread(1),
+            "dorm_blocks": spread(2),
+            "size": size,
+            "default_size": self.DEFAULT_SIZE,
+            "families": families,
+            "ratios": suggest_ratios(women, men, families, size),
         })
 
 
