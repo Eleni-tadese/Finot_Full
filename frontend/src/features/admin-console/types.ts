@@ -236,6 +236,24 @@ export interface PlanResult {
   summary: { students: number; placed: number; remaining: number; families: number; size: number };
 }
 
+export interface PoolPerson {
+  id: number;
+  full_name: string;
+  email: string;
+  gender: "M" | "F" | null;
+  year: number | null;
+  department: string;
+}
+
+export interface PoolChosen extends PoolPerson {
+  status: "SELECTED" | "TRAINED";
+  note: string;
+  assigned: boolean;
+  selected_by: string;
+}
+
+export interface ParentPool { chosen: PoolChosen[]; suggestions: PoolPerson[] }
+
 export interface SmsSettings {
   enabled: boolean;
   monthly_limit: number;

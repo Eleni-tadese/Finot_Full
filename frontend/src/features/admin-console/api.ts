@@ -2,7 +2,7 @@ import axiosInstance from "../../lib/axios";
 import type { PersonCard } from "../../components/people/StudentCard";
 import type { Credential } from "./slips";
 import type {
-  AdminGroup, AdminUser, AssignParentsResult, ParentCandidates, FamilyRow, ImportBatchRow, ImportPreview, ImportRow, SlipProgress, Counselor, SubAdminRole, DistributionBatch, DistributionOverview, DistributionPreview, DistributionSetup, PlanResult, PlanRules, Overview,
+  AdminGroup, AdminUser, AssignParentsResult, ParentCandidates, FamilyRow, ImportBatchRow, ImportPreview, ImportRow, SlipProgress, Counselor, SubAdminRole, DistributionBatch, DistributionOverview, DistributionPreview, DistributionSetup, PlanResult, PlanRules, ParentPool, Overview,
   Curriculum, SemesterCourseRow, DonationsPage, UserFilterOptions, Department, AcademicYearData, Paginated, PrivateQuestion, RoleOption, SmsLogRow, SmsSettings, Specialization, EmailSettings, EmailOutboxRow,
 } from "./types";
 
@@ -37,6 +37,13 @@ export const adminApi = {
   familyPeople: (search: string) =>
     axiosInstance.get<{ results: AdminUser[] }>(`${C}/families/people/`, { params: { search } }).then((r) => r.data),
   parentCandidates: () => axiosInstance.get<ParentCandidates>(`${C}/families/parents/candidates/`).then((r) => r.data),
+  parentPool: (search?: string) =>
+    axiosInstance.get<ParentPool>(`${C}/families/parents/pool/`, { params: search ? { search } : {} }).then((r) => r.data),
+  chooseParent: (user_id: number, note?: string) =>
+    axiosInstance.post(`${C}/families/parents/pool/`, { user_id, note: note ?? "" }).then((r) => r.data),
+  updateParent: (user_id: number, body: { status?: "SELECTED" | "TRAINED"; note?: string }) =>
+    axiosInstance.patch(`${C}/families/parents/pool/${user_id}/`, body).then((r) => r.data),
+  removeParent: (user_id: number) => axiosInstance.delete(`${C}/families/parents/pool/${user_id}/`),
   assignParents: (assignments: { family_id: number; father_id?: number | null; mother_id?: number | null }[]) =>
     axiosInstance.post<AssignParentsResult>(`${C}/families/parents/assign/`, { assignments }).then((r) => r.data),
   importTemplate: () => axiosInstance.get(`${C}/accounts/import/template/`, { responseType: "blob" }).then((r) => r.data as Blob),

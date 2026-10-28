@@ -9,6 +9,7 @@ import { adminApi } from "../api";
 import type { DistributionOverview, DistributionPreview, FamilyRow } from "../types";
 import { Chip, Empty, Loading, Modal, PageHeader } from "./AdminUi";
 import FamilyParentsPanel from "./FamilyParentsPanel";
+import ParentCandidatesPanel from "./ParentCandidatesPanel";
 import FamilyRulesPanel from "./FamilyRulesPanel";
 import UserPicker, { PickedUser } from "./UserPicker";
 
@@ -25,6 +26,7 @@ const FamiliesAdminPage = () => {
   const [famReligious, setFamReligious] = useState("");
   const [rows, setRows] = useState<FamilyRow[]>([]);
   const [editing, setEditing] = useState<FamilyRow | null>(null);
+  const [parentsVersion, setParentsVersion] = useState(0);
   const [editFather, setEditFather] = useState<PickedUser | null>(null);
   const [editMother, setEditMother] = useState<PickedUser | null>(null);
   const [editReligious, setEditReligious] = useState("");
@@ -254,7 +256,8 @@ const FamiliesAdminPage = () => {
         </Modal>
       )}
 
-      <FamilyParentsPanel families={rows} onDone={load} />
+      <ParentCandidatesPanel onChange={() => setParentsVersion((v) => v + 1)} />
+      <FamilyParentsPanel key={parentsVersion} families={rows} onDone={load} />
 
       <section>
         <h2 className="mb-1 text-lg font-semibold text-foreground">{t("fam_all", "All families")}</h2>
