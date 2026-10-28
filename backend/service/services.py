@@ -183,6 +183,25 @@ def build_distribution_plan(students, families):
 student_infos = _student_infos  # public name for other modules
 
 
+def unassigned_fresher_infos(**filters):
+    """
+    The same list as student_infos(get_unassigned_freshers(...)), but it reads only the 8 columns the distribution
+    needs. Whole user and profile rows are about 20 times bigger, which made the preview take 10 to 20 seconds on a
+    slow connection to the database.
+    """
+    from .distribution import StudentInfo
+
+    rows = get_unassigned_freshers(**filters).values_list(
+        "id", "first_name", "last_name", "username", "gender",
+        "student_profile__section", "student_profile__dorm_block", "student_profile__dorm_room",
+    )
+    return [
+        StudentInfo(id=pk, name=f"{first} {last}".strip() or username, gender=gender or None,
+                    section=section, dorm_block=block, dorm_room=room)
+        for pk, first, last, username, gender, section, block, room in rows
+    ]
+
+
 def next_family_names(count):
     """'Family 4', 'Family 5', ... continuing after the highest number already used."""
     import re

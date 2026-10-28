@@ -36,7 +36,7 @@ from service.group_rules import GroupFullSerializer, assign_group_admin, group_b
 from service.models import Event, Family, FamilyDistributionBatch, ServiceGroup
 from service.distribution import FamilyInfo
 from service.distribution_rules import family_count, normalise_priority, place_remaining, plan_by_ratio, suggest_ratios
-from service.services import build_auto_distribution_plan, next_family_names, student_infos
+from service.services import build_auto_distribution_plan, next_family_names, unassigned_fresher_infos
 from service.services import (
     MAX_FAMILY_SIZE, apply_distribution, build_distribution_plan, get_filter_options,
     get_unassigned_freshers, undo_distribution,
@@ -1023,8 +1023,7 @@ class DistributionPlanView(FamilyConsoleView):
         except ValueError as exc:
             raise ValidationError({"priority": str(exc)})
 
-        students = list(get_unassigned_freshers())
-        infos = student_infos(students)
+        infos = unassigned_fresher_infos()
         count = self._int(data, "families", 1, 200, required=False) or family_count(len(infos), size)
         if count == 0:
             raise ValidationError({"detail": "There are no first-year students waiting for a family."})

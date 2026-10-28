@@ -194,3 +194,14 @@ class TestDormRoomsThroughTheApi:
         self.roommates()
         admin = client_for(make_user("fam@finot.test", Role.FAMILY_ADMIN))
         assert admin.post(PLAN, rules(size=4, female_per_family=2, male_per_family=2, dorm_level="floor"), format="json").status_code == 400
+
+
+@pytest.mark.django_db
+def test_the_light_student_list_gives_exactly_the_same_people_as_the_full_one():
+    from service.services import get_unassigned_freshers, student_infos, unassigned_fresher_infos
+
+    fresh(12, women=5)
+    nameless = make_user("slip@finot.test", batch=1)  # no gender on file, no name: falls back to the username
+    StudentProfile.objects.filter(user=nameless).update(batch_year=1, status=StudentProfile.IN_CAMPUS)
+    type(nameless).objects.filter(pk=nameless.pk).update(first_name="", last_name="", gender=None)
+    assert unassigned_fresher_infos() == student_infos(list(get_unassigned_freshers()))
