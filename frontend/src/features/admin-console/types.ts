@@ -171,7 +171,7 @@ export interface DistributionPreview {
 export type SpreadMode = "mix" | "together" | "ignore";
 export type Factor = "section" | "dorm" | "gender";
 
-export interface Spread { value: number | null; count: number }
+export interface Spread { value: number | null; count: number; women?: number; men?: number }
 
 export interface RatioOption {
   female: number;

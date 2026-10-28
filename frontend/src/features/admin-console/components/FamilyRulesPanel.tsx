@@ -70,7 +70,14 @@ const FamilyRulesPanel = ({ onDone }: { onDone: () => void }) => {
     setPriority(next);
   };
 
-  const spread = (rows: Spread[], short: string) => rows.map((r) => `${short}${r.value ?? "?"}×${r.count}`).join("  ");
+  const unknown = t("fr_unknown", "not on file");
+  // "315 (12), 49 (1)": the value and how many students have it
+  const spread = (rows: Spread[]) => rows.map((r) => `${r.value ?? unknown} (${r.count})`).join(", ");
+  // the dorm blocks of one gender: women and men live in different blocks, so each list is read on its own
+  const blocksOf = (who: "women" | "men") =>
+    setup.dorm_blocks.filter((r) => r.value !== null && (r[who] ?? 0) > 0).map((r) => `${r.value} (${r[who]})`);
+  const noBlock = setup.dorm_blocks.find((r) => r.value === null)?.count ?? 0;
+  const noSection = setup.sections.find((r) => r.value === null)?.count ?? 0;
 
   const problem = (): string => {
     const s = Number(size), f = Number(female), m = Number(male);
@@ -171,14 +178,30 @@ const FamilyRulesPanel = ({ onDone }: { onDone: () => void }) => {
             <select id="fr-section" className="input mt-1 w-full" value={sectionMode} onChange={(e) => setSectionMode(e.target.value as SpreadMode)}>
               {MODES.map((m) => <option key={m} value={m}>{modeLabel(m, "section")}</option>)}
             </select>
-            <p className="mt-1 text-xs text-muted-foreground">{spread(setup.sections, t("fr_sec_short", "S"))}</p>
+            <div className="mt-2 space-y-1 rounded-lg bg-muted/40 p-2 text-xs text-muted-foreground">
+              {setup.sections.filter((r) => r.value !== null).map((r) => (
+                <p key={r.value}>{t("fr_sec_line", "Section {{v}}: {{n}} students ({{w}} women, {{m}} men)", { v: r.value, n: r.count, w: r.women ?? 0, m: r.men ?? 0 })}</p>
+              ))}
+              {noSection > 0 && (
+                <p className="font-medium text-amber-700">{t("fr_sec_none", "{{n}} student(s) have no section on file. Mix and Together cannot use it for them.", { n: noSection })}</p>
+              )}
+            </div>
           </div>
           <div>
             <label className="text-sm font-medium text-foreground" htmlFor="fr-dorm">{t("fr_f_dorm", "Dorm block")}</label>
             <select id="fr-dorm" className="input mt-1 w-full" value={dormMode} onChange={(e) => setDormMode(e.target.value as SpreadMode)}>
               {MODES.map((m) => <option key={m} value={m}>{modeLabel(m, "dorm")}</option>)}
             </select>
-            <p className="mt-1 text-xs text-muted-foreground">{spread(setup.dorm_blocks, t("fr_blk_short", "B"))}</p>
+            <div className="mt-2 space-y-1 rounded-lg bg-muted/40 p-2 text-xs text-muted-foreground">
+              {blocksOf("women").length > 0 && (
+                <p>{t("fr_dorm_women", "Women live in {{k}} dorm block(s) (block number: students): {{list}}", { k: blocksOf("women").length, list: blocksOf("women").join(", ") })}</p>
+              )}
+              {blocksOf("men").length > 0 && (
+                <p>{t("fr_dorm_men", "Men live in {{k}} dorm block(s) (block number: students): {{list}}", { k: blocksOf("men").length, list: blocksOf("men").join(", ") })}</p>
+              )}
+              {noBlock > 0 && <p className="font-medium text-amber-700">{t("fr_dorm_none", "{{n}} student(s) have no dorm block on file.", { n: noBlock })}</p>}
+              <p>{t("fr_dorm_note", "Women and men live in different blocks. Each student is compared only with students of the same block, so the women's blocks are spread among the women and the men's blocks among the men.")}</p>
+            </div>
           </div>
         </div>
 
@@ -232,8 +255,8 @@ const FamilyRulesPanel = ({ onDone }: { onDone: () => void }) => {
                   <Chip>{row.total}</Chip>
                   <span className="text-xs text-muted-foreground">{t("adm_gender_mix", "{{f}} women, {{m}} men", { f: row.women, m: row.men })}</span>
                 </div>
-                <p className="text-xs text-muted-foreground">{spread(row.sections, t("fr_sec_short", "S"))}</p>
-                <p className="mb-2 text-xs text-muted-foreground">{spread(row.dorm_blocks, t("fr_blk_short", "B"))}</p>
+                <p className="text-xs text-muted-foreground">{t("fr_sections", "Sections")}: {spread(row.sections)}</p>
+                <p className="mb-2 text-xs text-muted-foreground">{t("fr_blocks", "Dorm blocks")}: {spread(row.dorm_blocks)}</p>
                 <ul className="grid gap-x-4 gap-y-0.5 text-sm text-foreground">
                   {row.members.map((s) => <li key={s.id} className="truncate">{s.name}</li>)}
                 </ul>
