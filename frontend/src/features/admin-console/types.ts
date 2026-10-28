@@ -186,6 +186,7 @@ export interface DistributionSetup {
   students: { total: number; women: number; men: number; no_gender: number };
   sections: Spread[];
   dorm_blocks: Spread[];
+  rooms: { students_with_room: number; rooms: number; shared: number; largest: number };
   size: number;
   default_size: number;
   families: number;
@@ -198,6 +199,7 @@ export interface PlanRules {
   male_per_family: number;
   section_mode: SpreadMode;
   dorm_mode: SpreadMode;
+  dorm_level: "room" | "block";
   priority: Factor[];
   place_remaining?: boolean;
 }

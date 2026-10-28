@@ -25,6 +25,7 @@ const FamilyRulesPanel = ({ onDone }: { onDone: () => void }) => {
   const [male, setMale] = useState("");
   const [sectionMode, setSectionMode] = useState<SpreadMode>("mix");
   const [dormMode, setDormMode] = useState<SpreadMode>("mix");
+  const [dormLevel, setDormLevel] = useState<"room" | "block">("room");
   const [priority, setPriority] = useState<Factor[]>(["section", "dorm", "gender"]);
   const [result, setResult] = useState<PlanResult | null>(null);
   const [placed, setPlaced] = useState(false);
@@ -94,7 +95,7 @@ const FamilyRulesPanel = ({ onDone }: { onDone: () => void }) => {
     try {
       setResult(await adminApi.planDistribution({
         size: Number(size), female_per_family: Number(female), male_per_family: Number(male),
-        section_mode: sectionMode, dorm_mode: dormMode, priority, place_remaining: placeRemaining,
+        section_mode: sectionMode, dorm_mode: dormMode, dorm_level: dormLevel, priority, place_remaining: placeRemaining,
       }));
       setPlaced(placeRemaining);
     } catch (e: any) {
@@ -192,6 +193,14 @@ const FamilyRulesPanel = ({ onDone }: { onDone: () => void }) => {
             <select id="fr-dorm" className="input mt-1 w-full" value={dormMode} onChange={(e) => setDormMode(e.target.value as SpreadMode)}>
               {MODES.map((m) => <option key={m} value={m}>{modeLabel(m, "dorm")}</option>)}
             </select>
+            <label className="mt-2 block text-xs font-medium text-foreground" htmlFor="fr-level">{t("fr_dorm_level", "Compare students by")}</label>
+            <select id="fr-level" className="input mt-1 w-full" value={dormLevel} onChange={(e) => setDormLevel(e.target.value as "room" | "block")} disabled={dormMode === "ignore"}>
+              <option value="room">{t("fr_level_room", "Room: block + room number (roommates are told apart)")}</option>
+              <option value="block">{t("fr_level_block", "Block only")}</option>
+            </select>
+            <p className="mt-1 text-xs text-muted-foreground">
+              {t("fr_rooms_summary", "{{n}} student(s) have a room number, in {{r}} room(s); {{s}} room(s) have more than one student so far.", { n: setup.rooms.students_with_room, r: setup.rooms.rooms, s: setup.rooms.shared })}
+            </p>
             <div className="mt-2 space-y-1 rounded-lg bg-muted/40 p-2 text-xs text-muted-foreground">
               {blocksOf("women").length > 0 && (
                 <p>{t("fr_dorm_women", "Women live in {{k}} dorm block(s) (block number: students): {{list}}", { k: blocksOf("women").length, list: blocksOf("women").join(", ") })}</p>
