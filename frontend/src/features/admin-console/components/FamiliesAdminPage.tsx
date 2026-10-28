@@ -8,6 +8,7 @@ import { firstApiError } from "../../resources/utils";
 import { adminApi } from "../api";
 import type { DistributionOverview, DistributionPreview, FamilyRow } from "../types";
 import { Chip, Empty, Loading, Modal, PageHeader } from "./AdminUi";
+import FamilyParentsPanel from "./FamilyParentsPanel";
 import FamilyRulesPanel from "./FamilyRulesPanel";
 import UserPicker, { PickedUser } from "./UserPicker";
 
@@ -252,6 +253,8 @@ const FamiliesAdminPage = () => {
           </form>
         </Modal>
       )}
+
+      <FamilyParentsPanel families={rows} onDone={load} />
 
       <section>
         <h2 className="mb-1 text-lg font-semibold text-foreground">{t("fam_all", "All families")}</h2>

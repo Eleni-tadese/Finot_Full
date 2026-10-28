@@ -107,3 +107,33 @@ class TestAssignManyParents:
         res = c.post(ASSIGN, {"assignments": [{"family_id": 99999, "father_id": 1}, "x"]}, format="json").json()
         assert res["applied"] == 0 and res["failed"] == 2
         assert client_for(make_user("stu@finot.test", batch=2)).post(ASSIGN, {"assignments": []}, format="json").status_code == 403
+
+
+@pytest.mark.django_db
+def test_a_hundred_families_cost_only_a_few_queries():
+    from django.db import connection
+    from django.test.utils import CaptureQueriesContext
+
+    fams = [Family.objects.create(name=f"Family {i}") for i in range(30)]
+    dads = [senior(f"d{i}@finot.test", "M") for i in range(30)]
+    moms = [senior(f"m{i}@finot.test", "F") for i in range(30)]
+    admin = client_for(make_user("fam@finot.test", Role.FAMILY_ADMIN, gender="F", batch=4))
+    rows = [{"family_id": f.id, "father_id": d.id, "mother_id": m.id} for f, d, m in zip(fams, dads, moms)]
+    with CaptureQueriesContext(connection) as q:
+        res = admin.post(ASSIGN, {"assignments": rows}, format="json").json()
+    assert res["applied"] == 30
+    assert len(q.captured_queries) <= 15  # was about 10 per family (300 here)
+
+
+@pytest.mark.django_db
+def test_a_father_can_move_to_another_family_when_his_old_family_gets_someone_else():
+    a, c = senior("a@finot.test", "M"), senior("c@finot.test", "M")
+    f1, f2 = Family.objects.create(name="Family 1", father=a), Family.objects.create(name="Family 2")
+    admin = client_for(make_user("fam@finot.test", Role.FAMILY_ADMIN, gender="F", batch=4))
+    res = admin.post(ASSIGN, {"assignments": [
+        {"family_id": f1.id, "father_id": c.id}, {"family_id": f2.id, "father_id": a.id},
+    ]}, format="json").json()
+    assert res["applied"] == 2 and res["failed"] == 0
+    f1.refresh_from_db()
+    f2.refresh_from_db()
+    assert (f1.father_id, f2.father_id) == (c.id, a.id)

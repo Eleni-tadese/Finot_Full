@@ -863,25 +863,85 @@ class FamilyParentsAssignView(FamilyConsoleView):
             raise ValidationError({"assignments": "Send a list of assignments."})
         if len(items) > self.MAX_ROWS:
             raise ValidationError({"assignments": f"At most {self.MAX_ROWS} families at a time."})
-        results = []
-        for item in items:
+
+        def number(value):
             try:
-                family = Family.objects.select_related("father", "mother").filter(pk=int(item.get("family_id"))).first()
-            except (TypeError, ValueError, AttributeError):
-                family = None
+                return int(value)
+            except (TypeError, ValueError):
+                return None
+
+        # Everything is read once, checked in memory and saved with two queries: 100 families cost the same few
+        # queries as 1 (a query per family made this slow on a slow link).
+        wanted_families = {number(i.get("family_id")) for i in items if isinstance(i, dict)} - {None}
+        wanted_people = {number(i.get(k)) for i in items if isinstance(i, dict) for k in ("father_id", "mother_id")} - {None}
+        families = {f.id: f for f in Family.objects.filter(pk__in=wanted_families)}
+        people = {
+            u.id: u for u in User.objects.filter(pk__in=wanted_people, is_active=True).select_related("student_profile")
+        }
+        leads = {}  # person id -> id of the family they lead now
+        for fid, father_id, mother_id in Family.objects.values_list("id", "father_id", "mother_id"):
+            for pid in (father_id, mother_id):
+                if pid:
+                    leads[pid] = fid
+
+        def pick(item, key, gender, label, family):
+            """(person, error): the person to put in `key`, or the reason it is refused."""
+            raw = item.get(key)
+            if raw in (None, ""):
+                return None, ""
+            person = people.get(number(raw))
+            if person is None:
+                return None, "User not found or not active."
+            if person.gender != gender:
+                return None, f"The {label} must be a {'man' if gender == 'M' else 'woman'}."
+            try:
+                check_family_leader(person)
+            except DjangoValidationError as exc:
+                return None, exc.messages[0]
+            if leads.get(person.id) not in (None, family.id):
+                return None, f"{full_name(person)} already leads a family."
+            return person, ""
+
+        results, changed = [], {}
+        for item in items:
+            family = families.get(number(item.get("family_id"))) if isinstance(item, dict) else None
             if family is None:
                 results.append({"family_id": None, "family_name": "", "ok": False, "errors": {"detail": "This family does not exist."}})
                 continue
-            try:
-                with transaction.atomic():
-                    if "father_id" in item:
-                        family.father = _pick_parent(item, "father_id", "M", "father", family)
-                    if "mother_id" in item:
-                        family.mother = _pick_parent(item, "mother_id", "F", "mother", family)
-                    family.save()
-                results.append({"family_id": family.id, "family_name": family.name, "ok": True, "errors": {}})
-            except ValidationError as exc:
-                results.append({"family_id": family.id, "family_name": family.name, "ok": False, "errors": _error_messages(exc.detail)})
+            errors, new = {}, {}
+            for key, attr, gender, label in (("father_id", "father_id", "M", "father"), ("mother_id", "mother_id", "F", "mother")):
+                if key not in item:
+                    continue
+                person, why = pick(item, key, gender, label, family)
+                if why:
+                    errors[key] = why
+                else:
+                    new[attr] = person.id if person else None
+            if errors:
+                results.append({"family_id": family.id, "family_name": family.name, "ok": False, "errors": errors})
+                continue
+            for attr, pid in new.items():
+                old = getattr(family, attr)
+                if old and leads.get(old) == family.id:
+                    del leads[old]
+                if pid:
+                    leads[pid] = family.id
+                setattr(family, attr, pid)
+            changed[family.id] = family
+            results.append({"family_id": family.id, "family_name": family.name, "ok": True, "errors": {}})
+
+        if changed:
+            rows = list(changed.values())
+            final = {f.id: (f.father_id, f.mother_id) for f in rows}
+            with transaction.atomic():
+                # first empty both places, then fill them: a person who moves from one family to another never meets
+                # the "one family per person" rule halfway
+                for f in rows:
+                    f.father_id = f.mother_id = None
+                Family.objects.bulk_update(rows, ["father", "mother"])
+                for f in rows:
+                    f.father_id, f.mother_id = final[f.id]
+                Family.objects.bulk_update(rows, ["father", "mother"])
         applied = sum(1 for r in results if r["ok"])
         return Response({"applied": applied, "failed": len(results) - applied, "results": results})
 

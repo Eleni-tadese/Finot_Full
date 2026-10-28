@@ -2,7 +2,7 @@ import axiosInstance from "../../lib/axios";
 import type { PersonCard } from "../../components/people/StudentCard";
 import type { Credential } from "./slips";
 import type {
-  AdminGroup, AdminUser, FamilyRow, ImportBatchRow, ImportPreview, ImportRow, SlipProgress, Counselor, SubAdminRole, DistributionBatch, DistributionOverview, DistributionPreview, DistributionSetup, PlanResult, PlanRules, Overview,
+  AdminGroup, AdminUser, AssignParentsResult, ParentCandidates, FamilyRow, ImportBatchRow, ImportPreview, ImportRow, SlipProgress, Counselor, SubAdminRole, DistributionBatch, DistributionOverview, DistributionPreview, DistributionSetup, PlanResult, PlanRules, Overview,
   Curriculum, SemesterCourseRow, DonationsPage, UserFilterOptions, Department, AcademicYearData, Paginated, PrivateQuestion, RoleOption, SmsLogRow, SmsSettings, Specialization, EmailSettings, EmailOutboxRow,
 } from "./types";
 
@@ -36,6 +36,9 @@ export const adminApi = {
     axiosInstance.get<Paginated<AdminUser>>(`${C}/users/`, { params }).then((r) => r.data),
   familyPeople: (search: string) =>
     axiosInstance.get<{ results: AdminUser[] }>(`${C}/families/people/`, { params: { search } }).then((r) => r.data),
+  parentCandidates: () => axiosInstance.get<ParentCandidates>(`${C}/families/parents/candidates/`).then((r) => r.data),
+  assignParents: (assignments: { family_id: number; father_id?: number | null; mother_id?: number | null }[]) =>
+    axiosInstance.post<AssignParentsResult>(`${C}/families/parents/assign/`, { assignments }).then((r) => r.data),
   importTemplate: () => axiosInstance.get(`${C}/accounts/import/template/`, { responseType: "blob" }).then((r) => r.data as Blob),
   importPreview: (file: File) => {
     const form = new FormData();

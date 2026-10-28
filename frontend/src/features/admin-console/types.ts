@@ -133,6 +133,19 @@ export interface FamilyRow {
   religious_father: string;
 }
 
+export interface ParentCandidate { id: number; full_name: string; email: string; year: number; department: string }
+export interface ParentCandidates {
+  fathers: ParentCandidate[];
+  mothers: ParentCandidate[];
+  families_without_father: number;
+  families_without_mother: number;
+}
+export interface AssignParentsResult {
+  applied: number;
+  failed: number;
+  results: { family_id: number | null; family_name: string; ok: boolean; errors: Record<string, string> }[];
+}
+
 export interface DistributionBatch {
   id: number;
   created_at: string;
