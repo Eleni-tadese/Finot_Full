@@ -33,7 +33,7 @@ from django.core.exceptions import ValidationError as DjangoValidationError
 from django.db import transaction
 from django.utils import timezone
 from service.group_rules import GroupFullSerializer, assign_group_admin, group_blockers, release_service_admin
-from service.models import Event, Family, FamilyDistributionBatch, ServiceGroup
+from service.models import Event, Family, FamilyDistributionBatch, FamilyMembership, ParentCandidate, ServiceGroup
 from service.distribution import FamilyInfo
 from service.distribution_rules import family_count, normalise_priority, place_remaining, plan_by_ratio, suggest_ratios
 from service.services import build_auto_distribution_plan, next_family_names, unassigned_fresher_infos
@@ -796,6 +796,100 @@ class FamilyPeopleView(FamilyConsoleView):
         return Response({"results": [
             {"id": u.id, "full_name": full_name(u), "email": u.email, "is_active": True, "gender": u.gender} for u in qs
         ]})
+
+
+def _candidate_card(u, extra=None):
+    profile = getattr(u, "student_profile", None)
+    card = {"id": u.id, "full_name": full_name(u), "email": u.email, "gender": u.gender,
+            "year": profile.batch_year if profile else None, "department": (profile.department if profile else "") or ""}
+    card.update(extra or {})
+    return card
+
+
+def _eligible_parents():
+    """People who meet the requirements: active, a man or a woman, year 2 or above, not a graduate."""
+    return (
+        User.objects.filter(participating_q(), student_profile__batch_year__gte=2, gender__in=("M", "F"))
+        .exclude(student_profile__status=StudentProfile.GRADUATED)
+        .select_related("student_profile")
+    )
+
+
+class ParentCandidatesView(FamilyConsoleView):
+    """
+    GET  families/parents/pool/?search= : everyone chosen so far (selected or trained) and the people who meet the
+         requirements and could be chosen (`suggestions`; with a search it looks through all of them).
+    POST families/parents/pool/ {"user_id": 5, "note": "recommended by ..."} : choose a person. The requirements are
+         always checked: year 2 or above, not a graduate, a man or a woman. Super Admin and Family Admin may both do it.
+    """
+
+    SUGGESTIONS = 50
+
+    def get(self, request):
+        term = request.query_params.get("search", "").strip()
+        chosen = list(ParentCandidate.objects.select_related("user__student_profile", "selected_by"))
+        chosen_ids = {c.user_id for c in chosen}
+        leaders = set(Family.objects.exclude(father=None).values_list("father_id", flat=True)) | set(
+            Family.objects.exclude(mother=None).values_list("mother_id", flat=True))
+        suggestions = _eligible_parents().exclude(pk__in=chosen_ids).exclude(pk__in=leaders).exclude(family_membership__isnull=False)
+        if term:
+            suggestions = suggestions.filter(
+                Q(first_name__icontains=term) | Q(middle_name__icontains=term) | Q(last_name__icontains=term) | Q(email__icontains=term)
+            )
+        return Response({
+            "chosen": [
+                _candidate_card(c.user, {
+                    "status": c.status, "note": c.note, "assigned": c.user_id in leaders,
+                    "selected_by": full_name(c.selected_by) if c.selected_by else "",
+                })
+                for c in chosen
+            ],
+            "suggestions": [_candidate_card(u) for u in suggestions.order_by("first_name", "last_name", "id")[: self.SUGGESTIONS]],
+        })
+
+    def post(self, request):
+        try:
+            user = _eligible_parents().get(pk=int(request.data.get("user_id")))
+        except (TypeError, ValueError, User.DoesNotExist):
+            raise ValidationError({"user_id": "This person does not meet the requirements (year 2 or above, not a graduate, a man or a woman)."})
+        if Family.objects.filter(Q(father=user) | Q(mother=user)).exists() or FamilyMembership.objects.filter(student=user).exists():
+            raise ValidationError({"user_id": f"{full_name(user)} is already in a family."})
+        candidate, created = ParentCandidate.objects.get_or_create(
+            user=user, defaults={"selected_by": request.user, "note": str(request.data.get("note") or "").strip()[:200]})
+        return Response(_candidate_card(user, {"status": candidate.status, "note": candidate.note}),
+                        status=status.HTTP_201_CREATED if created else status.HTTP_200_OK)
+
+
+class ParentCandidateDetailView(FamilyConsoleView):
+    """
+    PATCH  families/parents/pool/<user_id>/ {"status": "TRAINED"|"SELECTED", "note": "..."} : mark a person trained (or back).
+    DELETE families/parents/pool/<user_id>/ : take the person out of the list (not allowed while they lead a family).
+    """
+
+    def patch(self, request, user_id):
+        candidate = ParentCandidate.objects.filter(user_id=user_id).first()
+        if candidate is None:
+            return Response({"detail": "Not found."}, status=status.HTTP_404_NOT_FOUND)
+        new_status = request.data.get("status")
+        if new_status is not None:
+            if new_status not in (ParentCandidate.SELECTED, ParentCandidate.TRAINED):
+                raise ValidationError({"status": "Choose SELECTED or TRAINED."})
+            if new_status != candidate.status:
+                candidate.status = new_status
+                candidate.trained_at = timezone.now() if new_status == ParentCandidate.TRAINED else None
+        if "note" in request.data:
+            candidate.note = str(request.data.get("note") or "").strip()[:200]
+        candidate.save()
+        return Response({"id": user_id, "status": candidate.status, "note": candidate.note})
+
+    def delete(self, request, user_id):
+        candidate = ParentCandidate.objects.filter(user_id=user_id).first()
+        if candidate is None:
+            return Response({"detail": "Not found."}, status=status.HTTP_404_NOT_FOUND)
+        if Family.objects.filter(Q(father_id=user_id) | Q(mother_id=user_id)).exists():
+            raise ValidationError({"detail": "This person leads a family now. Change the family first."})
+        candidate.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 class FamilyParentCandidatesView(FamilyConsoleView):

@@ -137,3 +137,77 @@ def test_a_father_can_move_to_another_family_when_his_old_family_gets_someone_el
     f1.refresh_from_db()
     f2.refresh_from_db()
     assert (f1.father_id, f2.father_id) == (c.id, a.id)
+
+
+POOL = BASE + "families/parents/pool/"
+
+
+@pytest.mark.django_db
+class TestParentPool:
+    def family_admin(self):
+        return client_for(make_user("fam@finot.test", Role.FAMILY_ADMIN, gender="F", batch=4))
+
+    def test_the_family_admin_and_the_super_admin_can_both_choose_candidates(self):
+        a, b = senior("a@finot.test", "M"), senior("b@finot.test", "F")
+        assert self.family_admin().post(POOL, {"user_id": a.id, "note": "recommended by Aba Kebede"}, format="json").status_code == 201
+        boss = client_for(make_user("boss@finot.test", Role.SUPER_ADMIN))
+        assert boss.post(POOL, {"user_id": b.id}, format="json").status_code == 201
+        data = boss.get(POOL).json()
+        assert {c["email"] for c in data["chosen"]} == {"a@finot.test", "b@finot.test"}
+        assert {c["status"] for c in data["chosen"]} == {"SELECTED"}
+        assert {c["selected_by"] for c in data["chosen"]} == {"fam T", "boss T"}
+
+    def test_the_requirements_are_always_checked(self):
+        c = self.family_admin()
+        young = senior("young@finot.test", "M", year=1)
+        grad = senior("grad@finot.test", "F", year=5, status=StudentProfile.GRADUATED)
+        nogender = senior("none@finot.test", None)
+        for person in (young, grad, nogender):
+            assert c.post(POOL, {"user_id": person.id}, format="json").status_code == 400
+        assert c.post(POOL, {"user_id": 99999}, format="json").status_code == 400
+        assert c.post(POOL, {}, format="json").status_code == 400
+
+    def test_a_person_who_already_leads_a_family_or_is_a_child_cannot_be_chosen(self):
+        dad, child = senior("dad@finot.test", "M"), senior("child@finot.test", "F", year=2)
+        fam = Family.objects.create(name="Family 1", father=dad)
+        FamilyMembership.objects.create(family=fam, student=child)
+        c = self.family_admin()
+        assert c.post(POOL, {"user_id": dad.id}, format="json").status_code == 400
+        assert c.post(POOL, {"user_id": child.id}, format="json").status_code == 400
+
+    def test_suggestions_exclude_the_chosen_and_follow_the_search(self):
+        a, b = senior("abel@finot.test", "M"), senior("kebede@finot.test", "M")
+        c = self.family_admin()
+        c.post(POOL, {"user_id": a.id}, format="json")
+        data = c.get(POOL).json()
+        assert [s["email"] for s in data["suggestions"] if s["email"].endswith("@finot.test") and s["gender"] == "M"] == ["kebede@finot.test"]
+        assert [s["email"] for s in c.get(POOL, {"search": "keb"}).json()["suggestions"]] == ["kebede@finot.test"]
+
+    def test_training_is_marked_and_can_be_undone_and_choosing_twice_is_harmless(self):
+        a = senior("a@finot.test", "M")
+        c = self.family_admin()
+        c.post(POOL, {"user_id": a.id}, format="json")
+        assert c.post(POOL, {"user_id": a.id}, format="json").status_code == 200  # already chosen
+        res = c.patch(f"{POOL}{a.id}/", {"status": "TRAINED"}, format="json").json()
+        assert res["status"] == "TRAINED"
+        from service.models import ParentCandidate
+
+        assert ParentCandidate.objects.get(user=a).trained_at is not None
+        assert c.patch(f"{POOL}{a.id}/", {"status": "SELECTED"}, format="json").json()["status"] == "SELECTED"
+        assert ParentCandidate.objects.get(user=a).trained_at is None
+        assert c.patch(f"{POOL}{a.id}/", {"status": "FLYING"}, format="json").status_code == 400
+        assert c.patch(f"{POOL}9999/", {"status": "TRAINED"}, format="json").status_code == 404
+
+    def test_a_candidate_can_be_removed_unless_they_lead_a_family(self):
+        a, b = senior("a@finot.test", "M"), senior("b@finot.test", "M")
+        c = self.family_admin()
+        c.post(POOL, {"user_id": a.id}, format="json")
+        c.post(POOL, {"user_id": b.id}, format="json")
+        Family.objects.create(name="Family 1", father=b)
+        assert c.delete(f"{POOL}{a.id}/").status_code == 204
+        assert c.delete(f"{POOL}{b.id}/").status_code == 400
+        assert c.delete(f"{POOL}{a.id}/").status_code == 404
+
+    def test_students_cannot_use_it(self):
+        s = client_for(make_user("stu@finot.test", batch=2, gender="M"))
+        assert s.get(POOL).status_code == 403 and s.post(POOL, {"user_id": 1}, format="json").status_code == 403

@@ -49,6 +49,10 @@ Generated from the code (`manage.py spectacular`). For request and response shap
 | GET | `/api/admin-console/families/distribution/setup/` | GET families/distribution/setup/?size=10 : what the Family Admin needs before choosing the year's rules. |
 | POST | `/api/admin-console/families/parents/assign/` | POST families/parents/assign/ : name many fathers and mothers in one go. |
 | GET | `/api/admin-console/families/parents/candidates/` | GET families/parents/candidates/?search= : the free people who may become a father (men) or a mother (women), and how |
+| GET | `/api/admin-console/families/parents/pool/` | GET  families/parents/pool/?search= : everyone chosen so far (selected or trained) and the people who meet the |
+| POST | `/api/admin-console/families/parents/pool/` | GET  families/parents/pool/?search= : everyone chosen so far (selected or trained) and the people who meet the |
+| PATCH | `/api/admin-console/families/parents/pool/{user_id}/` | PATCH  families/parents/pool/<user_id>/ {"status": "TRAINED"/"SELECTED", "note": "..."} : mark a person trained (or back). |
+| DELETE | `/api/admin-console/families/parents/pool/{user_id}/` | PATCH  families/parents/pool/<user_id>/ {"status": "TRAINED"/"SELECTED", "note": "..."} : mark a person trained (or back). |
 | GET | `/api/admin-console/families/people/` | GET families/people/?search= : name and email of active people, so a father or mother can be picked. |
 | PATCH | `/api/admin-console/families/{id}/` | PATCH families/<id>/ : set or change the father, mother, religious father or name. Send father_id: null to clear. |
 | DELETE | `/api/admin-console/families/{id}/` | Delete a family. Its students are left without a family (they can be placed again); the parents are freed. |

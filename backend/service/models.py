@@ -413,9 +413,9 @@ class FamilyMessage(models.Model):
 
 class ParentCandidate(models.Model):
     """
-    A person the Super Admin chose to become a family father (a man) or mother (a woman). Recommendations arrive
-    informally; the Super Admin decides. SELECTED people are trained outside the system; TRAINED people are the pool the
-    Family Admin (or the Super Admin) assigns to families. Nobody has to verify the Family Admin's assignments.
+    A person chosen to become a family father (a man) or mother (a woman). Recommendations arrive informally; the Super
+    Admin or the Family Admin decides (`selected_by` records who). SELECTED people are trained outside the system;
+    TRAINED people are the pool that is assigned to families. Nobody has to verify the assignments.
     """
 
     SELECTED = "SELECTED"
