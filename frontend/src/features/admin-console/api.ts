@@ -2,7 +2,7 @@ import axiosInstance from "../../lib/axios";
 import type { PersonCard } from "../../components/people/StudentCard";
 import type { Credential } from "./slips";
 import type {
-  AdminGroup, AdminUser, FamilyRow, ImportBatchRow, ImportPreview, ImportRow, SlipProgress, Counselor, SubAdminRole, DistributionBatch, DistributionOverview, DistributionPreview, Overview,
+  AdminGroup, AdminUser, FamilyRow, ImportBatchRow, ImportPreview, ImportRow, SlipProgress, Counselor, SubAdminRole, DistributionBatch, DistributionOverview, DistributionPreview, DistributionSetup, PlanResult, PlanRules, Overview,
   Curriculum, SemesterCourseRow, DonationsPage, UserFilterOptions, Department, AcademicYearData, Paginated, PrivateQuestion, RoleOption, SmsLogRow, SmsSettings, Specialization, EmailSettings, EmailOutboxRow,
 } from "./types";
 
@@ -109,9 +109,13 @@ export const adminApi = {
     axiosInstance.post<DistributionPreview>(`${C}/families/distribution/preview/`, body).then((r) => r.data),
   autoPreviewDistribution: () =>
     axiosInstance.post<DistributionPreview>(`${C}/families/distribution/auto-preview/`).then((r) => r.data),
-  confirmDistribution: (pairs: [number, number][], newFamilies?: { temp_id: number; name: string }[]) =>
+  distributionSetup: (size?: number) =>
+    axiosInstance.get<DistributionSetup>(`${C}/families/distribution/setup/`, { params: size ? { size } : {} }).then((r) => r.data),
+  planDistribution: (rules: PlanRules) =>
+    axiosInstance.post<PlanResult>(`${C}/families/distribution/plan/`, rules).then((r) => r.data),
+  confirmDistribution: (pairs: [number, number][], newFamilies?: { temp_id: number; name: string }[], size?: number) =>
     axiosInstance
-      .post<{ applied: number; skipped: string[]; batch: DistributionBatch | null }>(`${C}/families/distribution/confirm/`, { pairs, new_families: newFamilies ?? [] })
+      .post<{ applied: number; skipped: string[]; batch: DistributionBatch | null }>(`${C}/families/distribution/confirm/`, { pairs, new_families: newFamilies ?? [], ...(size ? { size } : {}) })
       .then((r) => r.data),
   undoDistribution: (batchId: number) =>
     axiosInstance.post<{ removed: number }>(`${C}/families/distribution/batches/${batchId}/undo/`).then((r) => r.data),

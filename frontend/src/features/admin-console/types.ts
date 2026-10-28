@@ -167,6 +167,60 @@ export interface DistributionPreview {
   limit: number;
 }
 
+/** The Family Admin's rules for one distribution (see the rules panel on the Families page). */
+export type SpreadMode = "mix" | "together" | "ignore";
+export type Factor = "section" | "dorm" | "gender";
+
+export interface Spread { value: number | null; count: number }
+
+export interface RatioOption {
+  female: number;
+  male: number;
+  families_full: number;
+  left_female: number;
+  left_male: number;
+  left_total: number;
+}
+
+export interface DistributionSetup {
+  students: { total: number; women: number; men: number; no_gender: number };
+  sections: Spread[];
+  dorm_blocks: Spread[];
+  size: number;
+  default_size: number;
+  families: number;
+  ratios: RatioOption[];
+}
+
+export interface PlanRules {
+  size: number;
+  female_per_family: number;
+  male_per_family: number;
+  section_mode: SpreadMode;
+  dorm_mode: SpreadMode;
+  priority: Factor[];
+  place_remaining?: boolean;
+}
+
+export interface PlanPerson { id: number; name: string; gender: "M" | "F" | null; section: number | null; dorm_block: number | null }
+
+export interface PlanResult {
+  rows: {
+    family_id: number;
+    family_name: string;
+    total: number;
+    women: number;
+    men: number;
+    sections: Spread[];
+    dorm_blocks: Spread[];
+    members: PlanPerson[];
+  }[];
+  new_families: { temp_id: number; name: string }[];
+  pairs: [number, number][];
+  remaining: (PlanPerson & { reason: string })[];
+  summary: { students: number; placed: number; remaining: number; families: number; size: number };
+}
+
 export interface SmsSettings {
   enabled: boolean;
   monthly_limit: number;
