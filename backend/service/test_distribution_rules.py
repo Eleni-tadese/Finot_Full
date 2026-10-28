@@ -179,3 +179,60 @@ class TestDormModes:
         plan = plan_by_ratio(students, fams, 10, 5, 5, section_mode="together", dorm_mode="mix")
         assert all(len(c) == 1 for c in sections_per_family(plan).values())  # one section per family
         assert all(len(c) >= 3 for c in blocks_per_family(plan).values())  # and several dorms in each
+
+
+from service.distribution_rules import normalise_priority, place_remaining  # noqa: E402
+
+
+class TestPriorityAndRemaining:
+    def crossed(self):
+        # 2 sections x 2 dorm blocks, each section and each dorm has 2 women and 2 men
+        rows = []
+        for i, (sec, block, g) in enumerate([
+            (1, 1, "F"), (1, 1, "M"), (1, 2, "F"), (1, 2, "M"), (2, 1, "F"), (2, 1, "M"), (2, 2, "F"), (2, 2, "M"),
+        ]):
+            rows.append(StudentInfo(id=i, name=f"S{i}", gender=g, section=sec, dorm_block=block))
+        return rows
+
+    def test_the_priority_decides_which_factor_wins_when_both_want_to_stay_together(self):
+        fams = [FamilyInfo(1, "A"), FamilyInfo(2, "B")]
+        by_section = plan_by_ratio(self.crossed(), fams, 4, 2, 2, section_mode="together", dorm_mode="together", priority=["section", "dorm"])
+        assert all(len(c) == 1 for c in sections_per_family(by_section).values())
+        by_dorm = plan_by_ratio(self.crossed(), fams, 4, 2, 2, section_mode="together", dorm_mode="together", priority=["dorm", "section"])
+        assert all(len(c) == 1 for c in blocks_per_family(by_dorm).values())
+
+    def test_priority_is_checked_and_completed(self):
+        assert normalise_priority(["dorm"]) == ["dorm", "section", "gender"]
+        assert normalise_priority(None) == ["section", "dorm", "gender"]
+        with pytest.raises(ValueError):
+            normalise_priority(["colour"])
+
+    def test_the_remaining_students_fill_the_families_that_have_room(self):
+        fams = [FamilyInfo(i, f"Family {i}") for i in range(1, 11)]
+        first = plan_by_ratio(people(33, 67), fams, 10, 3, 7)
+        assert len(first.unplaced) == 3  # 3 women did not fit the 3:7 ratio
+        final = place_remaining(first, fams, 10)
+        assert not final.unplaced
+        assert all(len(m) == 10 for m in final.assignments.values())  # every family is full: the 3 short ones got a woman
+        assert sorted(makeup(final, f.id)[0] for f in fams) == [3] * 7 + [4] * 3
+
+    def test_students_with_no_room_anywhere_stay_remaining(self):
+        fams = [FamilyInfo(1, "A")]
+        first = plan_by_ratio(people(6, 6), fams, 10, 5, 5)
+        final = place_remaining(first, fams, 10)
+        assert len(final.assignments[1]) == 10 and len(final.unplaced) == 2
+        assert all(reason == "all families are full" for _, reason in final.unplaced)
+
+    def test_remaining_students_respect_the_section_rule_too(self):
+        from collections import Counter
+
+        from service.distribution import Plan
+
+        def where(mode):
+            fams = [FamilyInfo(1, "A", current_size=3, sections=Counter({2: 3})), FamilyInfo(2, "B")]
+            leftover = Plan(assignments={1: [], 2: []}, unplaced=[(StudentInfo(id=9, name="c", gender="F", section=2), "x")])
+            final = place_remaining(leftover, fams, 10, section_mode=mode)
+            return [fid for fid, m in final.assignments.items() if m][0]
+
+        assert where("together") == 1  # joins the family that already has section 2
+        assert where("mix") == 2  # goes where section 2 is not yet
