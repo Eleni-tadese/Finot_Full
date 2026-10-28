@@ -10,6 +10,7 @@ genders, so each number is at least 1. A ratio that the students cannot fill for
 Family Admin sees how many students would be left over and can place them at the end).
 """
 import math
+from collections import Counter
 
 
 def family_count(students, size):
@@ -48,13 +49,19 @@ def suggest_ratios(females, males, families, size, how_many=3):
     return options[:how_many]
 
 
-def plan_by_ratio(students, families, size, female_per_family, male_per_family):
+def plan_by_ratio(students, families, size, female_per_family, male_per_family, section_mode="ignore"):
     """
     Place students so that each family gets `female_per_family` women and `male_per_family` men (counting the people
     already in it), never more than `size` in all. Women are dealt out one by one to the family that has the fewest
     women so far, men the same way, so the families stay even. A student for whom every family is full for their
     gender (or who has no gender on file) is not placed: the Plan lists them as `unplaced` with the reason, and they
     are placed at the end (see the remaining-students step).
+
+    section_mode (what to do with the university section, from the Family Admin):
+      "mix"      students of one section are spread over different families;
+      "together" students of one section are put in the same family (when it is full, the rest of the section go
+                 together to the next one);
+      "ignore"   the section is not used.
     """
     from .distribution import Plan
 
@@ -62,10 +69,12 @@ def plan_by_ratio(students, families, size, female_per_family, male_per_family):
     assignments = {f.id: [] for f in families}
     total = {f.id: f.current_size for f in families}
     have = {f.id: {"F": f.genders.get("F", 0), "M": f.genders.get("M", 0)} for f in families}
+    in_section = {f.id: Counter(f.sections) for f in families}
     unplaced = []
 
     def order(s):
         return (
+            (s.section if s.section is not None else 10**6) if section_mode == "together" else 0,
             s.dorm_block if s.dorm_block is not None else 10**6,
             s.dorm_room if s.dorm_room is not None else 10**6,
             s.section if s.section is not None else 10**6,
@@ -81,8 +90,14 @@ def plan_by_ratio(students, families, size, female_per_family, male_per_family):
         if not open_:
             unplaced.append((student, "every family already has its share of this gender"))
             continue
-        best = min(open_, key=lambda f: (have[f.id][g], total[f.id], f.name))
+        def section_pull(f):
+            n = in_section[f.id][student.section] if student.section is not None else 0
+            return n if section_mode == "mix" else -n if section_mode == "together" else 0
+
+        best = min(open_, key=lambda f: (section_pull(f), have[f.id][g], total[f.id], f.name))
         assignments[best.id].append(student)
         have[best.id][g] += 1
         total[best.id] += 1
+        if student.section is not None:
+            in_section[best.id][student.section] += 1
     return Plan(assignments=assignments, unplaced=unplaced)

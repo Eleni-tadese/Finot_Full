@@ -96,3 +96,44 @@ class TestPlanByRatio:
         families = [FamilyInfo(1, "A")]
         plan = plan_by_ratio([StudentInfo(id=1, name="X", gender=None)], families, 10, 5, 5)
         assert plan.unplaced[0][1] == "no gender on file"
+
+
+def sections_per_family(plan):
+    from collections import Counter
+
+    return {fid: Counter(s.section for s in members) for fid, members in plan.assignments.items()}
+
+
+class TestSectionModes:
+    def families(self, n):
+        return [FamilyInfo(i, f"Family {i}") for i in range(1, n + 1)]
+
+    def test_ignore_keeps_the_ratio_only(self):
+        fams = self.families(4)
+        plan = plan_by_ratio(people(20, 20), fams, 10, 5, 5, section_mode="ignore")
+        assert all(makeup(plan, f.id) == (5, 5) for f in fams) and not plan.unplaced
+
+    def test_mix_spreads_every_section_over_the_families(self):
+        fams = self.families(4)
+        plan = plan_by_ratio(people(20, 20), fams, 10, 5, 5, section_mode="mix")  # 4 sections of 10, 4 families
+        assert all(makeup(plan, f.id) == (5, 5) for f in fams)  # the ratio still holds
+        per = sections_per_family(plan)
+        for section in (1, 2, 3, 4):
+            counts = [per[f.id][section] for f in fams]
+            assert max(counts) - min(counts) <= 1 and sum(counts) == 10
+
+    def test_together_puts_a_whole_section_in_one_family(self):
+        fams = self.families(4)
+        plan = plan_by_ratio(people(20, 20), fams, 10, 5, 5, section_mode="together")
+        assert all(makeup(plan, f.id) == (5, 5) for f in fams)
+        per = sections_per_family(plan)
+        assert all(len(per[f.id]) == 1 for f in fams)  # every family holds exactly one section
+
+    def test_together_keeps_the_rest_of_a_big_section_together_in_the_next_family(self):
+        # one section of 12 (6 women, 6 men), families of 10 with 5:5: ten stay together, the other two go together
+        students = [StudentInfo(id=i, name=f"W{i}", gender="F", section=1) for i in range(6)]
+        students += [StudentInfo(id=100 + i, name=f"M{i}", gender="M", section=1) for i in range(6)]
+        fams = self.families(3)
+        plan = plan_by_ratio(students, fams, 10, 5, 5, section_mode="together")
+        used = sorted(len(m) for m in plan.assignments.values() if m)
+        assert used == [2, 10] and not plan.unplaced
