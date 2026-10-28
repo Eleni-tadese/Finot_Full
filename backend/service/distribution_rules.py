@@ -70,23 +70,35 @@ def normalise_priority(priority):
 class _Placement:
     """The running state of one placement: who is in which family, and how each factor is spread."""
 
-    def __init__(self, families, section_mode, dorm_mode, priority):
+    def __init__(self, families, section_mode, dorm_mode, priority, dorm_level="block"):
         self.families = families
+        self.dorm_level = dorm_level
         self.modes = {"section": section_mode, "dorm": dorm_mode}
         self.priority = normalise_priority(priority)
         self.assignments = {f.id: [] for f in families}
         self.total = {f.id: f.current_size for f in families}
         self.have = {f.id: {"F": f.genders.get("F", 0), "M": f.genders.get("M", 0)} for f in families}
         self.in_section = {f.id: Counter(f.sections) for f in families}
-        self.in_block = {f.id: Counter(f.blocks) for f in families}
+        # at "block" level the people already in a family count by block; rooms of existing members are not known
+        self.in_block = {f.id: Counter(f.blocks if dorm_level == "block" else ()) for f in families}
+
+    def dorm_unit(self, student):
+        """What counts as 'the same dorm': the block (dorm_level "block") or block + room number ("room")."""
+        if self.dorm_level == "room":
+            if student.dorm_block is not None and student.dorm_room is not None:
+                return (student.dorm_block, student.dorm_room)
+            return None
+        return student.dorm_block
 
     def order(self, student):
         """Students are dealt out in this order: a factor that must stay together is handled first, most important first."""
-        values = {"section": student.section, "dorm": student.dorm_block}
-        grouped = [
-            (values[name] if values[name] is not None else 10**6) if self.modes[name] == "together" else 0
-            for name in self.priority if name in self.modes
-        ]
+        unit = self.dorm_unit(student)
+        if self.dorm_level == "room":
+            dorm_key = unit if unit is not None else (10**6, 10**6)
+        else:
+            dorm_key = unit if unit is not None else 10**6
+        values = {"section": student.section if student.section is not None else 10**6, "dorm": dorm_key}
+        grouped = [values[name] if self.modes[name] == "together" else 0 for name in self.priority if name in self.modes]
         return (
             *grouped,
             student.dorm_block if student.dorm_block is not None else 10**6,
@@ -105,7 +117,7 @@ class _Placement:
         def terms(f):
             return {
                 "section": pull(self.modes["section"], self.in_section[f.id], student.section),
-                "dorm": pull(self.modes["dorm"], self.in_block[f.id], student.dorm_block),
+                "dorm": pull(self.modes["dorm"], self.in_block[f.id], self.dorm_unit(student)),
                 "gender": self.have[f.id][student.gender] if student.gender in ("F", "M") else 0,
             }
 
@@ -118,12 +130,13 @@ class _Placement:
             self.have[family.id][student.gender] += 1
         if student.section is not None:
             self.in_section[family.id][student.section] += 1
-        if student.dorm_block is not None:
-            self.in_block[family.id][student.dorm_block] += 1
+        unit = self.dorm_unit(student)
+        if unit is not None:
+            self.in_block[family.id][unit] += 1
 
 
 def plan_by_ratio(students, families, size, female_per_family, male_per_family,
-                  section_mode="ignore", dorm_mode="ignore", priority=None):
+                  section_mode="ignore", dorm_mode="ignore", priority=None, dorm_level="block"):
     """
     Place students so that each family gets `female_per_family` women and `male_per_family` men (counting the people
     already in it), never more than `size` in all. A student for whom every family is full for their gender (or who
@@ -135,13 +148,15 @@ def plan_by_ratio(students, families, size, female_per_family, male_per_family,
       "together" students of one section (or dorm) are put in the same family (when it is full, the rest go
                  together to the next one);
       "ignore"   it is not used.
+    dorm_level: what "the same dorm" means for dorm_mode: "block" (the dorm block) or "room" (block + room number,
+    so roommates are told apart: Mix puts them in different families, Together keeps them in one).
     priority: the order of "section", "dorm", "gender" (first counts most) when the factors pull in different ways.
     The ratio and the size are always hard rules.
     """
     from .distribution import Plan
 
     quota = {"F": female_per_family, "M": male_per_family}
-    state = _Placement(families, section_mode, dorm_mode, priority)
+    state = _Placement(families, section_mode, dorm_mode, priority, dorm_level)
     unplaced = []
     for student in sorted(students, key=state.order):
         g = student.gender
@@ -156,7 +171,7 @@ def plan_by_ratio(students, families, size, female_per_family, male_per_family,
     return Plan(assignments=state.assignments, unplaced=unplaced)
 
 
-def place_remaining(plan, families, size, section_mode="ignore", dorm_mode="ignore", priority=None):
+def place_remaining(plan, families, size, section_mode="ignore", dorm_mode="ignore", priority=None, dorm_level="block"):
     """
     The last step: the students the ratio left over go into the families that still have room (the size is the only
     hard rule now). A family is chosen by the same factors, so the result stays as fair as possible. Returns a new
@@ -164,7 +179,7 @@ def place_remaining(plan, families, size, section_mode="ignore", dorm_mode="igno
     """
     from .distribution import Plan
 
-    state = _Placement(families, section_mode, dorm_mode, priority)
+    state = _Placement(families, section_mode, dorm_mode, priority, dorm_level)
     for family in families:
         for student in plan.assignments.get(family.id, []):
             state.add(family, student)

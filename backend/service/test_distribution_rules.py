@@ -249,3 +249,37 @@ class TestPriorityAndRemaining:
 
         assert where("together") == 1  # joins the family that already has section 2
         assert where("mix") == 2  # goes where section 2 is not yet
+
+
+class TestDormRooms:
+    """The dorm is block + room number: roommates are told apart even when they share a block."""
+
+    def students(self):
+        # one block, 4 rooms of 2: rooms 1 and 2 hold women, rooms 3 and 4 hold men
+        rows = []
+        for room, gender in ((1, "F"), (2, "F"), (3, "M"), (4, "M")):
+            for k in range(2):
+                rows.append(StudentInfo(id=room * 10 + k, name=f"{gender}{room}{k}", gender=gender, dorm_block=1, dorm_room=room))
+        return rows
+
+    def per_family_rooms(self, plan):
+        from collections import Counter
+
+        return [Counter(s.dorm_room for s in members) for members in plan.assignments.values()]
+
+    def test_mix_by_room_puts_roommates_in_different_families(self):
+        fams = [FamilyInfo(1, "A"), FamilyInfo(2, "B")]
+        plan = plan_by_ratio(self.students(), fams, 4, 2, 2, dorm_mode="mix", dorm_level="room")
+        assert all(makeup(plan, f.id) == (2, 2) for f in fams)
+        assert all(max(c.values()) == 1 for c in self.per_family_rooms(plan))  # no two roommates in one family
+
+    def test_together_by_room_keeps_roommates_in_one_family(self):
+        fams = [FamilyInfo(1, "A"), FamilyInfo(2, "B")]
+        plan = plan_by_ratio(self.students(), fams, 4, 2, 2, dorm_mode="together", dorm_level="room")
+        assert all(set(c.values()) == {2} for c in self.per_family_rooms(plan))  # every room stays whole
+
+    def test_a_student_without_a_room_is_not_held_back_at_room_level(self):
+        fams = [FamilyInfo(1, "A"), FamilyInfo(2, "B")]
+        lone = [StudentInfo(id=1, name="a", gender="F", dorm_block=5), StudentInfo(id=2, name="b", gender="M", dorm_block=5)]
+        plan = plan_by_ratio(lone, fams, 2, 1, 1, dorm_mode="together", dorm_level="room")
+        assert not plan.unplaced
