@@ -21,6 +21,7 @@ urlpatterns = [
     path("service-config/", v.ServiceConfigView.as_view()),
     path("families/", v.FamiliesView.as_view()),
     path("families/people/", v.FamilyPeopleView.as_view()),
+    path("families/parents/candidates/", v.FamilyParentCandidatesView.as_view()),
     path("families/<int:pk>/", v.FamilyDetailView.as_view()),
     path("families/distribution/", v.DistributionOverviewView.as_view()),
     path("families/distribution/setup/", v.DistributionSetupView.as_view()),

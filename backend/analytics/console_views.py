@@ -798,6 +798,44 @@ class FamilyPeopleView(FamilyConsoleView):
         ]})
 
 
+class FamilyParentCandidatesView(FamilyConsoleView):
+    """
+    GET families/parents/candidates/?search= : the free people who may become a father (men) or a mother (women), and how
+    many families still wait for one. Same rules as naming a parent: active, year 2 or above, not a graduate, not
+    already leading a family; also not a child in a family. Small on purpose (name, email, year, department).
+    """
+
+    LIMIT = 1000
+
+    def get(self, request):
+        term = request.query_params.get("search", "").strip()
+        qs = (
+            User.objects.filter(participating_q(), student_profile__batch_year__gte=2, gender__in=("M", "F"))
+            .exclude(student_profile__status=StudentProfile.GRADUATED)
+            .exclude(led_family_as_father__isnull=False)
+            .exclude(led_family_as_mother__isnull=False)
+            .exclude(family_membership__isnull=False)
+            .select_related("student_profile")
+            .order_by("first_name", "last_name", "id")
+        )
+        if term:
+            qs = qs.filter(
+                Q(first_name__icontains=term) | Q(middle_name__icontains=term) | Q(last_name__icontains=term) | Q(email__icontains=term)
+            )
+
+        def card(u):
+            return {"id": u.id, "full_name": full_name(u), "email": u.email,
+                    "year": u.student_profile.batch_year, "department": u.student_profile.department or ""}
+
+        people = list(qs[: self.LIMIT * 2])
+        return Response({
+            "fathers": [card(u) for u in people if u.gender == "M"][: self.LIMIT],
+            "mothers": [card(u) for u in people if u.gender == "F"][: self.LIMIT],
+            "families_without_father": Family.objects.filter(father__isnull=True).count(),
+            "families_without_mother": Family.objects.filter(mother__isnull=True).count(),
+        })
+
+
 def _family_json(f):
     def person(u):
         return {"id": u.id, "full_name": full_name(u), "email": u.email} if u else None
