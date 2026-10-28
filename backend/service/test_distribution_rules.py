@@ -34,9 +34,22 @@ class TestSuggestRatios:
         for o in suggest_ratios(5, 95, 10, 10, how_many=9):
             assert o["female"] >= 1 and o["male"] >= 1
 
-    def test_leftovers_are_counted(self):
-        o = ratio_outcome(30, 70, 10, 2, 8)  # 2:8 fills 8 families (16 women, 64 men)
-        assert o["families_full"] == 8 and o["left_female"] == 14 and o["left_male"] == 6 and o["left_total"] == 20
+    def test_leftovers_are_counted_the_way_the_placement_deals(self):
+        # 10 families take at most 2 women each (20): of 30 women, 10 are left; men fit (80 places for 70)
+        o = ratio_outcome(30, 70, 10, 2, 8)
+        assert o["left_female"] == 10 and o["left_male"] == 0 and o["left_total"] == 10 and o["families_full"] == 8
+
+    def test_the_estimate_matches_what_the_placement_really_leaves(self):
+        from service.distribution import FamilyInfo, StudentInfo
+        from service.distribution_rules import plan_by_ratio
+
+        women = [StudentInfo(id=i, name=f"W{i}", gender="F") for i in range(57)]
+        men = [StudentInfo(id=100 + i, name=f"M{i}", gender="M") for i in range(125)]
+        families = [FamilyInfo(i, f"F{i}") for i in range(1, 22)]
+        for f, m in ((3, 7), (2, 8), (4, 6)):
+            guess = ratio_outcome(57, 125, 21, f, m)["left_total"]
+            real = len(plan_by_ratio(women + men, families, 10, f, m).unplaced)
+            assert guess == real, (f, m, guess, real)
 
     def test_nothing_to_plan(self):
         assert suggest_ratios(0, 0, 5, 10) == []

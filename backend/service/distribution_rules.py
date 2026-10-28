@@ -21,10 +21,14 @@ def family_count(students, size):
 
 
 def ratio_outcome(females, males, families, female_per_family, male_per_family):
-    """What the ratio f:m gives: how many families can be filled to the ratio and who is left over."""
+    """
+    What the ratio f:m gives. The placement deals women and men out evenly over ALL the families, each family taking
+    at most f women and m men, so only the students beyond that room are left over (`left_*`). `families_full` is how
+    many families could be filled to exactly the ratio.
+    """
     full = min(families, females // female_per_family, males // male_per_family)
-    left_f = females - full * female_per_family
-    left_m = males - full * male_per_family
+    left_f = max(0, females - families * female_per_family)
+    left_m = max(0, males - families * male_per_family)
     return {
         "female": female_per_family,
         "male": male_per_family,
