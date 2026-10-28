@@ -144,7 +144,7 @@ const FamiliesAdminPage = () => {
     <div className="mx-auto max-w-5xl space-y-8">
       <PageHeader
         title={t("adm_fam_title", "Family distribution")}
-        description={t("adm_fam_desc", "Puts unassigned first-year students into families automatically. Sizes stay even (maximum {{n}}), each family gets a mix of sections and dorm blocks, and every family has men and women. You see a preview first; nothing is saved until you confirm.", { n: data.limit })}
+        description={t("adm_fam_desc", "Choose this year's rules: family size, women : men, and how to treat the university section and the dorm. You see a preview first; nothing is saved until you confirm.", { n: data.limit })}
         actions={
           <>
             <button onClick={() => setCreating(true)} className="btn-primary px-4 py-2 text-sm">{t("fam_new", "New family")}</button>
