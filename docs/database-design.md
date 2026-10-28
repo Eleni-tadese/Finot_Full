@@ -153,6 +153,7 @@ erDiagram
 | `student_studentprofile` | The student's details | 1:1 with user. Also holds dorm block and room, section, Telegram, phone and SMS opt-in, emergency contact, home address, previous church, activity serving, confession father, photo, password-changed time and the reminder stage of the account set-up |
 | `student_accountimportbatch` | One bulk registration | `grace_days` (7 to 60); `undone_at` marks an undone batch |
 | `student_emailverification` | A pending 6-digit code for a new email | Only a hash of the code is stored; `attempts` and `expires_at` enforce the limits |
+| `student_registrationsettings` | One row (the Super Admin's switch `allow_year_choice`, default on): may a slip student choose their own year | `StudentProfile.year_chosen_at` records the one-time choice |
 | `student_department` | Departments and their program length; `is_stage` + `leads_to` (self M2M) model divisions before the final department (Pre-Engineering, a school) | A hidden (`is_active = false`) department stays on existing students; a student on a stage may change department again |
 | `student_yearrollover` | One "start new year" run | `changes` (JSON) lists who moved, so it can be undone |
 
@@ -263,6 +264,7 @@ erDiagram
 | `service_serviceattendance` | Present or Absent per event and student | **U** (event, student) |
 | `service_family` | A mentorship family | A father and a mother are each **U**: one person leads at most one family |
 | `service_familydistributionbatch` | One automatic distribution | Used for undo |
+| `service_parentcandidate` | A person chosen to become a father or mother, with `status` Selected or Trained, a note and who chose them | `user` is **U**. Only Trained people can be named a parent |
 | `service_familymembership` | A child in a family | `student` is **U**: a student is in at most one family |
 | `service_familymessage` | A message to a family | `recipient` empty = whole family; `parents_only` marks a child's reply to the parents |
 

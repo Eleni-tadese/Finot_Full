@@ -113,6 +113,7 @@ Student, Super Admin, Service Admin, Event Manager, Course Coordinator, Family A
 | FR-REG-6 | The Account page shall let the student confirm a real email with a 6-digit code (valid 15 minutes, 5 tries, 5 codes an hour, only a keyed hash stored) and set a new password. |
 | FR-REG-7 | After the deadline, every request except the Account page shall be refused (`account_setup_required`) until the email and password are done. |
 | FR-REG-8 | The system shall show a banner with the days left and send reminders at 14, 7, 3 and 1 days and at expiry, in the student's saved language. |
+| FR-REG-10 | A slip student shall choose their year of study (1 to 5) and department once, before the name step; the choice is trusted and the Super Admin can correct it. A Super Admin switch turns the choice off: then everyone who signs in with a slip is a first-year student. The system has no year 6 or 7. |
 | FR-REG-9 | A Super Admin shall be able to issue a new slip to a student who lost theirs, and to undo an unused batch. |
 
 ### 3.4 Student profile and departments (FR-PROF)
@@ -181,7 +182,9 @@ One mechanism for general events, group events and course class days. Present/Ab
 | ID | Requirement |
 |---|---|
 | FR-FAM-1 | A Family Admin or Super Admin shall create, rename and delete families and set a father and a mother (each person in at most one family). |
-| FR-FAM-2 | The system shall distribute first-year students into mixed families of at most 10, with a **preview**, **confirm** and **undo** (distribution batches). |
+| FR-FAM-2 | The system shall distribute first-year students into mixed families with a **preview**, **confirm** and **undo** (distribution batches), using rules chosen each year by the Family Admin: family size, women : men ratio (suggested or typed), section and dorm each set to mix, together or ignore (the dorm by room or by block), and the priority of the rules. Students the ratio leaves over are listed and placed at the end into families with room. |
+| FR-FAM-4 | A father or mother shall be a student of year 2 or above, never newly named while graduated (a parent who graduates stays), and lead at most one family at a time. |
+| FR-FAM-5 | The Super Admin or the Family Admin shall choose parent candidates (a man or a woman meeting the requirements) and mark them trained; only trained people shall be named father or mother, one by one or many at once. |
 | FR-FAM-3 | The system shall show a banner for late students not yet in a family. |
 | FR-FAM-4 | A father or mother shall see each child's contact and attendance; a child shall see parents and siblings. |
 | FR-FAM-5 | A family member shall send messages to the family; a child shall reply to the parents only. An email copy of a message may be sent. |

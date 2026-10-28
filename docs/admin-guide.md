@@ -15,7 +15,11 @@ There is no "add user" button on purpose: **every person registers themselves** 
 2. **Users & roles** – find a person and use **Edit roles**. Rules by year of study are in [roles-and-permissions.md](roles-and-permissions.md). When you tick **QA Counselor**, the same window lets you tick the question categories that counselor answers.
 3. **Service groups** – create a group; add members (**Members → Add a student**); then **Edit group → Group admin** and pick one of its members. That person becomes the group's Service Admin automatically. Turn the **selection window** on when students may choose groups; group admins accept applicants.
 4. **Courses** – see section 3.
-5. **Families** – create a family (name, gender, father, mother). Use **Distribution** to spread first-year students by gender, dorm block and section: preview, confirm, undo if needed.
+5. **Families** (Family Admin or Super Admin) – every family is mixed (men and women). The page has four parts:
+   - **Make the families for this year.** The page counts the first-year students who wait for a family. Choose the **family size** (the father and mother are not counted), the **women : men ratio** (the system suggests ratios and shows who is left over; you may type your own), and what to do with the **university section** and the **dorm** (*Mix*: spread over different families, *Together*: keep in one family, *Ignore*). The dorm can be compared by **room** (block + room number, so roommates are told apart) or by block. Set the **priority** of the rules for when they disagree. Press **Preview distribution** (nothing is saved), read how even the families are, press **Place the remaining students too** for the students the ratio left over, then **Confirm**. **Undo** removes the whole run. Change the rules every year.
+   - **Who may become a father or mother.** Recommendations arrive informally. The Super Admin or the Family Admin **chooses** a student (year 2 or above, not a graduate, a man for a father, a woman for a mother, not already leading a family; a student who was a child in a family may be chosen). After the training, press **Mark trained**.
+   - **Name the fathers and mothers.** Only **trained** people are listed, each with a *Put in family* choice. *Fill automatically* proposes everything; *Save* sends all choices at once. A father or mother who graduates stays on the family.
+   - **All families.** Edit a family, or press *New family* for a late one.
 6. **Private Q&A** – tick what each counselor handles; assign sensitive questions yourself.
 
 ## 3. Courses
