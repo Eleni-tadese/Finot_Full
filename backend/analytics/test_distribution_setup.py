@@ -27,6 +27,7 @@ class TestDistributionSetup:
         assert data["ratios"][0]["left_total"] == 0
         assert [row["count"] for row in data["sections"]] == [50, 50]
         assert [row["count"] for row in data["dorm_blocks"]] == [25, 25, 25, 25]
+        assert all(row["women"] + row["men"] == row["count"] for row in data["dorm_blocks"])
 
     def test_the_family_size_can_be_changed(self):
         fresh(100, women=50)
@@ -141,3 +142,17 @@ class TestPlanThenConfirmThenUndo:
         done = admin.post(CONFIRM, {"pairs": plan["pairs"], "new_families": plan["new_families"], "size": 10}, format="json").json()
         assert done["applied"] == 19 and len(done["skipped"]) == 1 and "already in a family" in done["skipped"][0]
         assert FamilyMembership.objects.count() == 20  # 19 new + the 1 that was already placed
+
+
+@pytest.mark.django_db
+def test_women_and_men_in_each_dorm_block_are_counted_separately():
+    # women live in blocks 1 and 2, men in blocks 3 and 4 (like the real data: a block holds one gender)
+    for i in range(6):
+        u = make_user(f"w{i}@finot.test", gender="F", batch=1)
+        StudentProfile.objects.filter(user=u).update(batch_year=1, status=StudentProfile.IN_CAMPUS, dorm_block=1 + i % 2)
+    for i in range(6):
+        u = make_user(f"m{i}@finot.test", gender="M", batch=1)
+        StudentProfile.objects.filter(user=u).update(batch_year=1, status=StudentProfile.IN_CAMPUS, dorm_block=3 + i % 2)
+    data = client_for(make_user("fam@finot.test", Role.FAMILY_ADMIN)).get(URL).json()
+    by_block = {row["value"]: (row["women"], row["men"]) for row in data["dorm_blocks"]}
+    assert by_block == {1: (3, 0), 2: (3, 0), 3: (0, 3), 4: (0, 3)}

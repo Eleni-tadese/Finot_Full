@@ -948,10 +948,14 @@ class DistributionSetupView(FamilyConsoleView):
         families = family_count(len(rows), size)
 
         def spread(index):
+            """Per section / dorm block: how many students, and how many of them are women and men."""
             counts = {}
             for row in rows:
-                counts[row[index]] = counts.get(row[index], 0) + 1
-            return [{"value": k, "count": counts[k]} for k in sorted(counts, key=lambda v: (v is None, v or 0))]
+                c = counts.setdefault(row[index], {"count": 0, "women": 0, "men": 0})
+                c["count"] += 1
+                c["women"] += row[0] == "F"
+                c["men"] += row[0] == "M"
+            return [{"value": k, **counts[k]} for k in sorted(counts, key=lambda v: (v is None, v or 0))]
 
         return Response({
             "students": {"total": len(rows), "women": women, "men": men, "no_gender": len(rows) - women - men},
