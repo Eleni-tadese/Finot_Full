@@ -286,7 +286,7 @@ HTTPS only in production, with HSTS; CORS and CSRF trusted origins restricted to
 |---|---|
 | NFR-PERF-1 | The system shall support about 1000 registered students and several hundred signed in on the welcome day (staggered in groups on the free plan). |
 | NFR-PERF-2 | List endpoints shall be paginated (20 per page by default). |
-| NFR-PERF-3 | Slip sign-in shall use a lightweight password hash (about 12 ms) so a crowd can enter; real passwords use the standard hash (about 300 ms). |
+| NFR-PERF-3 | Slip sign-in shall use a lightweight password hash (30,000 PBKDF2 rounds, about 20 ms) and shall **not** re-hash it at sign-in, so a crowd can enter at once on a small server; every password a person chooses (Account page, reset) uses the standard hash (1,000,000 rounds, more than half a second). |
 | NFR-PERF-4 | Email for a bulk action shall be sent over one connection and in a background thread so the request returns quickly. |
 
 ### 5.2 Availability and reliability (NFR-REL)
