@@ -409,3 +409,30 @@ class FamilyMessage(models.Model):
 
     def __str__(self):
         return f"{self.family.name}: {self.body[:30]}"
+
+
+class ParentCandidate(models.Model):
+    """
+    A person the Super Admin chose to become a family father (a man) or mother (a woman). Recommendations arrive
+    informally; the Super Admin decides. SELECTED people are trained outside the system; TRAINED people are the pool the
+    Family Admin (or the Super Admin) assigns to families. Nobody has to verify the Family Admin's assignments.
+    """
+
+    SELECTED = "SELECTED"
+    TRAINED = "TRAINED"
+    STATUS_CHOICES = [(SELECTED, "Selected"), (TRAINED, "Trained")]
+
+    user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="parent_candidate")
+    status = models.CharField(max_length=10, choices=STATUS_CHOICES, default=SELECTED)
+    note = models.CharField(max_length=200, blank=True, default="", help_text="Who recommended this person, or any remark.")
+    selected_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name="parent_candidates_selected"
+    )
+    selected_at = models.DateTimeField(auto_now_add=True)
+    trained_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ["selected_at"]
+
+    def __str__(self):
+        return f"{self.user} ({self.status})"
