@@ -836,6 +836,56 @@ class FamilyParentCandidatesView(FamilyConsoleView):
         })
 
 
+def _error_messages(detail):
+    """A DRF ValidationError detail as plain {field: "message"} text."""
+
+    def text(value):
+        return " ".join(str(x) for x in (value if isinstance(value, list) else [value]))
+
+    if isinstance(detail, dict):
+        return {key: text(value) for key, value in detail.items()}
+    return {"detail": text(detail)}
+
+
+class FamilyParentsAssignView(FamilyConsoleView):
+    """
+    POST families/parents/assign/ : name many fathers and mothers in one go.
+    Body: {"assignments": [{"family_id": 3, "father_id": 12, "mother_id": 40}, ...]}. A key that is left out keeps that
+    parent as it is; null clears it. Every row goes through the same checks as naming one parent (right gender, year 2
+    or above, not a graduate, one family per person). A refused row does not stop the others.
+    """
+
+    MAX_ROWS = 400
+
+    def post(self, request):
+        items = request.data.get("assignments")
+        if not isinstance(items, list) or not items:
+            raise ValidationError({"assignments": "Send a list of assignments."})
+        if len(items) > self.MAX_ROWS:
+            raise ValidationError({"assignments": f"At most {self.MAX_ROWS} families at a time."})
+        results = []
+        for item in items:
+            try:
+                family = Family.objects.select_related("father", "mother").filter(pk=int(item.get("family_id"))).first()
+            except (TypeError, ValueError, AttributeError):
+                family = None
+            if family is None:
+                results.append({"family_id": None, "family_name": "", "ok": False, "errors": {"detail": "This family does not exist."}})
+                continue
+            try:
+                with transaction.atomic():
+                    if "father_id" in item:
+                        family.father = _pick_parent(item, "father_id", "M", "father", family)
+                    if "mother_id" in item:
+                        family.mother = _pick_parent(item, "mother_id", "F", "mother", family)
+                    family.save()
+                results.append({"family_id": family.id, "family_name": family.name, "ok": True, "errors": {}})
+            except ValidationError as exc:
+                results.append({"family_id": family.id, "family_name": family.name, "ok": False, "errors": _error_messages(exc.detail)})
+        applied = sum(1 for r in results if r["ok"])
+        return Response({"applied": applied, "failed": len(results) - applied, "results": results})
+
+
 def _family_json(f):
     def person(u):
         return {"id": u.id, "full_name": full_name(u), "email": u.email} if u else None

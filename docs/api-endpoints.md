@@ -47,6 +47,7 @@ Generated from the code (`manage.py spectacular`). For request and response shap
 | POST | `/api/admin-console/families/distribution/plan/` | POST families/distribution/plan/ : the preview with the Family Admin's rules for this year. Nothing is saved. |
 | POST | `/api/admin-console/families/distribution/preview/` | api_admin_console_families_distribution_preview_create |
 | GET | `/api/admin-console/families/distribution/setup/` | GET families/distribution/setup/?size=10 : what the Family Admin needs before choosing the year's rules. |
+| POST | `/api/admin-console/families/parents/assign/` | POST families/parents/assign/ : name many fathers and mothers in one go. |
 | GET | `/api/admin-console/families/parents/candidates/` | GET families/parents/candidates/?search= : the free people who may become a father (men) or a mother (women), and how |
 | GET | `/api/admin-console/families/people/` | GET families/people/?search= : name and email of active people, so a father or mother can be picked. |
 | PATCH | `/api/admin-console/families/{id}/` | PATCH families/<id>/ : set or change the father, mother, religious father or name. Send father_id: null to clear. |
