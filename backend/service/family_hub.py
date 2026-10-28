@@ -25,11 +25,16 @@ MESSAGES_PER_DAY = 20
 
 
 def family_of(user):
-    """The family this person belongs to as a child, or leads as father or mother. None when there is none."""
+    """
+    The family this person leads as father or mother, else the one they belong to as a child. None when there is none.
+    A person can be both (a child in their first year, a father later): the family they lead comes first, so they can
+    see and write to its children.
+    """
+    led = Family.objects.filter(Q(father=user) | Q(mother=user)).first()
+    if led is not None:
+        return led
     membership = getattr(user, "family_membership", None)
-    if membership is not None:
-        return membership.family
-    return Family.objects.filter(Q(father=user) | Q(mother=user)).first()
+    return membership.family if membership is not None else None
 
 
 def is_parent(user, family):

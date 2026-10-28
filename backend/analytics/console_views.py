@@ -831,7 +831,7 @@ class ParentCandidatesView(FamilyConsoleView):
         chosen_ids = {c.user_id for c in chosen}
         leaders = set(Family.objects.exclude(father=None).values_list("father_id", flat=True)) | set(
             Family.objects.exclude(mother=None).values_list("mother_id", flat=True))
-        suggestions = _eligible_parents().exclude(pk__in=chosen_ids).exclude(pk__in=leaders).exclude(family_membership__isnull=False)
+        suggestions = _eligible_parents().exclude(pk__in=chosen_ids).exclude(pk__in=leaders)
         if term:
             suggestions = suggestions.filter(
                 Q(first_name__icontains=term) | Q(middle_name__icontains=term) | Q(last_name__icontains=term) | Q(email__icontains=term)
@@ -852,8 +852,9 @@ class ParentCandidatesView(FamilyConsoleView):
             user = _eligible_parents().get(pk=int(request.data.get("user_id")))
         except (TypeError, ValueError, User.DoesNotExist):
             raise ValidationError({"user_id": "This person does not meet the requirements (year 2 or above, not a graduate, a man or a woman)."})
-        if Family.objects.filter(Q(father=user) | Q(mother=user)).exists() or FamilyMembership.objects.filter(student=user).exists():
-            raise ValidationError({"user_id": f"{full_name(user)} is already in a family."})
+        # having been a child in a family before does not matter; only leading a family now does
+        if Family.objects.filter(Q(father=user) | Q(mother=user)).exists():
+            raise ValidationError({"user_id": f"{full_name(user)} already leads a family."})
         candidate, created = ParentCandidate.objects.get_or_create(
             user=user, defaults={"selected_by": request.user, "note": str(request.data.get("note") or "").strip()[:200]})
         return Response(_candidate_card(user, {"status": candidate.status, "note": candidate.note}),
@@ -896,7 +897,7 @@ class FamilyParentCandidatesView(FamilyConsoleView):
     """
     GET families/parents/candidates/?search= : the free people who may become a father (men) or a mother (women), and how
     many families still wait for one. Same rules as naming a parent: active, year 2 or above, not a graduate, not
-    already leading a family; also not a child in a family. Small on purpose (name, email, year, department).
+    already leading a family (having been a child in a family before does not matter). Small on purpose (name, email, year, department).
     """
 
     LIMIT = 1000
@@ -908,7 +909,6 @@ class FamilyParentCandidatesView(FamilyConsoleView):
             .exclude(student_profile__status=StudentProfile.GRADUATED)
             .exclude(led_family_as_father__isnull=False)
             .exclude(led_family_as_mother__isnull=False)
-            .exclude(family_membership__isnull=False)
             .select_related("student_profile")
             .order_by("first_name", "last_name", "id")
         )

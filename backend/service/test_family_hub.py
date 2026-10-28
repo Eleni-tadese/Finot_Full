@@ -164,3 +164,19 @@ class TestEmailCopy:
         family, dad, mum, kids, *_ = world
         res = client(kids[0]).post(SEND, {"body": "Thank you", "email": True}, format="json").json()
         assert res["emailed"] == 2 and sorted(m.to[0] for m in mailoutbox) == ["dad@x.com", "mum@x.com"]
+
+
+@pytest.mark.django_db
+def test_a_former_child_who_now_leads_a_family_sees_the_family_they_lead():
+    from django.contrib.auth import get_user_model
+
+    from service.family_hub import family_of, is_parent
+    from service.models import Family, FamilyMembership
+
+    U = get_user_model()
+    senior = U.objects.create_user(username="s@x.test", email="s@x.test", password="x", gender="M")
+    old = Family.objects.create(name="Family 1")
+    FamilyMembership.objects.create(family=old, student=senior)  # his own family from first year
+    assert family_of(senior) == old
+    new = Family.objects.create(name="Family 2", father=senior)
+    assert family_of(senior) == new and is_parent(senior, new)

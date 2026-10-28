@@ -28,12 +28,12 @@ class TestParentCandidates:
         taken = senior("taken@finot.test", "M")
         Family.objects.create(name="Family 1", father=taken)  # already leads a family
         child = senior("child@finot.test", "F", year=2)
-        FamilyMembership.objects.create(family=Family.objects.get(name="Family 1"), student=child)  # a child, not a parent
+        FamilyMembership.objects.create(family=Family.objects.get(name="Family 1"), student=child)  # was a child: may become a mother
         gone = senior("gone@finot.test", "M")
         type(gone).objects.filter(pk=gone.pk).update(is_active=False)
         data = self.admin().get(CANDIDATES).json()
         assert [p["id"] for p in data["fathers"]] == [dad.id]
-        assert mum.id in [p["id"] for p in data["mothers"]] and child.id not in [p["id"] for p in data["mothers"]]
+        assert {mum.id, child.id} <= {p["id"] for p in data["mothers"]}
         assert data["fathers"][0]["year"] == 3 and data["families_without_father"] == 0 and data["families_without_mother"] == 1
 
     def test_search_narrows_the_list(self):
@@ -167,13 +167,13 @@ class TestParentPool:
         assert c.post(POOL, {"user_id": 99999}, format="json").status_code == 400
         assert c.post(POOL, {}, format="json").status_code == 400
 
-    def test_a_person_who_already_leads_a_family_or_is_a_child_cannot_be_chosen(self):
+    def test_leading_a_family_blocks_but_having_been_a_child_does_not(self):
         dad, child = senior("dad@finot.test", "M"), senior("child@finot.test", "F", year=2)
         fam = Family.objects.create(name="Family 1", father=dad)
         FamilyMembership.objects.create(family=fam, student=child)
         c = self.family_admin()
         assert c.post(POOL, {"user_id": dad.id}, format="json").status_code == 400
-        assert c.post(POOL, {"user_id": child.id}, format="json").status_code == 400
+        assert c.post(POOL, {"user_id": child.id}, format="json").status_code == 201  # their own earlier family
 
     def test_suggestions_exclude_the_chosen_and_follow_the_search(self):
         a, b = senior("abel@finot.test", "M"), senior("kebede@finot.test", "M")
