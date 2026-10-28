@@ -23,7 +23,7 @@ const Pill = ({ tone = "neutral", title, children }: { tone?: keyof typeof TONES
 );
 
 /** A big number with a small caption. */
-const Stat = ({ n, label }: { n: number; label: string }) => (
+const Stat = ({ n, label }: { n: number | string; label: string }) => (
   <div className="rounded-xl bg-muted/50 px-2 py-2 text-center">
     <div className="text-lg font-semibold leading-tight text-foreground">{n}</div>
     <div className="text-[11px] leading-tight text-muted-foreground">{label}</div>
@@ -50,6 +50,7 @@ const FamilyRulesPanel = ({ onDone }: { onDone: () => void }) => {
   const [result, setResult] = useState<PlanResult | null>(null);
   const [placed, setPlaced] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [working, setWorking] = useState<"preview" | "place" | "confirm" | null>(null);
 
   const loadSetup = useCallback(async (wanted?: number) => {
     try {
@@ -115,6 +116,7 @@ const FamilyRulesPanel = ({ onDone }: { onDone: () => void }) => {
     const why = problem();
     if (why) { toast.error(why); return; }
     setBusy(true);
+    setWorking(placeRemaining ? "place" : "preview");
     try {
       setResult(await adminApi.planDistribution({
         size: Number(size), female_per_family: Number(female), male_per_family: Number(male),
@@ -125,6 +127,7 @@ const FamilyRulesPanel = ({ onDone }: { onDone: () => void }) => {
       toast.error(firstApiError(e?.response?.data) || t("adm_save_failed", "Could not save."));
     } finally {
       setBusy(false);
+      setWorking(null);
     }
   };
 
@@ -133,6 +136,7 @@ const FamilyRulesPanel = ({ onDone }: { onDone: () => void }) => {
     const ok = await askConfirm(t("fr_confirm_q", "Create {{f}} families with {{n}} students? You can undo this afterwards.", { f: result.new_families.length, n: result.pairs.length }));
     if (!ok) return;
     setBusy(true);
+    setWorking("confirm");
     try {
       const res = await adminApi.confirmDistribution(result.pairs, result.new_families, Number(size));
       toast.success(t("adm_assigned_n", "Assigned {{n}} student(s). You can undo this below.", { n: res.applied }));
@@ -144,8 +148,11 @@ const FamilyRulesPanel = ({ onDone }: { onDone: () => void }) => {
       toast.error(firstApiError(e?.response?.data) || t("adm_save_failed", "Could not save."));
     } finally {
       setBusy(false);
+      setWorking(null);
     }
   };
+
+  const range = (xs: number[]) => (xs.length === 0 ? "-" : Math.min(...xs) === Math.max(...xs) ? String(xs[0]) : `${Math.min(...xs)}–${Math.max(...xs)}`);
 
   return (
     <div className="space-y-4">
@@ -269,7 +276,7 @@ const FamilyRulesPanel = ({ onDone }: { onDone: () => void }) => {
         </ol>
 
         <button onClick={() => run(false)} disabled={busy} className="btn-primary mt-6 px-4 py-2 text-sm">
-          {busy ? t("adm_working", "Working...") : t("adm_preview", "Preview distribution")}
+          {working === "preview" ? t("adm_working", "Working...") : t("adm_preview", "Preview distribution")}
         </button>
       </Card>
 
@@ -281,10 +288,10 @@ const FamilyRulesPanel = ({ onDone }: { onDone: () => void }) => {
             </p>
             <div className="mt-4 flex flex-wrap gap-2">
               <button onClick={confirm} disabled={busy || result.pairs.length === 0} className="btn-primary px-4 py-2 text-sm">
-                {t("adm_confirm_n", "Confirm and assign {{n}}", { n: result.pairs.length })}
+                {working === "confirm" ? t("adm_working", "Working...") : t("adm_confirm_n", "Confirm and assign {{n}}", { n: result.pairs.length })}
               </button>
               {result.remaining.length > 0 && !placed && (
-                <button onClick={() => run(true)} disabled={busy} className="btn-outline px-4 py-2 text-sm">{t("fr_place_rest", "Place the remaining students too")}</button>
+                <button onClick={() => run(true)} disabled={busy} className="btn-outline px-4 py-2 text-sm">{working === "place" ? t("adm_working", "Working...") : t("fr_place_rest", "Place the remaining students too")}</button>
               )}
               <button onClick={() => setResult(null)} disabled={busy} className="btn-outline px-4 py-2 text-sm">{t("adm_back", "Back")}</button>
             </div>
@@ -294,26 +301,48 @@ const FamilyRulesPanel = ({ onDone }: { onDone: () => void }) => {
             <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
               <p className="mb-1 font-medium">{t("fr_remaining_n", "{{n}} remaining student(s)", { n: result.remaining.length })}</p>
               <p className="mb-2 text-xs">{t("fr_remaining_hint", "They did not fit the ratio. Press “Place the remaining students too” to put them in the families that have room, or leave them for later.")}</p>
-              <ul className="list-disc pl-5">{result.remaining.map((u) => <li key={u.id}>{u.name} ({u.gender ?? "?"})</li>)}</ul>
+              <div className="flex flex-wrap gap-1.5">
+                {result.remaining.map((u) => <Pill key={u.id} tone={u.gender === "F" ? "women" : u.gender === "M" ? "men" : "warn"}>{u.name}</Pill>)}
+              </div>
             </div>
           )}
 
-          <div className="grid gap-3 sm:grid-cols-2">
-            {result.rows.map((row) => (
-              <Card key={row.family_id}>
-                <div className="mb-1 flex flex-wrap items-center gap-2">
-                  <span className="font-medium text-foreground">{row.family_name}</span>
-                  <Chip>{row.total}</Chip>
-                  <span className="text-xs text-muted-foreground">{t("adm_gender_mix", "{{f}} women, {{m}} men", { f: row.women, m: row.men })}</span>
-                </div>
-                <p className="text-xs text-muted-foreground">{t("fr_sections", "Sections")}: {spread(row.sections)}</p>
-                <p className="mb-2 text-xs text-muted-foreground">{t("fr_blocks", "Dorm blocks")}: {spread(row.dorm_blocks)}</p>
-                <ul className="grid gap-x-4 gap-y-0.5 text-sm text-foreground">
-                  {row.members.map((s) => <li key={s.id} className="truncate">{s.name}</li>)}
-                </ul>
-              </Card>
-            ))}
-          </div>
+          <Card className={busy ? "opacity-60" : ""}>
+            <h3 className="text-sm font-semibold text-foreground">{t("fr_fair_title", "How even are the families?")}</h3>
+            <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
+              <Stat n={range(result.rows.map((r) => r.total))} label={t("fr_fair_size", "students per family")} />
+              <Stat n={range(result.rows.map((r) => r.women))} label={t("fr_fair_women", "women per family")} />
+              <Stat n={range(result.rows.map((r) => r.men))} label={t("fr_fair_men", "men per family")} />
+              <Stat n={range(result.rows.map((r) => r.dorm_blocks.filter((b) => b.value !== null).length))} label={t("fr_fair_blocks", "dorm blocks per family")} />
+            </div>
+          </Card>
+
+          <Card className={busy ? "opacity-60" : ""}>
+            <p className="mb-2 text-xs text-muted-foreground">{t("fr_open_hint", "Open a family to see its students.")}</p>
+            <div className="divide-y divide-border">
+              {result.rows.map((row) => {
+                const unknownCount = row.members.filter((m) => m.gender !== "F" && m.gender !== "M").length;
+                const blocks = row.dorm_blocks.filter((b) => b.value !== null).length;
+                return (
+                  <details key={row.family_id} className="py-2">
+                    <summary className="flex cursor-pointer flex-wrap items-center gap-2 text-sm">
+                      <span className="font-medium text-foreground">{row.family_name}</span>
+                      <Chip>{row.total}</Chip>
+                      <Pill tone="women">{row.women} ♀</Pill>
+                      <Pill tone="men">{row.men} ♂</Pill>
+                      {unknownCount > 0 && <Pill tone="warn">{unknownCount} ?</Pill>}
+                      <span className="text-xs text-muted-foreground">{blocks} {t("fr_blocks_word", "blocks")}</span>
+                    </summary>
+                    <div className="mt-2 flex flex-wrap gap-1.5">
+                      {row.members.map((m) => <Pill key={m.id} tone={m.gender === "F" ? "women" : m.gender === "M" ? "men" : "warn"}>{m.name}</Pill>)}
+                    </div>
+                    <p className="mt-2 text-xs text-muted-foreground">{t("fr_sections", "Sections")}: {spread(row.sections)}</p>
+                    <p className="text-xs text-muted-foreground">{t("fr_blocks", "Dorm blocks")}: {spread(row.dorm_blocks)}</p>
+                  </details>
+                );
+              })}
+            </div>
+          </Card>
         </>
       )}
     </div>
