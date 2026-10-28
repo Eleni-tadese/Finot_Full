@@ -108,7 +108,7 @@ const DashboardLayout = () => {
             onClick={toggleMobileSidebar}
           />
           {/* Mobile Sidebar - 75% width max */}
-          <div className="fixed inset-y-0 left-0 z-50 w-[75vw] max-w-[280px] md:hidden">
+          <div className="fixed inset-y-0 left-0 z-50 h-[100dvh] w-[75vw] max-w-[280px] md:hidden">
             <DashboardSidebar
               collapsed={false}
               onToggle={toggleMobileSidebar}

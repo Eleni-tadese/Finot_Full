@@ -161,7 +161,7 @@ const DashboardSidebar = ({
     <aside
       className={`${className} ${
         collapsed ? "w-20" : "w-64"
-      } flex flex-col border-r border-white/10 bg-primary shadow-soft transition-all duration-300`}
+      } flex h-full max-h-[100dvh] min-h-0 flex-col border-r border-white/10 bg-primary shadow-soft transition-all duration-300`}
     >
       {/* Logo Header */}
       <div
@@ -191,7 +191,7 @@ const DashboardSidebar = ({
       </div>
 
       {/* Navigation Links */}
-      <nav className="flex-1 space-y-1 overflow-y-auto p-3">
+      <nav className="min-h-0 flex-1 space-y-1 overflow-y-auto overscroll-contain p-3">
         {navItems.map((item) => renderLink(item))}
 
         {isSuperAdmin && studentPages.length > 0 && (
