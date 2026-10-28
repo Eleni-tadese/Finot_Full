@@ -34,8 +34,9 @@ from django.db import transaction
 from django.utils import timezone
 from service.group_rules import GroupFullSerializer, assign_group_admin, group_blockers, release_service_admin
 from service.models import Event, Family, FamilyDistributionBatch, ServiceGroup
-from service.distribution_rules import family_count, suggest_ratios
-from service.services import build_auto_distribution_plan
+from service.distribution import FamilyInfo
+from service.distribution_rules import family_count, normalise_priority, place_remaining, plan_by_ratio, suggest_ratios
+from service.services import build_auto_distribution_plan, next_family_names, student_infos
 from service.services import (
     MAX_FAMILY_SIZE, apply_distribution, build_distribution_plan, get_filter_options,
     get_unassigned_freshers, undo_distribution,
@@ -960,6 +961,95 @@ class DistributionSetupView(FamilyConsoleView):
             "default_size": self.DEFAULT_SIZE,
             "families": families,
             "ratios": suggest_ratios(women, men, families, size),
+        })
+
+
+class DistributionPlanView(FamilyConsoleView):
+    """
+    POST families/distribution/plan/ : the preview with the Family Admin's rules for this year. Nothing is saved.
+    Body: size, female_per_family, male_per_family (ratio), section_mode and dorm_mode ("mix" / "together" /
+    "ignore"), priority (list of "section", "dorm", "gender", first counts most), families (optional: how many; default
+    the number the students make), place_remaining (true: also put the students the ratio left over into the
+    families that have room). New families are planned (negative temporary ids), the old ones are not touched.
+    """
+
+    MODES = ("mix", "together", "ignore")
+
+    @staticmethod
+    def _int(data, key, low, high, required=True):
+        raw = data.get(key)
+        if raw in (None, ""):
+            if required:
+                raise ValidationError({key: "This is needed."})
+            return None
+        try:
+            value = int(raw)
+        except (TypeError, ValueError):
+            raise ValidationError({key: "Must be a number."})
+        if not low <= value <= high:
+            raise ValidationError({key: f"Must be between {low} and {high}."})
+        return value
+
+    def post(self, request):
+        data = request.data
+        size = self._int(data, "size", 2, 100)
+        female = self._int(data, "female_per_family", 1, 99)
+        male = self._int(data, "male_per_family", 1, 99)
+        if female + male > size:
+            raise ValidationError({"female_per_family": f"{female} + {male} is more than the family size {size}."})
+        modes = {}
+        for key in ("section_mode", "dorm_mode"):
+            modes[key] = data.get(key) or "ignore"
+            if modes[key] not in self.MODES:
+                raise ValidationError({key: "Choose mix, together or ignore."})
+        try:
+            priority = normalise_priority(data.get("priority"))
+        except ValueError as exc:
+            raise ValidationError({"priority": str(exc)})
+
+        students = list(get_unassigned_freshers())
+        infos = student_infos(students)
+        count = self._int(data, "families", 1, 200, required=False) or family_count(len(infos), size)
+        if count == 0:
+            raise ValidationError({"detail": "There are no first-year students waiting for a family."})
+        names = next_family_names(count)
+        new_families = [{"temp_id": -(i + 1), "name": name} for i, name in enumerate(names)]
+        families = [FamilyInfo(f["temp_id"], f["name"]) for f in new_families]
+
+        plan = plan_by_ratio(infos, families, size, female, male, **modes, priority=priority)
+        if data.get("place_remaining") is True:
+            plan = place_remaining(plan, families, size, **modes, priority=priority)
+
+        def person(s):
+            return {"id": s.id, "name": s.name, "gender": s.gender, "section": s.section, "dorm_block": s.dorm_block}
+
+        def spread(members, attr):
+            counts = {}
+            for s in members:
+                counts[getattr(s, attr)] = counts.get(getattr(s, attr), 0) + 1
+            return [{"value": k, "count": counts[k]} for k in sorted(counts, key=lambda v: (v is None, v or 0))]
+
+        rows, pairs = [], []
+        for f in new_families:
+            members = plan.assignments[f["temp_id"]]
+            rows.append({
+                "family_id": f["temp_id"], "family_name": f["name"], "total": len(members),
+                "women": sum(1 for s in members if s.gender == "F"), "men": sum(1 for s in members if s.gender == "M"),
+                "sections": spread(members, "section"), "dorm_blocks": spread(members, "dorm_block"),
+                "members": [person(s) for s in members],
+            })
+            pairs.extend([s.id, f["temp_id"]] for s in members)
+        used = {r["family_id"] for r in rows if r["total"]}
+        return Response({
+            "rows": [r for r in rows if r["total"]],
+            "new_families": [f for f in new_families if f["temp_id"] in used],
+            "pairs": pairs,
+            "remaining": [dict(person(s), reason=reason) for s, reason in plan.unplaced],
+            "summary": {
+                "students": len(infos), "placed": len(pairs), "remaining": len(plan.unplaced),
+                "families": len(used), "size": size, "female_per_family": female, "male_per_family": male,
+                "section_mode": modes["section_mode"], "dorm_mode": modes["dorm_mode"], "priority": priority,
+            },
         })
 
 

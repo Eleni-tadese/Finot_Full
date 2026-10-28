@@ -24,6 +24,7 @@ urlpatterns = [
     path("families/<int:pk>/", v.FamilyDetailView.as_view()),
     path("families/distribution/", v.DistributionOverviewView.as_view()),
     path("families/distribution/setup/", v.DistributionSetupView.as_view()),
+    path("families/distribution/plan/", v.DistributionPlanView.as_view()),
     path("families/distribution/preview/", v.DistributionPreviewView.as_view()),
     path("families/distribution/auto-preview/", v.DistributionAutoPreviewView.as_view()),
     path("families/distribution/confirm/", v.DistributionConfirmView.as_view()),

@@ -44,6 +44,7 @@ Generated from the code (`manage.py spectacular`). For request and response shap
 | POST | `/api/admin-console/families/distribution/auto-preview/` | POST families/distribution/auto-preview/ : the system plans the families too (nothing is saved). |
 | POST | `/api/admin-console/families/distribution/batches/{id}/undo/` | api_admin_console_families_distribution_batches_undo_create |
 | POST | `/api/admin-console/families/distribution/confirm/` | api_admin_console_families_distribution_confirm_create |
+| POST | `/api/admin-console/families/distribution/plan/` | POST families/distribution/plan/ : the preview with the Family Admin's rules for this year. Nothing is saved. |
 | POST | `/api/admin-console/families/distribution/preview/` | api_admin_console_families_distribution_preview_create |
 | GET | `/api/admin-console/families/distribution/setup/` | GET families/distribution/setup/?size=10 : what the Family Admin needs before choosing the year's rules. |
 | GET | `/api/admin-console/families/people/` | GET families/people/?search= : name and email of active people, so a father or mother can be picked. |

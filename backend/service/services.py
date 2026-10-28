@@ -180,6 +180,9 @@ def build_distribution_plan(students, families):
     return plan, {f.id: f for f in families}, {u.id: u for u in students}
 
 
+student_infos = _student_infos  # public name for other modules
+
+
 def next_family_names(count):
     """'Family 4', 'Family 5', ... continuing after the highest number already used."""
     import re
