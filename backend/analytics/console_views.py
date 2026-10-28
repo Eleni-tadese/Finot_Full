@@ -942,9 +942,14 @@ class DistributionSetupView(FamilyConsoleView):
             raise ValidationError({"size": "Must be a number."})
         if not 2 <= size <= 100:
             raise ValidationError({"size": "A family has between 2 and 100 students."})
-        rows = list(get_unassigned_freshers().values_list("gender", "student_profile__section", "student_profile__dorm_block"))
-        women = sum(1 for g, _, _ in rows if g == "F")
-        men = sum(1 for g, _, _ in rows if g == "M")
+        rows = list(get_unassigned_freshers().values_list(
+            "gender", "student_profile__section", "student_profile__dorm_block", "student_profile__dorm_room"))
+        women = sum(1 for row in rows if row[0] == "F")
+        men = sum(1 for row in rows if row[0] == "M")
+        rooms = {}
+        for _, _, block, room in rows:
+            if block is not None and room is not None:
+                rooms[(block, room)] = rooms.get((block, room), 0) + 1
         families = family_count(len(rows), size)
 
         def spread(index):
@@ -961,6 +966,10 @@ class DistributionSetupView(FamilyConsoleView):
             "students": {"total": len(rows), "women": women, "men": men, "no_gender": len(rows) - women - men},
             "sections": spread(1),
             "dorm_blocks": spread(2),
+            "rooms": {
+                "students_with_room": sum(rooms.values()), "rooms": len(rooms),
+                "shared": sum(1 for n in rooms.values() if n > 1), "largest": max(rooms.values(), default=0),
+            },
             "size": size,
             "default_size": self.DEFAULT_SIZE,
             "families": families,
@@ -972,7 +981,7 @@ class DistributionPlanView(FamilyConsoleView):
     """
     POST families/distribution/plan/ : the preview with the Family Admin's rules for this year. Nothing is saved.
     Body: size, female_per_family, male_per_family (ratio), section_mode and dorm_mode ("mix" / "together" /
-    "ignore"), priority (list of "section", "dorm", "gender", first counts most), families (optional: how many; default
+    "ignore"), dorm_level ("room" = block + room number, the default, or "block"), priority (list of "section", "dorm", "gender", first counts most), families (optional: how many; default
     the number the students make), place_remaining (true: also put the students the ratio left over into the
     families that have room). New families are planned (negative temporary ids), the old ones are not touched.
     """
@@ -1006,6 +1015,9 @@ class DistributionPlanView(FamilyConsoleView):
             modes[key] = data.get(key) or "ignore"
             if modes[key] not in self.MODES:
                 raise ValidationError({key: "Choose mix, together or ignore."})
+        dorm_level = data.get("dorm_level") or "room"
+        if dorm_level not in ("room", "block"):
+            raise ValidationError({"dorm_level": "Choose room (block + room number) or block."})
         try:
             priority = normalise_priority(data.get("priority"))
         except ValueError as exc:
@@ -1020,9 +1032,9 @@ class DistributionPlanView(FamilyConsoleView):
         new_families = [{"temp_id": -(i + 1), "name": name} for i, name in enumerate(names)]
         families = [FamilyInfo(f["temp_id"], f["name"]) for f in new_families]
 
-        plan = plan_by_ratio(infos, families, size, female, male, **modes, priority=priority)
+        plan = plan_by_ratio(infos, families, size, female, male, **modes, priority=priority, dorm_level=dorm_level)
         if data.get("place_remaining") is True:
-            plan = place_remaining(plan, families, size, **modes, priority=priority)
+            plan = place_remaining(plan, families, size, **modes, priority=priority, dorm_level=dorm_level)
 
         def person(s):
             return {"id": s.id, "name": s.name, "gender": s.gender, "section": s.section, "dorm_block": s.dorm_block}
@@ -1052,7 +1064,8 @@ class DistributionPlanView(FamilyConsoleView):
             "summary": {
                 "students": len(infos), "placed": len(pairs), "remaining": len(plan.unplaced),
                 "families": len(used), "size": size, "female_per_family": female, "male_per_family": male,
-                "section_mode": modes["section_mode"], "dorm_mode": modes["dorm_mode"], "priority": priority,
+                "section_mode": modes["section_mode"], "dorm_mode": modes["dorm_mode"], "dorm_level": dorm_level,
+                "priority": priority,
             },
         })
 

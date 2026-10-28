@@ -156,3 +156,41 @@ def test_women_and_men_in_each_dorm_block_are_counted_separately():
     data = client_for(make_user("fam@finot.test", Role.FAMILY_ADMIN)).get(URL).json()
     by_block = {row["value"]: (row["women"], row["men"]) for row in data["dorm_blocks"]}
     assert by_block == {1: (3, 0), 2: (3, 0), 3: (0, 3), 4: (0, 3)}
+
+
+@pytest.mark.django_db
+class TestDormRoomsThroughTheApi:
+    def roommates(self):
+        # block 1, rooms 1..4 with 2 students each: women in rooms 1-2, men in rooms 3-4
+        for room, gender in ((1, "F"), (2, "F"), (3, "M"), (4, "M")):
+            for k in range(2):
+                u = make_user(f"r{room}{k}@finot.test", gender=gender, batch=1)
+                StudentProfile.objects.filter(user=u).update(
+                    batch_year=1, status=StudentProfile.IN_CAMPUS, dorm_block=1, dorm_room=room, section=1)
+
+    def test_setup_counts_rooms_and_shared_rooms(self):
+        self.roommates()
+        data = client_for(make_user("fam@finot.test", Role.FAMILY_ADMIN)).get(URL).json()
+        assert data["rooms"] == {"students_with_room": 8, "rooms": 4, "shared": 4, "largest": 2}
+
+    def test_mix_by_room_splits_roommates(self):
+        self.roommates()
+        admin = client_for(make_user("fam@finot.test", Role.FAMILY_ADMIN))
+        data = admin.post(PLAN, rules(size=4, female_per_family=2, male_per_family=2, dorm_mode="mix", dorm_level="room"), format="json").json()
+        assert data["summary"]["dorm_level"] == "room" and len(data["rows"]) == 2
+        for row in data["rows"]:
+            rooms = [m["name"][1] for m in row["members"]]  # names are r<room><k> T
+            assert len(rooms) == 4 and len(set(rooms)) == 4  # no two roommates in one family
+
+    def test_together_by_room_keeps_roommates_in_one_family(self):
+        self.roommates()
+        admin = client_for(make_user("fam@finot.test", Role.FAMILY_ADMIN))
+        data = admin.post(PLAN, rules(size=4, female_per_family=2, male_per_family=2, dorm_mode="together", dorm_level="room"), format="json").json()
+        for row in data["rows"]:
+            rooms = [m["name"][1] for m in row["members"]]
+            assert len(rooms) == 4 and len(set(rooms)) == 2  # two whole rooms per family
+
+    def test_a_wrong_dorm_level_is_refused(self):
+        self.roommates()
+        admin = client_for(make_user("fam@finot.test", Role.FAMILY_ADMIN))
+        assert admin.post(PLAN, rules(size=4, female_per_family=2, male_per_family=2, dorm_level="floor"), format="json").status_code == 400
