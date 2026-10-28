@@ -1155,12 +1155,14 @@ class DistributionConfirmView(FamilyConsoleView):
             Family.objects.filter(name__iexact=n).exists() for n in wanted
         ):
             raise ValidationError({"new_families": "A family with one of these names now exists. Run the preview again."})
+        # The family size chosen for the preview (the old screen sends none: then the old limit of 10 applies).
+        max_size = DistributionPlanView._int(request.data, "size", 2, 100, required=False) or MAX_FAMILY_SIZE
         # New families and their students are saved together: if nobody can be placed, no family is left behind.
         with transaction.atomic():
             made = {temp_id: Family.objects.create(name=name, gender=None).id for temp_id, name in new_families}
             real_pairs = [[student_id, made.get(family_id, family_id)] for student_id, family_id in pairs]
             # Every pair is re-checked (student free, family has room, gender fits) inside apply_distribution.
-            batch, applied, skipped = apply_distribution(real_pairs, user=request.user)
+            batch, applied, skipped = apply_distribution(real_pairs, user=request.user, max_size=max_size)
             if batch is None:
                 transaction.set_rollback(True)
             else:

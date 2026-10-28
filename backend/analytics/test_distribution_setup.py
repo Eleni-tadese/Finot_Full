@@ -97,3 +97,47 @@ class TestDistributionPlan:
     def test_nobody_waiting_is_a_clear_error_and_students_cannot_use_it(self):
         assert self.admin().post(PLAN, rules(), format="json").status_code == 400
         assert client_for(make_user("stu@finot.test", batch=2)).post(PLAN, rules(), format="json").status_code == 403
+
+
+CONFIRM = BASE + "families/distribution/confirm/"
+
+
+@pytest.mark.django_db
+class TestPlanThenConfirmThenUndo:
+    def test_a_family_size_above_10_is_saved_and_can_be_undone(self):
+        from service.models import Family, FamilyDistributionBatch, FamilyMembership
+
+        fresh(24, women=12)
+        admin = client_for(make_user("fam@finot.test", Role.FAMILY_ADMIN))
+        plan = admin.post(PLAN, rules(size=12, female_per_family=6, male_per_family=6), format="json").json()
+        assert len(plan["rows"]) == 2 and plan["remaining"] == []
+        assert Family.objects.count() == 0
+        done = admin.post(CONFIRM, {"pairs": plan["pairs"], "new_families": plan["new_families"], "size": 12}, format="json").json()
+        assert done["applied"] == 24 and done["skipped"] == [] and done["batch"]["student_count"] == 24
+        assert Family.objects.count() == 2 and FamilyMembership.objects.count() == 24
+        assert all(f.members.count() == 12 for f in Family.objects.all())
+        # Undo removes the memberships and the families this run made
+        batch = FamilyDistributionBatch.objects.get()
+        assert admin.post(f"{BASE}families/distribution/batches/{batch.id}/undo/").json() == {"removed": 24}
+        assert Family.objects.count() == 0 and FamilyMembership.objects.count() == 0
+
+    def test_without_a_size_the_old_limit_of_10_still_protects_the_old_screen(self):
+        fresh(24, women=12)
+        admin = client_for(make_user("fam@finot.test", Role.FAMILY_ADMIN))
+        plan = admin.post(PLAN, rules(size=12, female_per_family=6, male_per_family=6), format="json").json()
+        done = admin.post(CONFIRM, {"pairs": plan["pairs"], "new_families": plan["new_families"]}, format="json").json()
+        assert done["applied"] == 20 and len(done["skipped"]) == 4 and all("is full" in m for m in done["skipped"])
+
+    def test_a_student_who_got_a_family_meanwhile_is_skipped_not_duplicated(self):
+        from service.models import Family, FamilyMembership
+
+        fresh(20, women=10)
+        admin = client_for(make_user("fam@finot.test", Role.FAMILY_ADMIN))
+        plan = admin.post(PLAN, rules(), format="json").json()
+        taken = Family.objects.create(name="Elsewhere")
+        from django.contrib.auth import get_user_model
+
+        FamilyMembership.objects.create(family=taken, student=get_user_model().objects.get(pk=plan["pairs"][0][0]))
+        done = admin.post(CONFIRM, {"pairs": plan["pairs"], "new_families": plan["new_families"], "size": 10}, format="json").json()
+        assert done["applied"] == 19 and len(done["skipped"]) == 1 and "already in a family" in done["skipped"][0]
+        assert FamilyMembership.objects.count() == 20  # 19 new + the 1 that was already placed

@@ -220,7 +220,7 @@ def build_auto_distribution_plan(students):
     return plan, {f.id: f for f in existing}, new_families
 
 
-def apply_distribution(pairs, user=None):
+def apply_distribution(pairs, user=None, max_size=MAX_FAMILY_SIZE):
     """
     pairs: iterable of (student_id, family_id) from a confirmed preview.
     Re-checks every pair (student still unassigned, family still has room)
@@ -252,7 +252,7 @@ def apply_distribution(pairs, user=None):
                 skipped.append(f"{label}: only first-year students on campus are placed in families")
                 continue
             size = sizes.setdefault(family.id, family.members.count())
-            if size >= MAX_FAMILY_SIZE:
+            if size >= max_size:
                 skipped.append(f"{label}: {family.name} is full")
                 continue
             FamilyMembership.objects.create(family=family, student=student, batch=batch)
