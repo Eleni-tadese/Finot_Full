@@ -66,6 +66,14 @@ export default function ManageEmail() {
     }
   }
 
+  async function setWeekly(on: boolean) {
+    const res = await call<EmailStatus>('/api/admin-console/email/settings/', 'PATCH', { weekly_reminders_on: on });
+    if (res) {
+      setNote({ ok: true, text: t(on ? 'mng_wk_resumed' : 'mng_wk_paused') });
+      status.reload();
+    }
+  }
+
   if (status.loading && !status.data) {
     return (
       <Screen title={t('mng_sec_email')}>
@@ -121,6 +129,26 @@ export default function ManageEmail() {
           {t('mng_em_retry')}
         </AppText>
       </Pressable>
+
+      <Card style={styles.card}>
+        <AppText variant="label" color={brand.muted}>
+          {t('mng_wk_title')}
+        </AppText>
+        <View style={styles.chips}>
+          <Chip text={t(s.weekly_reminders_on ? 'mng_wk_on' : 'mng_wk_off')} tone={s.weekly_reminders_on ? 'green' : 'red'} />
+        </View>
+        <AppText variant="caption" color={brand.muted}>
+          {t('mng_wk_hint')}
+        </AppText>
+        <Pressable
+          style={[s.weekly_reminders_on ? styles.outline : styles.button, busy && styles.disabled]}
+          disabled={busy}
+          onPress={() => setWeekly(!s.weekly_reminders_on)}>
+          <AppText variant="bodyStrong" color={s.weekly_reminders_on ? brand.primary : '#ffffff'}>
+            {t(s.weekly_reminders_on ? 'mng_wk_pause' : 'mng_wk_resume')}
+          </AppText>
+        </Pressable>
+      </Card>
 
       <Card style={styles.card}>
         <AppText variant="label" color={brand.muted}>

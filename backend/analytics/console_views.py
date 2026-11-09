@@ -14,7 +14,7 @@ Everything here is Super Admin only. Mounted at /api/admin-console/.
     POST  families/distribution/confirm/        POST  families/distribution/batches/<id>/undo/
     GET   sms/settings/                         PATCH sms/settings/
     GET   sms/logs/?status=&page=
-    GET   email/settings/                       PATCH email/settings/  {daily_limit, test_notice}
+    GET   email/settings/                       PATCH email/settings/  {daily_limit, test_notice, weekly_reminders_on}
     GET   email/outbox/?status=&page=           POST  email/outbox/retry/   POST email/outbox/send/
 """
 from django.contrib.auth import get_user_model
@@ -1536,6 +1536,10 @@ class EmailSettingsView(ConsoleView):
             if not isinstance(notice, str) or len(notice) > 500:
                 raise ValidationError({"test_notice": "Must be a text of at most 500 characters."})
             config.test_notice = notice.strip()
+        if "weekly_reminders_on" in request.data:
+            if not isinstance(request.data["weekly_reminders_on"], bool):
+                raise ValidationError({"weekly_reminders_on": "Must be true or false."})
+            config.weekly_reminders_on = request.data["weekly_reminders_on"]
         config.save()
         return Response(counts())
 

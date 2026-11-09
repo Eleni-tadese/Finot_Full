@@ -83,6 +83,11 @@ const EmailOutboxPanel = () => {
     await adminApi.updateEmailSettings({ test_notice: notice });
     toast.success(t("adm_saved", "Saved."));
   });
+  const toggleWeekly = () => run(async () => {
+    const turnOn = !settings.weekly_reminders_on;
+    await adminApi.updateEmailSettings({ weekly_reminders_on: turnOn });
+    toast.success(turnOn ? t("adm_weekly_resumed", "The weekly reminder is on again.") : t("adm_weekly_paused", "The weekly reminder is paused."));
+  });
   const sendNow = () => run(async () => {
     await adminApi.sendEmailsNow();
     toast.success(t("adm_email_send_started", "Sending started. Refresh this page in a minute."));
@@ -114,6 +119,19 @@ const EmailOutboxPanel = () => {
             disabled={busy || !limitChanged || limit === "" || Number.isNaN(Number(limit))}
             className="btn-primary px-4 py-2 text-sm"
           >{t("save")}</button>
+        </div>
+
+        <hr className="my-5 border-border" />
+
+        <p className="block text-sm font-medium text-foreground">{t("adm_weekly_title", "Weekly donation reminder (Thursday)")}</p>
+        <p className="mb-2 text-xs text-muted-foreground">{t("adm_weekly_hint", "While it is paused, nobody gets the Thursday reminder: no app message, no push, no SMS and no email. Press Resume to send it again from the next Thursday.")}</p>
+        <div className="flex flex-wrap items-center gap-2">
+          {settings.weekly_reminders_on
+            ? <Chip tone="green">{t("adm_weekly_on", "Sending")}</Chip>
+            : <Chip tone="red">{t("adm_weekly_off", "Paused")}</Chip>}
+          <button onClick={toggleWeekly} disabled={busy} className={`${settings.weekly_reminders_on ? "btn-outline" : "btn-primary"} px-4 py-2 text-sm`}>
+            {settings.weekly_reminders_on ? t("adm_weekly_pause", "Pause") : t("adm_weekly_resume", "Resume")}
+          </button>
         </div>
 
         <hr className="my-5 border-border" />

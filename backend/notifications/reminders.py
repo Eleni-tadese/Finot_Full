@@ -121,6 +121,12 @@ def send_weekly_reminders(force=False, background_email=False):
     here and sent right away, or, with background_email=True (the web trigger), in a background thread so the
     request returns quickly. A row not sent within two days is skipped (the Thursday has passed).
     """
+    from notifications.models import EmailConfiguration
+
+    # The Super Admin switch (Messages > Email). It stops everything, also a forced run, so a paused reminder never goes out by mistake.
+    if not EmailConfiguration.get().weekly_reminders_on:
+        return {"status": "paused", "users": 0, "devices": 0, "emails": 0, "emails_sent": 0, "emails_waiting": 0, "reason": "the Super Admin switched the weekly reminder off"}
+
     if not force and already_sent_this_week():
         return {"status": "skipped", "users": 0, "devices": 0, "emails": 0, "emails_sent": 0, "emails_waiting": 0, "reason": "already sent in the last 6 days"}
 

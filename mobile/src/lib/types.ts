@@ -295,6 +295,7 @@ export type EmailStatus = {
   sent_today: number;
   remaining_today: number;
   test_notice: string;
+  weekly_reminders_on: boolean;
   waiting: number;
   sent: number;
   failed: number;

@@ -131,6 +131,10 @@ class EmailConfiguration(models.Model):
         max_length=500, blank=True,
         help_text="Shown in a box at the top of EVERY email while not empty, e.g. 'This is a test of Finot. Please ignore it.'",
     )
+    weekly_reminders_on = models.BooleanField(
+        default=True, db_default=True,
+        help_text="Super Admin switch: while off, the Thursday donation reminder is not sent at all (app message, push, SMS, email).",
+    )
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:

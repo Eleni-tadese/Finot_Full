@@ -217,3 +217,29 @@ class TestConsole:
         assert "only a test of Finot" in mailoutbox[0].alternatives[0][0] and "only a test of Finot" in mailoutbox[0].body
         assert c.patch(A + "email/settings/", {"test_notice": ""}, format="json").json()["test_notice"] == ""
         assert client_for(person("stu@x.test")).get(A + "email/settings/").status_code == 403
+
+
+@pytest.mark.django_db
+class TestWeeklySwitch:
+    def test_super_admin_can_pause_and_resume_the_weekly_reminder(self, boss, mailoutbox):
+        from notifications.reminders import send_weekly_reminders
+
+        c = client_for(boss)
+        person("w@x.test")
+        assert c.get(A + "email/settings/").json()["weekly_reminders_on"] is True
+
+        # pause: nothing goes out, not even a forced run, and no app message is created
+        assert c.patch(A + "email/settings/", {"weekly_reminders_on": False}, format="json").json()["weekly_reminders_on"] is False
+        result = send_weekly_reminders(force=True)
+        assert result["status"] == "paused" and result["emails"] == 0
+        assert not Notification.objects.exists() and not EmailOutbox.objects.exists()
+
+        # resume: it goes out again
+        assert c.patch(A + "email/settings/", {"weekly_reminders_on": True}, format="json").json()["weekly_reminders_on"] is True
+        assert send_weekly_reminders()["status"] == "sent"
+        assert EmailOutbox.objects.filter(kind=EmailOutbox.KIND_WEEKLY_DONATION).exists()
+
+    def test_the_switch_only_accepts_true_or_false_and_only_the_super_admin(self, boss):
+        c = client_for(boss)
+        assert c.patch(A + "email/settings/", {"weekly_reminders_on": "no"}, format="json").status_code == 400
+        assert client_for(person("s@x.test")).patch(A + "email/settings/", {"weekly_reminders_on": False}, format="json").status_code == 403

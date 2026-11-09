@@ -72,7 +72,7 @@ class SMSLogAdmin(ModelAdmin):
 class EmailConfigurationAdmin(ModelAdmin):
     """Normally edited on the website (Super Admin > Messages > Email); here for emergencies."""
     list_display = ('__str__', 'daily_limit', 'test_notice', 'updated_at')
-    fields = ('daily_limit', 'test_notice', 'updated_at')
+    fields = ('daily_limit', 'test_notice', 'weekly_reminders_on', 'updated_at')
     readonly_fields = ('updated_at',)
 
     def has_add_permission(self, request):

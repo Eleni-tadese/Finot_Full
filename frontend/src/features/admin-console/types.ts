@@ -265,6 +265,7 @@ export interface SmsSettings {
 export interface EmailSettings {
   daily_limit: number;
   test_notice: string; // shown at the top of every email while not empty
+  weekly_reminders_on: boolean; // Super Admin switch for the Thursday donation reminder
   sent_today: number;
   remaining_today: number;
   waiting: number;

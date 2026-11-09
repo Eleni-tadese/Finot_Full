@@ -148,7 +148,7 @@ def counts():
     today = sent_today()
     return {
         "daily_limit": limit, "sent_today": today, "remaining_today": max(limit - today, 0),
-        "test_notice": config.test_notice,
+        "test_notice": config.test_notice, "weekly_reminders_on": config.weekly_reminders_on,
         "waiting": by_status[EmailOutbox.WAITING] + by_status[EmailOutbox.SENDING],
         "sent": by_status[EmailOutbox.SENT], "failed": by_status[EmailOutbox.FAILED], "skipped": by_status[EmailOutbox.SKIPPED],
     }
