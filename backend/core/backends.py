@@ -1,5 +1,6 @@
 from django.contrib.auth import get_user_model
 from django.contrib.auth.backends import ModelBackend
+from django.core.exceptions import PermissionDenied
 
 User = get_user_model()
 
@@ -15,7 +16,10 @@ class EmailAuthenticationBackend(ModelBackend):
             try:
                 user = User.objects.get(username=username)
             except User.DoesNotExist:
-                return None
+                # No such account (a typo in the slip email is common). Refuse at once. Without this, Django goes on to
+                # the next backends and each one hashes the password at full strength (more than a second of CPU each,
+                # about 5 s on the free server), so a few typing mistakes could freeze the sign-in for everybody.
+                raise PermissionDenied
 
         if user.check_password(password) and self.user_can_authenticate(user):
             return user

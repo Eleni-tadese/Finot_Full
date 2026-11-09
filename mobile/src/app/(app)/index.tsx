@@ -143,6 +143,7 @@ export default function HomeScreen() {
         <Tile icon="qr-code-scanner" label={t('checkin_title')} onPress={() => router.push('/events/check-in')} />
         <Tile icon="notifications" label={t('notifications')} badge={count} onPress={() => router.push('/notifications')} />
         <Tile icon="volunteer-activism" label={t('donate')} onPress={() => router.push('/donate')} />
+        <Tile icon="groups" label={t('fam_title')} onPress={() => router.push('/family')} />
         <Tile icon="person" label={t('my_profile')} onPress={() => router.push('/profile')} />
       </View>
     </Screen>

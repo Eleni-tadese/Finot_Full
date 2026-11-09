@@ -334,3 +334,42 @@ export type PrivateQuestion = {
   answer_count: number;
   answers: { id: number; display_name: string; answer_body: string; created_at: string }[];
 };
+
+// GET /api/service/families/my-family/  (404 when the person has no family yet)
+export type FamilyPerson = { id: number; name: string; email: string | null; phone: string | null };
+export type FamilyChild = {
+  id: number;
+  name: string;
+  year: number | null;
+  department: string | null;
+  phone: string | null;
+  email?: string | null;
+  dorm_block?: number | null;
+  dorm_room?: number | null;
+  section?: number | null;
+  groups?: string[];
+  event_attendance?: { present: number; absent: number };
+  course_attendance?: { present: number; held: number; percentage: number | null };
+};
+export type FamilyMessage = {
+  id: number;
+  body: string;
+  created_at: string;
+  sender: string | null;
+  mine: boolean;
+  to_parents: boolean;
+  to: string | null;
+};
+export type MyFamily = {
+  id: number;
+  name: string;
+  religious_father: string;
+  member_count: number;
+  my_role: 'parent' | 'manager' | 'child';
+  father: FamilyPerson | null;
+  mother: FamilyPerson | null;
+  messages: FamilyMessage[];
+  can_send: boolean;
+  children: FamilyChild[]; // filled for a father, a mother or a manager
+  siblings: FamilyChild[]; // filled for a child
+};

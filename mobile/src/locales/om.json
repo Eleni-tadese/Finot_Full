@@ -321,5 +321,20 @@
   "usr_not_set": "Hin kaa'amne",
   "usr_year": "Waggaa barnootaa",
   "weekly_donation": "Gumaacha Torbee",
-  "welcome_back_simple": "Baga Nagaan Deebitan"
+  "welcome_back_simple": "Baga Nagaan Deebitan",
+  "fam_title": "Maatii koo",
+  "fam_none_yet": "Ammaaf maatii keessa hin jirtan. Geggeessitoonni yeroo isin kaa'an maatiin keessan as mul'ata.",
+  "fam_members_n": "Miseensota {{n}}",
+  "fam_confession_father": "Abbaa amantaa",
+  "fam_father": "Abbaa",
+  "fam_mother": "Haadha",
+  "fam_not_named": "Ammaaf hin muudamne",
+  "fam_children": "Ijoollee koo",
+  "fam_siblings": "Obboleeyyanii fi obboleettiwwan",
+  "fam_nobody": "Ammaaf namni hin jiru",
+  "fam_messages": "Ergaawwan maatii",
+  "fam_no_messages": "Ammaaf ergaan hin jiru",
+  "fam_you": "Isin",
+  "fam_year_n": "Waggaa {{n}}",
+  "fam_classes_pct": "Barnoota {{n}}%"
 }

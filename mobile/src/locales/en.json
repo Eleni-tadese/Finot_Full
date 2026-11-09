@@ -321,5 +321,20 @@
   "usr_not_set": "Not set",
   "usr_year": "Year of study",
   "weekly_donation": "Weekly Donation",
-  "welcome_back_simple": "Welcome Back"
+  "welcome_back_simple": "Welcome Back",
+  "fam_title": "My family",
+  "fam_none_yet": "You are not in a family yet. Your family will appear here when the leaders place you.",
+  "fam_members_n": "{{n}} members",
+  "fam_confession_father": "Father of confession",
+  "fam_father": "Father",
+  "fam_mother": "Mother",
+  "fam_not_named": "Not named yet",
+  "fam_children": "My children",
+  "fam_siblings": "Brothers and sisters",
+  "fam_nobody": "Nobody yet",
+  "fam_messages": "Family messages",
+  "fam_no_messages": "No messages yet",
+  "fam_you": "You",
+  "fam_year_n": "Year {{n}}",
+  "fam_classes_pct": "Classes {{n}}%"
 }

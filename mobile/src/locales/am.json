@@ -321,5 +321,20 @@
   "usr_not_set": "አልተሞላም",
   "usr_year": "የትምህርት ዓመት",
   "weekly_donation": "ሳምንታዊ መዋጮ",
-  "welcome_back_simple": "እንኳን ደህና መጡ"
+  "welcome_back_simple": "እንኳን ደህና መጡ",
+  "fam_title": "ቤተሰቤ",
+  "fam_none_yet": "እስካሁን በቤተሰብ ውስጥ አልተመደቡም። መሪዎች ሲመድቡዎት ቤተሰብዎ እዚህ ይታያል።",
+  "fam_members_n": "{{n}} አባላት",
+  "fam_confession_father": "የንስሐ አባት",
+  "fam_father": "አባት",
+  "fam_mother": "እናት",
+  "fam_not_named": "ገና አልተሰየሙም",
+  "fam_children": "ልጆቼ",
+  "fam_siblings": "ወንድሞችና እህቶች",
+  "fam_nobody": "እስካሁን ማንም የለም",
+  "fam_messages": "የቤተሰብ መልእክቶች",
+  "fam_no_messages": "እስካሁን መልእክት የለም",
+  "fam_you": "እርስዎ",
+  "fam_year_n": "ዓመት {{n}}",
+  "fam_classes_pct": "ክፍል {{n}}%"
 }

@@ -91,6 +91,17 @@ function RootNavigator() {
         <Stack.Screen name="(app)" />
         {/* The donation screens open on top of the tabs */}
         <Stack.Screen name="donate" />
+        {/* My family: opens on top of the tabs, with a back arrow */}
+        <Stack.Screen
+          name="family"
+          options={{
+            headerShown: true,
+            title: t('fam_title'),
+            headerStyle: { backgroundColor: brand.card },
+            headerTintColor: brand.primary,
+            headerShadowVisible: false,
+          }}
+        />
       </Stack.Protected>
 
       <Stack.Protected guard={!isSignedIn}>
